@@ -1,0 +1,295 @@
+{
+  "cookie_profile_used": "chrome:Profile 3",
+  "videos": [
+    {
+      "label": "official_announcement",
+      "id": "JbDVqLlLarY",
+      "url": "https://www.youtube.com/watch?v=JbDVqLlLarY",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_announcement",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'zh-Hans': HTTP Error 429: Too Many Requests\n"
+    },
+    {
+      "label": "official_gameplay_preview",
+      "id": "SARs48njusw",
+      "url": "https://www.youtube.com/watch?v=SARs48njusw",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_gameplay_preview",
+      "info_json": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_gameplay_preview/SARs48njusw.info.json",
+      "metadata_returncode": 0,
+      "metadata_stderr_tail": "",
+      "title": "Vampire Crawlers | Gameplay Preview Trailer | The Turbo Wildcard from Vampire Survivors",
+      "channel": "poncle - Vampire Survivors",
+      "duration": 66,
+      "duration_string": "1:06",
+      "upload_date": "20251216",
+      "view_count": 62866,
+      "like_count": 3038,
+      "comment_count_reported": 289,
+      "comments_collected": 289,
+      "subtitle_files": []
+    },
+    {
+      "label": "official_release_date",
+      "id": "jaAEKYGnxrA",
+      "url": "https://www.youtube.com/watch?v=jaAEKYGnxrA",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_release_date",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'en-zh-Hans': HTTP Error 429: Too Many Requests\n"
+    },
+    {
+      "label": "official_launch",
+      "id": "2uBGewEqOVg",
+      "url": "https://www.youtube.com/watch?v=2uBGewEqOVg",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_launch",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'en-zh-Hans': HTTP Error 429: Too Many Requests\n"
+    },
+    {
+      "label": "ign_gameplay_trailer",
+      "id": "N-2fBC8HQGg",
+      "url": "https://www.youtube.com/watch?v=N-2fBC8HQGg",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/ign_gameplay_trailer",
+      "info_json": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/ign_gameplay_trailer/N-2fBC8HQGg.info.json",
+      "metadata_returncode": 0,
+      "metadata_stderr_tail": "",
+      "title": "Vampire Crawlers: The Turbo Wildcard from Vampire Survivors - Official Gameplay Trailer",
+      "channel": "IGN",
+      "duration": 66,
+      "duration_string": "1:06",
+      "upload_date": "20251216",
+      "view_count": 98182,
+      "like_count": 1094,
+      "comment_count_reported": 61,
+      "comments_collected": 61,
+      "subtitle_files": []
+    },
+    {
+      "label": "gamespot_review",
+      "id": "mIWM2X7hGTY",
+      "url": "https://www.youtube.com/watch?v=mIWM2X7hGTY",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'zh-Hans': HTTP Error 429: Too Many Requests\n"
+    },
+    {
+      "label": "nintendolife_review",
+      "id": "VnCBHQE8QEk",
+      "url": "https://www.youtube.com/watch?v=VnCBHQE8QEk",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'zh-Hans': HTTP Error 429: Too Many Requests\n"
+    },
+    {
+      "label": "switchup_review",
+      "id": "W0oLVRffmiQ",
+      "url": "https://www.youtube.com/watch?v=W0oLVRffmiQ",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'zh-Hans': HTTP Error 429: Too Many Requests\n"
+    },
+    {
+      "label": "spiffing_brit_longplay",
+      "id": "7p5sDTjkug4",
+      "url": "https://www.youtube.com/watch?v=7p5sDTjkug4",
+      "metadata_dir": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay",
+      "info_json": null,
+      "metadata_returncode": 1,
+      "metadata_stderr_tail": "WARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nWARNING: The extractor specified to use impersonation for this download, but no impersonate target is available. If you encounter errors, then see  https://github.com/yt-dlp/yt-dlp#impersonation  for information on installing the required dependencies\nERROR: Unable to download video subtitles for 'zh-Hans': HTTP Error 429: Too Many Requests\n"
+    }
+  ],
+  "segments": [
+    {
+      "video_id": "JbDVqLlLarY",
+      "label": "official_announcement",
+      "segment": "first_person_and_cards",
+      "start": "00:00:10",
+      "end": "00:00:45",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_announcement/clips/JbDVqLlLarY_first_person_and_cards.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_announcement/clips/JbDVqLlLarY_first_person_and_cards_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "  \nframe= 1879 fps= 31 q=30.0 size=   13056KiB time=00:00:31.31 bitrate=3415.3kbits/s speed=0.518x elapsed=0:01:00.46    \nframe= 1888 fps= 31 q=32.0 size=   13056KiB time=00:00:31.46 bitrate=3399.0kbits/s speed=0.516x elapsed=0:01:00.96    \nframe= 1896 fps= 31 q=32.0 size=   13056KiB time=00:00:31.60 bitrate=3384.6kbits/s speed=0.514x elapsed=0:01:01.47    \nframe= 1907 fps= 31 q=30.0 size=   13056KiB time=00:00:31.78 bitrate=3365.1kbits/s speed=0.513x elapsed=0:01:01.97    \nframe= 1917 fps= 31 q=27.0 size=   13056KiB time=00:00:31.95 bitrate=3347.6kbits/s speed=0.511x elapsed=0:01:02.47    \nframe= 1928 fps= 31 q=32.0 size=   15616KiB time=00:00:32.13 bitrate=3981.1kbits/s speed=0.51x elapsed=0:01:02.98    \nframe= 1938 fps= 31 q=32.0 size=   15616KiB time=00:00:32.30 bitrate=3960.6kbits/s speed=0.509x elapsed=0:01:03.48    \nframe= 1950 fps= 30 q=32.0 size=   15616KiB time=00:00:32.50 bitrate=3936.2kbits/s speed=0.508x elapsed=0:01:03.98    \nframe= 1970 fps= 31 q=32.0 size=   15616KiB time=00:00:32.83 bitrate=3896.2kbits/s speed=0.509x elapsed=0:01:04.49    \nframe= 1993 fps= 31 q=21.0 size=   15616KiB time=00:00:33.21 bitrate=3851.3kbits/s speed=0.511x elapsed=0:01:04.99    \nframe= 2017 fps= 31 q=21.0 size=   15616KiB time=00:00:33.61 bitrate=3805.4kbits/s speed=0.513x elapsed=0:01:05.50    \nframe= 2038 fps= 31 q=32.0 size=   15616KiB time=00:00:33.96 bitrate=3766.2kbits/s speed=0.515x elapsed=0:01:06.00    \nframe= 2059 fps= 31 q=21.0 size=   16384KiB time=00:00:34.31 bitrate=3911.2kbits/s speed=0.516x elapsed=0:01:06.51    \nframe= 2076 fps= 31 q=32.0 size=   16384KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:07.01    \nframe= 2076 fps= 31 q=32.0 size=   16384KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:07.52    \n[out#0/webm @ 0xa1ac0c840] video:16431KiB audio:384KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.165824%\nframe= 2100 fps= 31 q=32.0 Lsize=   16843KiB time=00:00:35.00 bitrate=3942.1kbits/s speed=0.515x elapsed=0:01:07.96    \n"
+    },
+    {
+      "video_id": "SARs48njusw",
+      "label": "official_gameplay_preview",
+      "segment": "dungeon_hand_cards_combo",
+      "start": "00:00:05",
+      "end": "00:00:55",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_gameplay_preview/clips/SARs48njusw_dungeon_hand_cards_combo.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_gameplay_preview/clips/SARs48njusw_dungeon_hand_cards_combo_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": " \nframe= 2840 fps= 26 q=32.0 size=   32768KiB time=00:00:47.33 bitrate=5671.2kbits/s speed=0.429x elapsed=0:01:50.33    \nframe= 2851 fps= 26 q=30.0 size=   32768KiB time=00:00:47.51 bitrate=5649.3kbits/s speed=0.429x elapsed=0:01:50.83    \nframe= 2862 fps= 26 q=32.0 size=   32768KiB time=00:00:47.70 bitrate=5627.6kbits/s speed=0.428x elapsed=0:01:51.34    \nframe= 2872 fps= 26 q=32.0 size=   32768KiB time=00:00:47.86 bitrate=5608.0kbits/s speed=0.428x elapsed=0:01:51.84    \nframe= 2882 fps= 26 q=32.0 size=   32768KiB time=00:00:48.03 bitrate=5588.5kbits/s speed=0.428x elapsed=0:01:52.34    \nframe= 2892 fps= 26 q=32.0 size=   32768KiB time=00:00:48.20 bitrate=5569.2kbits/s speed=0.427x elapsed=0:01:52.85    \nframe= 2901 fps= 26 q=27.0 size=   32768KiB time=00:00:48.35 bitrate=5551.9kbits/s speed=0.427x elapsed=0:01:53.35    \nframe= 2911 fps= 26 q=30.0 size=   32768KiB time=00:00:48.51 bitrate=5532.9kbits/s speed=0.426x elapsed=0:01:53.85    \nframe= 2920 fps= 26 q=32.0 size=   32768KiB time=00:00:48.66 bitrate=5515.8kbits/s speed=0.426x elapsed=0:01:54.35    \nframe= 2930 fps= 26 q=32.0 size=   32768KiB time=00:00:48.83 bitrate=5497.0kbits/s speed=0.425x elapsed=0:01:54.86    \nframe= 2939 fps= 25 q=30.0 size=   32768KiB time=00:00:48.98 bitrate=5480.1kbits/s speed=0.425x elapsed=0:01:55.36    \nframe= 2952 fps= 25 q=32.0 size=   35072KiB time=00:00:49.20 bitrate=5839.6kbits/s speed=0.425x elapsed=0:01:55.87    \nframe= 2963 fps= 25 q=30.0 size=   35072KiB time=00:00:49.38 bitrate=5818.0kbits/s speed=0.424x elapsed=0:01:56.37    \nframe= 2976 fps= 25 q=32.0 size=   35072KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:56.88    \nframe= 2976 fps= 25 q=32.0 size=   35072KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:57.38    \n[out#0/webm @ 0x81c4d1bc0] video:34984KiB audio:552KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.112133%\nframe= 3000 fps= 26 q=32.0 Lsize=   35576KiB time=00:00:50.00 bitrate=5828.7kbits/s speed=0.426x elapsed=0:01:57.38    \n"
+    },
+    {
+      "video_id": "jaAEKYGnxrA",
+      "label": "official_release_date",
+      "segment": "montage_price_platform",
+      "start": "00:00:05",
+      "end": "00:00:45",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_release_date/clips/jaAEKYGnxrA_montage_price_platform.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_release_date/clips/jaAEKYGnxrA_montage_price_platform_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": " \nframe= 2184 fps= 33 q=32.0 size=   15360KiB time=00:00:36.40 bitrate=3456.8kbits/s speed=0.551x elapsed=0:01:06.03    \nframe= 2193 fps= 33 q=21.0 size=   15360KiB time=00:00:36.55 bitrate=3442.7kbits/s speed=0.549x elapsed=0:01:06.53    \nframe= 2206 fps= 33 q=32.0 size=   15360KiB time=00:00:36.76 bitrate=3422.4kbits/s speed=0.548x elapsed=0:01:07.04    \nframe= 2221 fps= 33 q=27.0 size=   15360KiB time=00:00:37.01 bitrate=3399.3kbits/s speed=0.548x elapsed=0:01:07.54    \nframe= 2239 fps= 33 q=30.0 size=   15360KiB time=00:00:37.31 bitrate=3371.9kbits/s speed=0.548x elapsed=0:01:08.05    \nframe= 2254 fps= 33 q=32.0 size=   15360KiB time=00:00:37.56 bitrate=3349.5kbits/s speed=0.548x elapsed=0:01:08.55    \nframe= 2270 fps= 33 q=32.0 size=   15360KiB time=00:00:37.83 bitrate=3325.9kbits/s speed=0.548x elapsed=0:01:09.05    \nframe= 2284 fps= 33 q=32.0 size=   15360KiB time=00:00:38.06 bitrate=3305.5kbits/s speed=0.547x elapsed=0:01:09.56    \nframe= 2304 fps= 33 q=32.0 size=   15360KiB time=00:00:38.40 bitrate=3276.8kbits/s speed=0.548x elapsed=0:01:10.06    \nframe= 2324 fps= 33 q=32.0 size=   16128KiB time=00:00:38.73 bitrate=3411.0kbits/s speed=0.549x elapsed=0:01:10.57    \nframe= 2337 fps= 33 q=21.0 size=   16128KiB time=00:00:38.95 bitrate=3392.1kbits/s speed=0.548x elapsed=0:01:11.07    \nframe= 2353 fps= 33 q=21.0 size=   16128KiB time=00:00:39.21 bitrate=3369.0kbits/s speed=0.548x elapsed=0:01:11.57    \nframe= 2368 fps= 33 q=32.0 size=   16128KiB time=00:00:39.46 bitrate=3347.6kbits/s speed=0.548x elapsed=0:01:12.08    \nframe= 2376 fps= 33 q=32.0 size=   16128KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:12.58    \nframe= 2376 fps= 33 q=32.0 size=   16128KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:13.09    \n[out#0/webm @ 0xb56414300] video:16327KiB audio:436KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.187723%\nframe= 2400 fps= 33 q=32.0 Lsize=   16795KiB time=00:00:40.00 bitrate=3439.6kbits/s speed=0.547x elapsed=0:01:13.11    \n"
+    },
+    {
+      "video_id": "2uBGewEqOVg",
+      "label": "official_launch",
+      "segment": "explore_combat_reward",
+      "start": "00:00:10",
+      "end": "00:00:58",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_launch/clips/2uBGewEqOVg_explore_combat_reward.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/official_launch/clips/2uBGewEqOVg_explore_combat_reward_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "x elapsed=0:01:40.80    \nframe= 2742 fps= 27 q=32.0 size=   30464KiB time=00:00:45.70 bitrate=5460.9kbits/s speed=0.451x elapsed=0:01:41.30    \nframe= 2753 fps= 27 q=21.0 size=   30464KiB time=00:00:45.88 bitrate=5439.0kbits/s speed=0.451x elapsed=0:01:41.81    \nframe= 2764 fps= 27 q=32.0 size=   30464KiB time=00:00:46.06 bitrate=5417.4kbits/s speed=0.45x elapsed=0:01:42.31    \nframe= 2774 fps= 27 q=32.0 size=   30464KiB time=00:00:46.23 bitrate=5397.9kbits/s speed=0.45x elapsed=0:01:42.81    \nframe= 2785 fps= 27 q=21.0 size=   30464KiB time=00:00:46.41 bitrate=5376.5kbits/s speed=0.449x elapsed=0:01:43.32    \nframe= 2792 fps= 27 q=32.0 size=   30464KiB time=00:00:46.53 bitrate=5363.1kbits/s speed=0.448x elapsed=0:01:43.82    \nframe= 2806 fps= 27 q=32.0 size=   30464KiB time=00:00:46.76 bitrate=5336.3kbits/s speed=0.448x elapsed=0:01:44.33    \nframe= 2812 fps= 27 q=32.0 size=   30464KiB time=00:00:46.86 bitrate=5324.9kbits/s speed=0.447x elapsed=0:01:44.83    \nframe= 2818 fps= 27 q=32.0 size=   31488KiB time=00:00:46.96 bitrate=5492.2kbits/s speed=0.446x elapsed=0:01:45.33    \nframe= 2829 fps= 27 q=27.0 size=   31488KiB time=00:00:47.15 bitrate=5470.8kbits/s speed=0.445x elapsed=0:01:45.84    \nframe= 2836 fps= 27 q=32.0 size=   31488KiB time=00:00:47.26 bitrate=5457.3kbits/s speed=0.444x elapsed=0:01:46.34    \nframe= 2846 fps= 27 q=32.0 size=   31488KiB time=00:00:47.43 bitrate=5438.2kbits/s speed=0.444x elapsed=0:01:46.85    \nframe= 2856 fps= 27 q=32.0 size=   31488KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:47.35    \nframe= 2856 fps= 26 q=32.0 size=   31488KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:47.86    \nframe= 2856 fps= 26 q=32.0 size=   31488KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:48.36    \n[out#0/webm @ 0xabc4100c0] video:31891KiB audio:546KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.117523%\nframe= 2880 fps= 27 q=32.0 Lsize=   32476KiB time=00:00:48.00 bitrate=5542.6kbits/s speed=0.442x elapsed=0:01:48.57    \n"
+    },
+    {
+      "video_id": "N-2fBC8HQGg",
+      "label": "ign_gameplay_trailer",
+      "segment": "gameplay_ui_reward",
+      "start": "00:00:08",
+      "end": "00:00:55",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/ign_gameplay_trailer/clips/N-2fBC8HQGg_gameplay_ui_reward.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/ign_gameplay_trailer/clips/N-2fBC8HQGg_gameplay_ui_reward_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": " 23 q=32.0 size=   29184KiB time=00:00:44.53 bitrate=5368.5kbits/s speed=0.381x elapsed=0:01:56.96    \nframe= 2681 fps= 23 q=21.0 size=   29184KiB time=00:00:44.68 bitrate=5350.4kbits/s speed=0.38x elapsed=0:01:57.46    \nframe= 2688 fps= 23 q=32.0 size=   29184KiB time=00:00:44.80 bitrate=5336.5kbits/s speed=0.38x elapsed=0:01:57.96    \nframe= 2698 fps= 23 q=32.0 size=   31232KiB time=00:00:44.96 bitrate=5689.8kbits/s speed=0.38x elapsed=0:01:58.47    \nframe= 2707 fps= 23 q=30.0 size=   31232KiB time=00:00:45.11 bitrate=5670.9kbits/s speed=0.379x elapsed=0:01:58.97    \nframe= 2716 fps= 23 q=32.0 size=   31232KiB time=00:00:45.26 bitrate=5652.1kbits/s speed=0.379x elapsed=0:01:59.48    \nframe= 2724 fps= 23 q=32.0 size=   31232KiB time=00:00:45.40 bitrate=5635.5kbits/s speed=0.378x elapsed=0:01:59.98    \nframe= 2733 fps= 23 q=27.0 size=   31232KiB time=00:00:45.55 bitrate=5617.0kbits/s speed=0.378x elapsed=0:02:00.49    \nframe= 2741 fps= 23 q=27.0 size=   31232KiB time=00:00:45.68 bitrate=5600.6kbits/s speed=0.378x elapsed=0:02:00.99    \nframe= 2749 fps= 23 q=21.0 size=   31232KiB time=00:00:45.81 bitrate=5584.3kbits/s speed=0.377x elapsed=0:02:01.50    \nframe= 2757 fps= 23 q=27.0 size=   31232KiB time=00:00:45.95 bitrate=5568.1kbits/s speed=0.377x elapsed=0:02:02.00    \nframe= 2767 fps= 23 q=30.0 size=   31232KiB time=00:00:46.11 bitrate=5547.9kbits/s speed=0.376x elapsed=0:02:02.51    \nframe= 2777 fps= 23 q=21.0 size=   31232KiB time=00:00:46.28 bitrate=5528.0kbits/s speed=0.376x elapsed=0:02:03.01    \nframe= 2788 fps= 23 q=32.0 size=   31232KiB time=00:00:46.46 bitrate=5506.2kbits/s speed=0.376x elapsed=0:02:03.51    \nframe= 2796 fps= 23 q=32.0 size=   31232KiB time=N/A bitrate=N/A speed=N/A elapsed=0:02:04.01    \n[out#0/webm @ 0xa82408300] video:32602KiB audio:518KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.113171%\nframe= 2820 fps= 23 q=32.0 Lsize=   33158KiB time=00:00:47.00 bitrate=5779.3kbits/s speed=0.378x elapsed=0:02:04.42    \n"
+    },
+    {
+      "video_id": "mIWM2X7hGTY",
+      "label": "gamespot_review",
+      "segment": "movement_rooms",
+      "start": "00:01:00",
+      "end": "00:01:18",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review/clips/mIWM2X7hGTY_movement_rooms.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review/clips/mIWM2X7hGTY_movement_rooms_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "elapsed=0:00:33.47    \nframe=  913 fps= 27 q=21.0 size=   12032KiB time=00:00:15.21 bitrate=6477.5kbits/s speed=0.448x elapsed=0:00:33.98    \nframe=  925 fps= 27 q=27.0 size=   12032KiB time=00:00:15.41 bitrate=6393.5kbits/s speed=0.447x elapsed=0:00:34.49    \nframe=  936 fps= 27 q=32.0 size=   12032KiB time=00:00:15.60 bitrate=6318.3kbits/s speed=0.446x elapsed=0:00:34.99    \nframe=  949 fps= 27 q=27.0 size=   12032KiB time=00:00:15.81 bitrate=6231.8kbits/s speed=0.446x elapsed=0:00:35.50    \nframe=  961 fps= 27 q=21.0 size=   12032KiB time=00:00:16.01 bitrate=6154.0kbits/s speed=0.445x elapsed=0:00:36.00    \nframe=  973 fps= 27 q=27.0 size=   12032KiB time=00:00:16.21 bitrate=6078.1kbits/s speed=0.444x elapsed=0:00:36.51    \nframe=  985 fps= 27 q=21.0 size=   12032KiB time=00:00:16.41 bitrate=6004.0kbits/s speed=0.443x elapsed=0:00:37.02    \nframe=  995 fps= 27 q=30.0 size=   12032KiB time=00:00:16.58 bitrate=5943.7kbits/s speed=0.442x elapsed=0:00:37.53    \nframe= 1015 fps= 27 q=30.0 size=   12032KiB time=00:00:16.91 bitrate=5826.6kbits/s speed=0.445x elapsed=0:00:38.04    \nframe= 1024 fps= 27 q=32.0 size=   12032KiB time=00:00:17.06 bitrate=5775.4kbits/s speed=0.443x elapsed=0:00:38.55    \nframe= 1035 fps= 26 q=21.0 size=   13568KiB time=00:00:17.25 bitrate=6443.4kbits/s speed=0.442x elapsed=0:00:39.06    \nframe= 1047 fps= 26 q=30.0 size=   13568KiB time=00:00:17.45 bitrate=6369.6kbits/s speed=0.441x elapsed=0:00:39.56    \nframe= 1056 fps= 26 q=32.0 size=   13568KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:40.07    \nframe= 1056 fps= 26 q=32.0 size=   13568KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:40.58    \nframe= 1056 fps= 26 q=32.0 size=   13568KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:41.09    \n[out#0/webm @ 0xc48461a40] video:14272KiB audio:211KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.102363%\nframe= 1080 fps= 26 q=32.0 Lsize=   14497KiB time=00:00:18.00 bitrate=6597.7kbits/s speed=0.438x elapsed=0:00:41.13    \n"
+    },
+    {
+      "video_id": "mIWM2X7hGTY",
+      "label": "gamespot_review",
+      "segment": "combat_ui",
+      "start": "00:02:00",
+      "end": "00:02:22",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review/clips/mIWM2X7hGTY_combat_ui.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review/clips/mIWM2X7hGTY_combat_ui_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "    \nframe= 1128 fps= 28 q=32.0 size=    6656KiB time=00:00:18.80 bitrate=2900.3kbits/s speed=0.469x elapsed=0:00:40.10    \nframe= 1144 fps= 28 q=32.0 size=    6656KiB time=00:00:19.06 bitrate=2859.8kbits/s speed=0.47x elapsed=0:00:40.60    \nframe= 1158 fps= 28 q=32.0 size=    7936KiB time=00:00:19.30 bitrate=3368.5kbits/s speed=0.469x elapsed=0:00:41.11    \nframe= 1176 fps= 28 q=32.0 size=    7936KiB time=00:00:19.60 bitrate=3316.9kbits/s speed=0.471x elapsed=0:00:41.62    \nframe= 1192 fps= 28 q=32.0 size=    7936KiB time=00:00:19.86 bitrate=3272.4kbits/s speed=0.471x elapsed=0:00:42.13    \nframe= 1202 fps= 28 q=32.0 size=    7936KiB time=00:00:20.03 bitrate=3245.2kbits/s speed=0.47x elapsed=0:00:42.64    \nframe= 1213 fps= 28 q=21.0 size=    7936KiB time=00:00:20.21 bitrate=3215.7kbits/s speed=0.469x elapsed=0:00:43.15    \nframe= 1222 fps= 28 q=32.0 size=    7936KiB time=00:00:20.36 bitrate=3192.1kbits/s speed=0.467x elapsed=0:00:43.65    \nframe= 1233 fps= 28 q=21.0 size=    7936KiB time=00:00:20.55 bitrate=3163.6kbits/s speed=0.465x elapsed=0:00:44.16    \nframe= 1246 fps= 28 q=32.0 size=    7936KiB time=00:00:20.76 bitrate=3130.6kbits/s speed=0.465x elapsed=0:00:44.67    \nframe= 1258 fps= 28 q=32.0 size=    7936KiB time=00:00:20.96 bitrate=3100.7kbits/s speed=0.464x elapsed=0:00:45.17    \nframe= 1272 fps= 28 q=32.0 size=    7936KiB time=00:00:21.20 bitrate=3066.6kbits/s speed=0.464x elapsed=0:00:45.68    \nframe= 1283 fps= 28 q=30.0 size=    8704KiB time=00:00:21.38 bitrate=3334.5kbits/s speed=0.463x elapsed=0:00:46.19    \nframe= 1296 fps= 28 q=32.0 size=    8704KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:46.70    \nframe= 1296 fps= 27 q=32.0 size=    8704KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:47.21    \n[out#0/webm @ 0x856c10180] video:9102KiB audio:258KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.189630%\nframe= 1320 fps= 28 q=32.0 Lsize=    9377KiB time=00:00:22.00 bitrate=3491.7kbits/s speed=0.463x elapsed=0:00:47.46    \n"
+    },
+    {
+      "video_id": "mIWM2X7hGTY",
+      "label": "gamespot_review",
+      "segment": "progression_build",
+      "start": "00:04:00",
+      "end": "00:04:24",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review/clips/mIWM2X7hGTY_progression_build.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/gamespot_review/clips/mIWM2X7hGTY_progression_build_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": " \nframe= 1276 fps= 27 q=32.0 size=    6656KiB time=00:00:21.26 bitrate=2563.9kbits/s speed=0.446x elapsed=0:00:47.71    \nframe= 1287 fps= 27 q=30.0 size=    9472KiB time=00:00:21.45 bitrate=3617.5kbits/s speed=0.445x elapsed=0:00:48.21    \nframe= 1299 fps= 27 q=30.0 size=    9472KiB time=00:00:21.65 bitrate=3584.0kbits/s speed=0.444x elapsed=0:00:48.72    \nframe= 1312 fps= 27 q=32.0 size=    9472KiB time=00:00:21.86 bitrate=3548.5kbits/s speed=0.444x elapsed=0:00:49.23    \nframe= 1322 fps= 27 q=32.0 size=    9472KiB time=00:00:22.03 bitrate=3521.7kbits/s speed=0.443x elapsed=0:00:49.73    \nframe= 1334 fps= 27 q=32.0 size=    9472KiB time=00:00:22.23 bitrate=3490.0kbits/s speed=0.443x elapsed=0:00:50.24    \nframe= 1347 fps= 27 q=30.0 size=    9472KiB time=00:00:22.45 bitrate=3456.3kbits/s speed=0.442x elapsed=0:00:50.74    \nframe= 1359 fps= 27 q=30.0 size=    9472KiB time=00:00:22.65 bitrate=3425.8kbits/s speed=0.442x elapsed=0:00:51.25    \nframe= 1368 fps= 26 q=32.0 size=    9472KiB time=00:00:22.80 bitrate=3403.3kbits/s speed=0.441x elapsed=0:00:51.75    \nframe= 1377 fps= 26 q=21.0 size=    9472KiB time=00:00:22.95 bitrate=3381.0kbits/s speed=0.439x elapsed=0:00:52.26    \nframe= 1390 fps= 26 q=32.0 size=    9472KiB time=00:00:23.16 bitrate=3349.4kbits/s speed=0.439x elapsed=0:00:52.77    \nframe= 1402 fps= 26 q=32.0 size=    9472KiB time=00:00:23.36 bitrate=3320.7kbits/s speed=0.439x elapsed=0:00:53.28    \nframe= 1412 fps= 26 q=32.0 size=   10496KiB time=00:00:23.53 bitrate=3653.7kbits/s speed=0.437x elapsed=0:00:53.79    \nframe= 1416 fps= 26 q=32.0 size=   10496KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:54.29    \nframe= 1416 fps= 26 q=32.0 size=   10496KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:54.79    \n[out#0/webm @ 0xa44c0c900] video:10820KiB audio:279KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.173699%\nframe= 1440 fps= 26 q=32.0 Lsize=   11119KiB time=00:00:24.00 bitrate=3795.1kbits/s speed=0.437x elapsed=0:00:54.92    \n"
+    },
+    {
+      "video_id": "VnCBHQE8QEk",
+      "label": "nintendolife_review",
+      "segment": "switch_readability",
+      "start": "00:00:30",
+      "end": "00:00:50",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review/clips/VnCBHQE8QEk_switch_readability.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review/clips/VnCBHQE8QEk_switch_readability_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "4    \nframe=  994 fps= 24 q=32.0 size=   11264KiB time=00:00:16.56 bitrate=5569.9kbits/s speed=0.404x elapsed=0:00:41.05    \nframe= 1011 fps= 24 q=30.0 size=   11264KiB time=00:00:16.85 bitrate=5476.2kbits/s speed=0.405x elapsed=0:00:41.55    \nframe= 1025 fps= 24 q=10.0 size=   11264KiB time=00:00:17.08 bitrate=5401.4kbits/s speed=0.406x elapsed=0:00:42.06    \nframe= 1045 fps= 25 q=21.0 size=   11776KiB time=00:00:17.41 bitrate=5538.9kbits/s speed=0.409x elapsed=0:00:42.57    \nframe= 1058 fps= 25 q=32.0 size=   11776KiB time=00:00:17.63 bitrate=5470.8kbits/s speed=0.409x elapsed=0:00:43.08    \nframe= 1071 fps= 25 q=30.0 size=   11776KiB time=00:00:17.85 bitrate=5404.4kbits/s speed=0.409x elapsed=0:00:43.58    \nframe= 1082 fps= 25 q=32.0 size=   11776KiB time=00:00:18.03 bitrate=5349.5kbits/s speed=0.409x elapsed=0:00:44.09    \nframe= 1096 fps= 25 q=32.0 size=   11776KiB time=00:00:18.26 bitrate=5281.1kbits/s speed=0.409x elapsed=0:00:44.60    \nframe= 1111 fps= 25 q=30.0 size=   11776KiB time=00:00:18.51 bitrate=5209.8kbits/s speed=0.41x elapsed=0:00:45.11    \nframe= 1124 fps= 25 q=32.0 size=   11776KiB time=00:00:18.73 bitrate=5149.6kbits/s speed=0.411x elapsed=0:00:45.62    \nframe= 1135 fps= 25 q=21.0 size=   11776KiB time=00:00:18.91 bitrate=5099.7kbits/s speed=0.41x elapsed=0:00:46.13    \nframe= 1146 fps= 25 q=32.0 size=   11776KiB time=00:00:19.10 bitrate=5050.7kbits/s speed=0.41x elapsed=0:00:46.63    \nframe= 1159 fps= 25 q=30.0 size=   12800KiB time=00:00:19.31 bitrate=5428.3kbits/s speed=0.41x elapsed=0:00:47.14    \nframe= 1175 fps= 25 q=30.0 size=   12800KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:47.65    \nframe= 1176 fps= 24 q=32.0 size=   12800KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:48.16    \n[out#0/webm @ 0xc0a554780] video:13040KiB audio:224KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.123481%\nframe= 1200 fps= 25 q=32.0 Lsize=   13281KiB time=00:00:20.00 bitrate=5439.7kbits/s speed=0.413x elapsed=0:00:48.42    \n"
+    },
+    {
+      "video_id": "VnCBHQE8QEk",
+      "label": "nintendolife_review",
+      "segment": "card_combat",
+      "start": "00:03:00",
+      "end": "00:03:24",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review/clips/VnCBHQE8QEk_card_combat.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review/clips/VnCBHQE8QEk_card_combat_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "   \nframe= 1233 fps= 28 q=21.0 size=    8704KiB time=00:00:20.55 bitrate=3469.7kbits/s speed=0.471x elapsed=0:00:43.67    \nframe= 1245 fps= 28 q=27.0 size=    8704KiB time=00:00:20.75 bitrate=3436.3kbits/s speed=0.47x elapsed=0:00:44.17    \nframe= 1258 fps= 28 q=32.0 size=    8704KiB time=00:00:20.96 bitrate=3400.8kbits/s speed=0.469x elapsed=0:00:44.68    \nframe= 1271 fps= 28 q=30.0 size=    8704KiB time=00:00:21.18 bitrate=3366.0kbits/s speed=0.469x elapsed=0:00:45.19    \nframe= 1282 fps= 28 q=32.0 size=    9728KiB time=00:00:21.36 bitrate=3729.7kbits/s speed=0.468x elapsed=0:00:45.70    \nframe= 1298 fps= 28 q=32.0 size=    9728KiB time=00:00:21.63 bitrate=3683.7kbits/s speed=0.468x elapsed=0:00:46.21    \nframe= 1312 fps= 28 q=32.0 size=    9728KiB time=00:00:21.86 bitrate=3644.4kbits/s speed=0.468x elapsed=0:00:46.72    \nframe= 1327 fps= 28 q=30.0 size=    9728KiB time=00:00:22.11 bitrate=3603.2kbits/s speed=0.468x elapsed=0:00:47.23    \nframe= 1342 fps= 28 q=32.0 size=    9728KiB time=00:00:22.36 bitrate=3563.0kbits/s speed=0.468x elapsed=0:00:47.74    \nframe= 1357 fps= 28 q=27.0 size=    9728KiB time=00:00:22.61 bitrate=3523.6kbits/s speed=0.469x elapsed=0:00:48.25    \nframe= 1373 fps= 28 q=27.0 size=    9728KiB time=00:00:22.88 bitrate=3482.5kbits/s speed=0.469x elapsed=0:00:48.75    \nframe= 1389 fps= 28 q=27.0 size=    9728KiB time=00:00:23.15 bitrate=3442.4kbits/s speed=0.47x elapsed=0:00:49.26    \nframe= 1406 fps= 28 q=32.0 size=    9728KiB time=00:00:23.43 bitrate=3400.8kbits/s speed=0.471x elapsed=0:00:49.76    \nframe= 1416 fps= 28 q=32.0 size=   10752KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:50.27    \nframe= 1416 fps= 28 q=32.0 size=   10752KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:50.78    \n[out#0/webm @ 0x762408480] video:10679KiB audio:284KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.176451%\nframe= 1440 fps= 28 q=32.0 Lsize=   10983KiB time=00:00:24.00 bitrate=3748.7kbits/s speed=0.472x elapsed=0:00:50.83    \n"
+    },
+    {
+      "video_id": "VnCBHQE8QEk",
+      "label": "nintendolife_review",
+      "segment": "progression",
+      "start": "00:05:00",
+      "end": "00:05:24",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review/clips/VnCBHQE8QEk_progression.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/nintendolife_review/clips/VnCBHQE8QEk_progression_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "  \nframe= 1201 fps= 24 q=21.0 size=    9728KiB time=00:00:20.01 bitrate=3981.3kbits/s speed=0.403x elapsed=0:00:49.72    \nframe= 1215 fps= 24 q=30.0 size=    9728KiB time=00:00:20.25 bitrate=3935.4kbits/s speed=0.403x elapsed=0:00:50.23    \nframe= 1230 fps= 24 q=32.0 size=    9728KiB time=00:00:20.50 bitrate=3887.4kbits/s speed=0.404x elapsed=0:00:50.74    \nframe= 1245 fps= 24 q=27.0 size=    9728KiB time=00:00:20.75 bitrate=3840.6kbits/s speed=0.405x elapsed=0:00:51.25    \nframe= 1259 fps= 24 q=30.0 size=    9728KiB time=00:00:20.98 bitrate=3797.9kbits/s speed=0.405x elapsed=0:00:51.75    \nframe= 1274 fps= 24 q=32.0 size=    9728KiB time=00:00:21.23 bitrate=3753.1kbits/s speed=0.406x elapsed=0:00:52.26    \nframe= 1290 fps= 24 q=32.0 size=   10240KiB time=00:00:21.50 bitrate=3901.7kbits/s speed=0.407x elapsed=0:00:52.77    \nframe= 1309 fps= 25 q=27.0 size=   10240KiB time=00:00:21.81 bitrate=3845.0kbits/s speed=0.41x elapsed=0:00:53.27    \nframe= 1327 fps= 25 q=30.0 size=   10240KiB time=00:00:22.11 bitrate=3792.9kbits/s speed=0.411x elapsed=0:00:53.77    \nframe= 1345 fps= 25 q=21.0 size=   10240KiB time=00:00:22.41 bitrate=3742.1kbits/s speed=0.413x elapsed=0:00:54.28    \nframe= 1364 fps= 25 q=32.0 size=   10240KiB time=00:00:22.73 bitrate=3690.0kbits/s speed=0.415x elapsed=0:00:54.78    \nframe= 1383 fps= 25 q=30.0 size=   10240KiB time=00:00:23.05 bitrate=3639.3kbits/s speed=0.417x elapsed=0:00:55.29    \nframe= 1401 fps= 25 q=21.0 size=   10240KiB time=00:00:23.35 bitrate=3592.6kbits/s speed=0.418x elapsed=0:00:55.80    \nframe= 1416 fps= 25 q=32.0 size=   10496KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:56.31    \nframe= 1416 fps= 25 q=32.0 size=   10496KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:56.82    \n[out#0/webm @ 0x7fc481680] video:10556KiB audio:281KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.178346%\nframe= 1440 fps= 25 q=32.0 Lsize=   10856KiB time=00:00:24.00 bitrate=3705.6kbits/s speed=0.422x elapsed=0:00:56.87    \n"
+    },
+    {
+      "video_id": "W0oLVRffmiQ",
+      "label": "switchup_review",
+      "segment": "performance_ui",
+      "start": "00:00:30",
+      "end": "00:00:55",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review/clips/W0oLVRffmiQ_performance_ui.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review/clips/W0oLVRffmiQ_performance_ui_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": " q=30.0 size=   18688KiB time=00:00:21.71 bitrate=7049.5kbits/s speed=0.415x elapsed=0:00:52.27    \nframe= 1313 fps= 25 q=21.0 size=   18688KiB time=00:00:21.88 bitrate=6995.8kbits/s speed=0.415x elapsed=0:00:52.78    \nframe= 1328 fps= 25 q=32.0 size=   18688KiB time=00:00:22.13 bitrate=6916.8kbits/s speed=0.415x elapsed=0:00:53.28    \nframe= 1342 fps= 25 q=32.0 size=   18688KiB time=00:00:22.36 bitrate=6844.7kbits/s speed=0.416x elapsed=0:00:53.79    \nframe= 1355 fps= 25 q=30.0 size=   18688KiB time=00:00:22.58 bitrate=6779.0kbits/s speed=0.416x elapsed=0:00:54.30    \nframe= 1368 fps= 25 q=32.0 size=   18688KiB time=00:00:22.80 bitrate=6714.6kbits/s speed=0.416x elapsed=0:00:54.81    \nframe= 1380 fps= 25 q=32.0 size=   18688KiB time=00:00:23.00 bitrate=6656.2kbits/s speed=0.416x elapsed=0:00:55.31    \nframe= 1392 fps= 25 q=32.0 size=   18688KiB time=00:00:23.20 bitrate=6598.8kbits/s speed=0.416x elapsed=0:00:55.82    \nframe= 1405 fps= 25 q=27.0 size=   18688KiB time=00:00:23.41 bitrate=6537.7kbits/s speed=0.416x elapsed=0:00:56.33    \nframe= 1417 fps= 25 q=21.0 size=   20224KiB time=00:00:23.61 bitrate=7015.2kbits/s speed=0.415x elapsed=0:00:56.84    \nframe= 1430 fps= 25 q=32.0 size=   20224KiB time=00:00:23.83 bitrate=6951.4kbits/s speed=0.416x elapsed=0:00:57.34    \nframe= 1441 fps= 25 q=21.0 size=   20224KiB time=00:00:24.01 bitrate=6898.3kbits/s speed=0.415x elapsed=0:00:57.85    \nframe= 1456 fps= 25 q=32.0 size=   20224KiB time=00:00:24.26 bitrate=6827.3kbits/s speed=0.416x elapsed=0:00:58.36    \nframe= 1468 fps= 25 q=32.0 size=   20224KiB time=00:00:24.46 bitrate=6771.5kbits/s speed=0.416x elapsed=0:00:58.87    \nframe= 1476 fps= 25 q=32.0 size=   20224KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:59.38    \n[out#0/webm @ 0x9fccd5b00] video:20970KiB audio:234KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.096165%\nframe= 1500 fps= 25 q=32.0 Lsize=   21225KiB time=00:00:25.00 bitrate=6955.1kbits/s speed=0.418x elapsed=0:00:59.80    \n"
+    },
+    {
+      "video_id": "W0oLVRffmiQ",
+      "label": "switchup_review",
+      "segment": "combat_progression",
+      "start": "00:02:00",
+      "end": "00:02:28",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review/clips/W0oLVRffmiQ_combat_progression.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review/clips/W0oLVRffmiQ_combat_progression_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "    \nframe= 1487 fps= 34 q=30.0 size=    4864KiB time=00:00:24.78 bitrate=1607.8kbits/s speed=0.561x elapsed=0:00:44.16    \nframe= 1501 fps= 34 q=27.0 size=    4864KiB time=00:00:25.01 bitrate=1592.8kbits/s speed=0.56x elapsed=0:00:44.66    \nframe= 1515 fps= 34 q=30.0 size=    4864KiB time=00:00:25.25 bitrate=1578.1kbits/s speed=0.559x elapsed=0:00:45.17    \nframe= 1528 fps= 33 q=32.0 size=    4864KiB time=00:00:25.46 bitrate=1564.6kbits/s speed=0.558x elapsed=0:00:45.67    \nframe= 1543 fps= 33 q=30.0 size=    5632KiB time=00:00:25.71 bitrate=1794.1kbits/s speed=0.557x elapsed=0:00:46.18    \nframe= 1555 fps= 33 q=30.0 size=    5632KiB time=00:00:25.91 bitrate=1780.2kbits/s speed=0.555x elapsed=0:00:46.69    \nframe= 1568 fps= 33 q=32.0 size=    5632KiB time=00:00:26.13 bitrate=1765.5kbits/s speed=0.554x elapsed=0:00:47.20    \nframe= 1581 fps= 33 q=27.0 size=    5632KiB time=00:00:26.35 bitrate=1750.9kbits/s speed=0.552x elapsed=0:00:47.71    \nframe= 1595 fps= 33 q=30.0 size=    5632KiB time=00:00:26.58 bitrate=1735.6kbits/s speed=0.551x elapsed=0:00:48.21    \nframe= 1608 fps= 33 q=32.0 size=    5632KiB time=00:00:26.80 bitrate=1721.5kbits/s speed=0.55x elapsed=0:00:48.72    \nframe= 1621 fps= 33 q=27.0 size=    5632KiB time=00:00:27.01 bitrate=1707.7kbits/s speed=0.549x elapsed=0:00:49.22    \nframe= 1635 fps= 33 q=30.0 size=    5632KiB time=00:00:27.25 bitrate=1693.1kbits/s speed=0.548x elapsed=0:00:49.73    \nframe= 1648 fps= 33 q=32.0 size=    5632KiB time=00:00:27.46 bitrate=1679.8kbits/s speed=0.547x elapsed=0:00:50.24    \nframe= 1656 fps= 33 q=32.0 size=    5632KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:50.75    \nframe= 1656 fps= 32 q=32.0 size=    5632KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:51.26    \n[out#0/webm @ 0xba0410300] video:6223KiB audio:263KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.340782%\nframe= 1680 fps= 33 q=32.0 Lsize=    6508KiB time=00:00:28.00 bitrate=1904.1kbits/s speed=0.545x elapsed=0:00:51.38    \n"
+    },
+    {
+      "video_id": "W0oLVRffmiQ",
+      "label": "switchup_review",
+      "segment": "shop_upgrade",
+      "start": "00:04:30",
+      "end": "00:04:55",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review/clips/W0oLVRffmiQ_shop_upgrade.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/switchup_review/clips/W0oLVRffmiQ_shop_upgrade_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "   \nframe= 1340 fps= 25 q=32.0 size=    8448KiB time=00:00:22.33 bitrate=3098.8kbits/s speed=0.42x elapsed=0:00:53.23    \nframe= 1352 fps= 25 q=32.0 size=    8448KiB time=00:00:22.53 bitrate=3071.3kbits/s speed=0.419x elapsed=0:00:53.74    \nframe= 1364 fps= 25 q=32.0 size=    8448KiB time=00:00:22.73 bitrate=3044.3kbits/s speed=0.419x elapsed=0:00:54.24    \nframe= 1375 fps= 25 q=30.0 size=    8448KiB time=00:00:22.91 bitrate=3019.9kbits/s speed=0.418x elapsed=0:00:54.75    \nframe= 1385 fps= 25 q=21.0 size=    8448KiB time=00:00:23.08 bitrate=2998.1kbits/s speed=0.418x elapsed=0:00:55.26    \nframe= 1394 fps= 25 q=32.0 size=    8448KiB time=00:00:23.23 bitrate=2978.7kbits/s speed=0.417x elapsed=0:00:55.77    \nframe= 1404 fps= 25 q=32.0 size=    8448KiB time=00:00:23.40 bitrate=2957.5kbits/s speed=0.416x elapsed=0:00:56.28    \nframe= 1415 fps= 25 q=30.0 size=    9216KiB time=00:00:23.58 bitrate=3201.3kbits/s speed=0.415x elapsed=0:00:56.79    \nframe= 1427 fps= 25 q=30.0 size=    9216KiB time=00:00:23.78 bitrate=3174.4kbits/s speed=0.415x elapsed=0:00:57.30    \nframe= 1437 fps= 25 q=27.0 size=    9216KiB time=00:00:23.95 bitrate=3152.3kbits/s speed=0.414x elapsed=0:00:57.81    \nframe= 1448 fps= 25 q=32.0 size=    9216KiB time=00:00:24.13 bitrate=3128.3kbits/s speed=0.414x elapsed=0:00:58.31    \nframe= 1458 fps= 25 q=32.0 size=    9216KiB time=00:00:24.30 bitrate=3106.9kbits/s speed=0.413x elapsed=0:00:58.81    \nframe= 1470 fps= 25 q=32.0 size=    9216KiB time=00:00:24.50 bitrate=3081.5kbits/s speed=0.413x elapsed=0:00:59.32    \nframe= 1476 fps= 25 q=32.0 size=    9216KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:59.83    \nframe= 1476 fps= 24 q=32.0 size=    9216KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:00.34    \n[out#0/webm @ 0x78a4a5a40] video:9621KiB audio:234KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.203844%\nframe= 1500 fps= 25 q=32.0 Lsize=    9876KiB time=00:00:25.00 bitrate=3236.0kbits/s speed=0.412x elapsed=0:01:00.63    \n"
+    },
+    {
+      "video_id": "7p5sDTjkug4",
+      "label": "spiffing_brit_longplay",
+      "segment": "early_loop",
+      "start": "00:05:00",
+      "end": "00:05:28",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay/clips/7p5sDTjkug4_early_loop.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay/clips/7p5sDTjkug4_early_loop_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "24 q=32.0 size=    8960KiB time=00:00:23.86 bitrate=3075.4kbits/s speed=0.406x elapsed=0:00:58.83    \nframe= 1453 fps= 24 q=27.0 size=    8960KiB time=00:00:24.21 bitrate=3031.0kbits/s speed=0.408x elapsed=0:00:59.34    \nframe= 1472 fps= 25 q=32.0 size=    8960KiB time=00:00:24.53 bitrate=2991.9kbits/s speed=0.41x elapsed=0:00:59.84    \nframe= 1492 fps= 25 q=32.0 size=    8960KiB time=00:00:24.86 bitrate=2951.8kbits/s speed=0.412x elapsed=0:01:00.35    \nframe= 1503 fps= 25 q=30.0 size=    8960KiB time=00:00:25.05 bitrate=2930.2kbits/s speed=0.412x elapsed=0:01:00.85    \nframe= 1515 fps= 25 q=30.0 size=    8960KiB time=00:00:25.25 bitrate=2906.9kbits/s speed=0.411x elapsed=0:01:01.36    \nframe= 1529 fps= 25 q=21.0 size=    8960KiB time=00:00:25.48 bitrate=2880.3kbits/s speed=0.412x elapsed=0:01:01.87    \nframe= 1545 fps= 25 q=21.0 size=    9984KiB time=00:00:25.75 bitrate=3176.3kbits/s speed=0.413x elapsed=0:01:02.38    \nframe= 1565 fps= 25 q=27.0 size=    9984KiB time=00:00:26.08 bitrate=3135.7kbits/s speed=0.415x elapsed=0:01:02.89    \nframe= 1583 fps= 25 q=30.0 size=    9984KiB time=00:00:26.38 bitrate=3100.0kbits/s speed=0.416x elapsed=0:01:03.40    \nframe= 1603 fps= 25 q=30.0 size=    9984KiB time=00:00:26.71 bitrate=3061.3kbits/s speed=0.418x elapsed=0:01:03.91    \nframe= 1621 fps= 25 q=27.0 size=    9984KiB time=00:00:27.01 bitrate=3027.4kbits/s speed=0.419x elapsed=0:01:04.41    \nframe= 1636 fps= 25 q=32.0 size=    9984KiB time=00:00:27.26 bitrate=2999.6kbits/s speed=0.42x elapsed=0:01:04.92    \nframe= 1652 fps= 25 q=32.0 size=    9984KiB time=00:00:27.53 bitrate=2970.5kbits/s speed=0.421x elapsed=0:01:05.42    \nframe= 1656 fps= 25 q=32.0 size=    9984KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:05.92    \n[out#0/webm @ 0xc66559a40] video:10654KiB audio:356KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.203215%\nframe= 1680 fps= 25 q=32.0 Lsize=   11032KiB time=00:00:28.00 bitrate=3227.8kbits/s speed=0.422x elapsed=0:01:06.35    \n"
+    },
+    {
+      "video_id": "7p5sDTjkug4",
+      "label": "spiffing_brit_longplay",
+      "segment": "build_breakpoint",
+      "start": "00:10:00",
+      "end": "00:10:30",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay/clips/7p5sDTjkug4_build_breakpoint.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay/clips/7p5sDTjkug4_build_breakpoint_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": "   \nframe= 1551 fps= 28 q=30.0 size=    8704KiB time=00:00:25.85 bitrate=2758.3kbits/s speed=0.459x elapsed=0:00:56.31    \nframe= 1575 fps= 28 q=30.0 size=    8704KiB time=00:00:26.25 bitrate=2716.3kbits/s speed=0.462x elapsed=0:00:56.82    \nframe= 1596 fps= 28 q=32.0 size=    8704KiB time=00:00:26.60 bitrate=2680.6kbits/s speed=0.464x elapsed=0:00:57.33    \nframe= 1608 fps= 28 q=32.0 size=    8704KiB time=00:00:26.80 bitrate=2660.6kbits/s speed=0.463x elapsed=0:00:57.84    \nframe= 1624 fps= 28 q=32.0 size=    8704KiB time=00:00:27.06 bitrate=2634.4kbits/s speed=0.464x elapsed=0:00:58.34    \nframe= 1636 fps= 28 q=32.0 size=    8704KiB time=00:00:27.26 bitrate=2615.0kbits/s speed=0.463x elapsed=0:00:58.85    \nframe= 1648 fps= 28 q=32.0 size=    8704KiB time=00:00:27.46 bitrate=2596.0kbits/s speed=0.463x elapsed=0:00:59.36    \nframe= 1662 fps= 28 q=32.0 size=    8704KiB time=00:00:27.70 bitrate=2574.1kbits/s speed=0.463x elapsed=0:00:59.86    \nframe= 1677 fps= 28 q=27.0 size=    9216KiB time=00:00:27.95 bitrate=2701.2kbits/s speed=0.463x elapsed=0:01:00.37    \nframe= 1697 fps= 28 q=21.0 size=    9216KiB time=00:00:28.28 bitrate=2669.3kbits/s speed=0.465x elapsed=0:01:00.87    \nframe= 1715 fps= 28 q=21.0 size=    9216KiB time=00:00:28.58 bitrate=2641.3kbits/s speed=0.466x elapsed=0:01:01.38    \nframe= 1736 fps= 28 q=32.0 size=    9216KiB time=00:00:28.93 bitrate=2609.4kbits/s speed=0.467x elapsed=0:01:01.89    \nframe= 1756 fps= 28 q=32.0 size=    9216KiB time=00:00:29.26 bitrate=2579.6kbits/s speed=0.469x elapsed=0:01:02.39    \nframe= 1773 fps= 28 q=27.0 size=    9216KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:02.90    \nframe= 1776 fps= 28 q=32.0 size=    9216KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:03.41    \n[out#0/webm @ 0xba8410180] video:9846KiB audio:393KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.231927%\nframe= 1800 fps= 28 q=32.0 Lsize=   10263KiB time=00:00:30.00 bitrate=2802.5kbits/s speed=0.47x elapsed=0:01:03.78    \n"
+    },
+    {
+      "video_id": "7p5sDTjkug4",
+      "label": "spiffing_brit_longplay",
+      "segment": "late_pressure",
+      "start": "00:20:00",
+      "end": "00:20:30",
+      "clip_path": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay/clips/7p5sDTjkug4_late_pressure.webm",
+      "contact_sheet": "/Users/roc/.codex/worktrees/2df8/Game-001/outputs/research/vampire-crawlers/youtube/spiffing_brit_longplay/clips/7p5sDTjkug4_late_pressure_contact_sheet.jpg",
+      "download_returncode": 0,
+      "download_stderr_tail": " elapsed=0:00:55.35    \nframe= 1634 fps= 29 q=32.0 size=    9728KiB time=00:00:27.23 bitrate=2926.3kbits/s speed=0.487x elapsed=0:00:55.86    \nframe= 1643 fps= 29 q=30.0 size=    9728KiB time=00:00:27.38 bitrate=2910.2kbits/s speed=0.486x elapsed=0:00:56.37    \nframe= 1651 fps= 29 q=30.0 size=    9728KiB time=00:00:27.51 bitrate=2896.1kbits/s speed=0.484x elapsed=0:00:56.87    \nframe= 1659 fps= 29 q=30.0 size=    9728KiB time=00:00:27.65 bitrate=2882.2kbits/s speed=0.482x elapsed=0:00:57.38    \nframe= 1666 fps= 29 q=32.0 size=   11264KiB time=00:00:27.76 bitrate=3323.2kbits/s speed=0.48x elapsed=0:00:57.88    \nframe= 1679 fps= 29 q=30.0 size=   11264KiB time=00:00:27.98 bitrate=3297.5kbits/s speed=0.479x elapsed=0:00:58.39    \nframe= 1694 fps= 29 q=32.0 size=   11264KiB time=00:00:28.23 bitrate=3268.3kbits/s speed=0.479x elapsed=0:00:58.90    \nframe= 1705 fps= 29 q=21.0 size=   11264KiB time=00:00:28.41 bitrate=3247.2kbits/s speed=0.478x elapsed=0:00:59.40    \nframe= 1720 fps= 29 q=32.0 size=   11264KiB time=00:00:28.66 bitrate=3218.9kbits/s speed=0.478x elapsed=0:00:59.91    \nframe= 1734 fps= 29 q=32.0 size=   11264KiB time=00:00:28.90 bitrate=3192.9kbits/s speed=0.478x elapsed=0:01:00.41    \nframe= 1748 fps= 29 q=32.0 size=   11264KiB time=00:00:29.13 bitrate=3167.3kbits/s speed=0.478x elapsed=0:01:00.92    \nframe= 1763 fps= 29 q=30.0 size=   11264KiB time=00:00:29.38 bitrate=3140.4kbits/s speed=0.478x elapsed=0:01:01.43    \nframe= 1774 fps= 29 q=32.0 size=   11264KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:01.93    \nframe= 1776 fps= 28 q=32.0 size=   11264KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:02.43    \nframe= 1776 fps= 28 q=32.0 size=   11264KiB time=N/A bitrate=N/A speed=N/A elapsed=0:01:02.93    \n[out#0/webm @ 0x78856d680] video:12526KiB audio:349KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.184454%\nframe= 1800 fps= 28 q=32.0 Lsize=   12900KiB time=00:00:30.00 bitrate=3522.4kbits/s speed=0.474x elapsed=0:01:03.33    \n"
+    }
+  ]
+}

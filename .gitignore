@@ -1,0 +1,5 @@
+# Local-only Codex preview files that use absolute filesystem image paths.
+**/.local-preview.md
+
+# Interrupted media downloads should be regenerated, not versioned.
+*.part
