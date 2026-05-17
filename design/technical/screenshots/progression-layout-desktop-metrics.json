@@ -1,0 +1,72 @@
+{
+  "desktop": {
+    "label": "desktop",
+    "pngPath": "/Users/roc/Game-001/design/technical/screenshots/progression-layout-desktop.png",
+    "metrics": {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "targetChipExists": false,
+      "resourceBars": 2,
+      "xpChip": {
+        "selector": ".xp-chip",
+        "x": 407,
+        "y": 12,
+        "w": 97,
+        "h": 44,
+        "text": "LV 1 XP 0 / 18"
+      },
+      "status": {
+        "selector": ".status-strip",
+        "x": 12,
+        "y": 12,
+        "w": 687,
+        "h": 44,
+        "text": "HP 60 / 60 MP 3 / 3 Beat 0 / 3 LV 1 XP 0 / 18 FSM R1 玩家出牌 Restart"
+      },
+      "deal": {
+        "selector": ".deal-panel",
+        "x": 12,
+        "y": 64,
+        "w": 258,
+        "h": 70,
+        "text": "回合 1 玩家出牌 可出牌 5 / 6 结束回合"
+      },
+      "enemyStrip": {
+        "selector": ".enemy-slot-strip",
+        "x": 12,
+        "y": 126,
+        "w": 500,
+        "h": 139,
+        "text": "1-1 WSP Debt Wisp 10/10 1-2 BRU Redline Brute 22/22 1-3 COL Pulse Collector 16/16 1-4 WSP Debt Wisp 10/10 1-5 BRU Redline Brute 22/22 2-1 COL Pulse Collector 16/16 2-2 WSP Debt Wisp 10/10 2-3 BRU Redline Brute 22/22 2-4 COL Pulse Collector 16/16 2-5 WSP Debt W"
+      },
+      "rewardPanelExists": false,
+      "rewardChoiceCount": 0,
+      "cardRow": {
+        "selector": ".card-row",
+        "x": 12,
+        "y": 810,
+        "w": 1256,
+        "h": 78,
+        "text": "1 Debt Hook 拉 · 随机前排 消耗 0 2 Redline Cut 切 · 随机前排 消耗 1 3 Heartbeat Spark 爆 · 随机前排 消耗 1 4 Verdict Mark 印 · 随机前排 消耗 1 5 Blood Reclaim 回收 · 随机前排 消耗 0 6 Severance Burst 处刑 · 全场 消耗 3 · 碎片 3"
+      },
+      "cardRowViewportPct": 8.5,
+      "cardCount": 6,
+      "maxCardHeight": 78,
+      "firstCard": {
+        "x": 12,
+        "y": 810,
+        "w": 203,
+        "h": 78,
+        "text": "1 Debt Hook 拉 · 随机前排 消耗 0",
+        "disabled": false
+      },
+      "canvas": {
+        "w": 1280,
+        "h": 900
+      }
+    },
+    "errors": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "enemySlots": 15,
+  "occupied": 15,
+  "empty": 0,
+  "status": {
+    "selector": ".status-strip",
+    "x": 16,
+    "y": 16,
+    "w": 358,
+    "h": 88,
+    "text": "HP\n60 / 60\nEN\n3.0 / 3\nBEAT\n0 / 3\nFSM\nR1 玩家出牌\nRestart"
+  },
+  "deal": {
+    "selector": ".deal-panel",
+    "x": 16,
+    "y": 72,
+    "w": 270,
+    "h": 80,
+    "text": "回合 1\n玩家出牌\n可出牌 5 / 6\n结束回合"
+  },
+  "slots": {
+    "selector": ".enemy-slot-strip",
+    "x": 16,
+    "y": 142,
+    "w": 358,
+    "h": 180,
+    "text": "1-1\nWSP\nDebt Wisp\n10/10\n1-2\nBRU\nRedline Brute\n22/22\n1-3\nCOL\nPulse Collector\n16/16\n1-4\nWSP\nDebt Wisp\n10/10\n1-5\nBRU\nRedline Brute\n22/22\n2-1\nCOL\nPulse Collector\n16/16\n2-2\nWSP\nDebt Wisp\n10/10\n2-3\nBRU\nRedline Brute\n22/22\n2-4\nCOL\nPulse Collector\n16/16\n2-5\nWSP\nDebt Wisp\n10/10\n3-1\nBRU\nRedline Brute\n22/22\n3-2\nCOL\nPulse Collecto"
+  },
+  "target": {
+    "selector": ".target-chip",
+    "x": 100,
+    "y": 306,
+    "w": 190,
+    "h": 53,
+    "text": "FRONT TARGET\nDebt Wisp 10/10"
+  },
+  "feed": {
+    "selector": ".combat-feed",
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0,
+    "text": "\n        \n          战斗信息\n          玩家出牌\n        \n        \n          发牌 6 张，进入出牌\n        \n      "
+  },
+  "cards": {
+    "selector": ".card-row",
+    "x": 16,
+    "y": 429.5,
+    "w": 358,
+    "h": 398.5,
+    "text": "1\nDebt Hook\n出牌：拉 · 消耗 0\n拉住最前方的债影，造成 4 点伤害。\n2\nRedline Cut\n出牌：切 · 消耗 1\n切断红线，对最前方敌人造成 9 点伤害。\n3\nHeartbeat Spark\n出牌：爆 · 消耗 1\n点燃心跳碎片，造成 6 点伤害，击杀时额外回收碎片。\n4\nVerdict Mark\n出牌：印 · 消耗 1\n盖下处刑印，造成 5 点伤害并推进 combo。\n5\nBlood Reclaim\n出牌：回收 · 消耗 0\n回收血债，造成 5 点伤害，击杀时获得更多心跳碎片。\n6\nSeverance Burst\n出牌：处刑 · 消耗 3\n消耗 3 枚心跳碎片，对全场敌人造成 24 点红线处刑伤害。"
+  }
+}
