@@ -1,6 +1,6 @@
 import { enemies as enemyDefinitions } from '../data/enemies';
 import { rewardCardPool, startingHand } from '../data/cards';
-import type { EnemyState, WorldState } from './types';
+import type { ChainState, EnemyIntentSummary, EnemyState, WorldState } from './types';
 
 export const ENEMY_COLUMNS = 5;
 export const ENEMY_ROWS = 3;
@@ -35,6 +35,25 @@ export function createEnemy(serial: number, slot: number): EnemyState {
   };
 }
 
+export function createInitialChainState(): ChainState {
+  return {
+    playedCosts: [],
+    lastCost: null,
+    nextExpectedCost: 0,
+    multiplier: 1,
+    broken: false,
+    breakReason: null,
+    repairedThisTurn: false
+  };
+}
+
+export function createEmptyEnemyIntentSummary(): EnemyIntentSummary {
+  return {
+    totalDamage: 0,
+    intentEnemyIds: []
+  };
+}
+
 export function createInitialWorld(): WorldState {
   const enemyList = Array.from({ length: MAX_ENEMY_FORMATION_SLOTS }, (_, slot) => createEnemy(slot + 1, slot));
 
@@ -58,7 +77,10 @@ export function createInitialWorld(): WorldState {
       drawPile: [...startingHand],
       discardPile: []
     },
+    chain: createInitialChainState(),
     enemies: Object.fromEntries(enemyList.map((enemy) => [enemy.id, enemy])),
+    enemyIntents: {},
+    enemyIntentSummary: createEmptyEnemyIntentSummary(),
     fsm: {
       gameFlow: 'Deal',
       characters: {
@@ -67,7 +89,7 @@ export function createInitialWorld(): WorldState {
       }
     },
     reward: {
-      xpThreshold: 18,
+      xpThreshold: 45,
       candidateCardPool: [...rewardCardPool],
       choices: [],
       pickCount: 3,

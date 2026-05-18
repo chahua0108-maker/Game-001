@@ -4,6 +4,7 @@ export type CardId = string;
 
 export type GameFlowState = 'Boot' | 'Deal' | 'PlayerTurn' | 'EnemyAttack' | 'EnemyRefill' | 'Reward' | 'Settlement';
 export type CharacterState = 'Idle' | 'Move' | 'Cast' | 'HitStun' | 'Dead';
+export type CardUtility = 'wild' | 'draw' | 'mana' | 'reorder';
 
 export interface CardDefinition {
   id: CardId;
@@ -15,6 +16,8 @@ export interface CardDefinition {
   description: string;
   targets: 'front-enemy' | 'front-row' | 'all-enemies' | 'self';
   drawCards?: number;
+  energyGain?: number;
+  utilities?: CardUtility[];
 }
 
 export interface EnemyDefinition {
@@ -43,6 +46,30 @@ export interface PlayerState {
   hand: CardId[];
   drawPile: CardId[];
   discardPile: CardId[];
+}
+
+export interface ChainState {
+  playedCosts: number[];
+  lastCost: number | null;
+  nextExpectedCost: number;
+  multiplier: number;
+  broken: boolean;
+  breakReason: string | null;
+  repairedThisTurn: boolean;
+}
+
+export interface EnemyIntent {
+  enemyId: EntityId;
+  kind: 'attack';
+  amount: number;
+  slot: number;
+  description: string;
+  willRefill: boolean;
+}
+
+export interface EnemyIntentSummary {
+  totalDamage: number;
+  intentEnemyIds: EntityId[];
 }
 
 export interface RewardState {
@@ -87,7 +114,10 @@ export interface WorldState {
   round: number;
   elapsedSeconds: number;
   player: PlayerState;
+  chain: ChainState;
   enemies: Record<EntityId, EnemyState>;
+  enemyIntents: Record<EntityId, EnemyIntent>;
+  enemyIntentSummary: EnemyIntentSummary;
   fsm: FsmState;
   reward: RewardState;
   debug: DebugState;
@@ -141,6 +171,31 @@ export type GameEvent =
       deltaSeconds: number;
     }
   | {
+      type: 'EnemyAdvanced';
+      traceId: TraceId;
+      tick: number;
+      enemyId: EntityId;
+      fromZ: number;
+      toZ: number;
+      deltaZ: number;
+    }
+  | {
+      type: 'EnemyPressure';
+      traceId: TraceId;
+      tick: number;
+      enemyId: EntityId;
+      z: number;
+      amount: number;
+    }
+  | {
+      type: 'AutoAttack';
+      traceId: TraceId;
+      tick: number;
+      targetId: EntityId;
+      amount: number;
+      cadenceSeconds: number;
+    }
+  | {
       type: 'HandDealt';
       traceId: TraceId;
       tick: number;
@@ -179,6 +234,56 @@ export type GameEvent =
       cardId: CardId;
       targetId?: EntityId;
       effectMultiplier: number;
+    }
+  | {
+      type: 'ChainAdvanced';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      playedCost: number;
+      nextExpectedCost: number;
+      multiplier: number;
+    }
+  | {
+      type: 'ChainBroken';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      expectedCost: number;
+      playedCost: number;
+      breakReason: string;
+    }
+  | {
+      type: 'ChainRepaired';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      repairedCost: number;
+      nextExpectedCost: number;
+      multiplier: number;
+    }
+  | {
+      type: 'PayoffTriggered';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      chainLength: number;
+      multiplier: number;
+      enhanced: boolean;
+    }
+  | {
+      type: 'EnemyIntentDeclared';
+      traceId: TraceId;
+      tick: number;
+      intent: EnemyIntent;
+    }
+  | {
+      type: 'EnemyIntentResolved';
+      traceId: TraceId;
+      tick: number;
+      enemyId: EntityId;
+      amount: number;
+      remainingHp: number;
     }
   | {
       type: 'DamageRequested';
@@ -273,6 +378,7 @@ export type Command =
       type: 'EnemyAttack';
       traceId: TraceId;
       enemyId: EntityId;
+      amount?: number;
     }
   | {
       type: 'CompactEnemySlots';
@@ -308,6 +414,12 @@ export type Command =
       count: number;
       reason: string;
       excludeFromReshuffle?: CardId[];
+    }
+  | {
+      type: 'GainEnergy';
+      traceId: TraceId;
+      amount: number;
+      reason: string;
     }
   | {
       type: 'DamageEnemy';
@@ -394,7 +506,10 @@ export interface GameSnapshot {
   round: number;
   elapsedSeconds: number;
   player: PlayerState;
+  chain: ChainState;
   enemies: EnemySnapshot[];
+  enemyIntents: EnemyIntent[];
+  enemyIntentSummary: EnemyIntentSummary;
   fsm: FsmState;
   reward: RewardState;
   debug: DebugState;

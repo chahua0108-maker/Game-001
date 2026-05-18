@@ -62,6 +62,7 @@ button {
 .enemy-peek-toggle,
 .reward-panel,
 .reward-card,
+.director-cell,
 .combat-feed,
 .debug-panel {
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -82,6 +83,7 @@ button {
 
 .status-strip > .resource-chip,
 .status-strip > .chain-chip,
+.status-strip > .intent-chip,
 .status-strip > .pile-chip {
   display: grid;
 }
@@ -159,7 +161,7 @@ button {
 }
 
 .chain-chip {
-  min-width: 96px;
+  min-width: 132px;
   display: grid;
   grid-template-columns: auto 1fr;
   align-content: center;
@@ -170,9 +172,13 @@ button {
 .chain-chip span {
   color: #fff7f8;
   text-align: right;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
-.chain-chip em {
+.chain-chip em,
+.intent-chip em {
   grid-column: 1 / -1;
   color: rgba(255, 255, 255, 0.68);
   font-size: 9px;
@@ -185,6 +191,32 @@ button {
 .chain-chip.active {
   border-color: rgba(115, 255, 226, 0.66);
   box-shadow: 0 0 24px rgba(115, 255, 226, 0.18);
+}
+
+.intent-chip {
+  min-width: 104px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  column-gap: 6px;
+  row-gap: 1px;
+}
+
+.intent-chip span {
+  color: #fff7f8;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.intent-chip.danger {
+  border-color: rgba(255, 64, 101, 0.58);
+  background: rgba(58, 17, 27, 0.66);
+}
+
+.intent-chip.danger strong {
+  color: #ff9aad;
 }
 
 .phase-chip {
@@ -252,9 +284,146 @@ button {
   pointer-events: auto;
 }
 
+.combat-director {
+  position: absolute;
+  top: 54px;
+  left: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(156px, 1fr));
+  gap: 6px;
+  width: min(420px, calc(100vw - 284px));
+  pointer-events: none;
+}
+
+.director-cell {
+  min-height: 58px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.director-cell span,
+.director-cell em {
+  display: block;
+}
+
+.director-cell span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.director-cell strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff7f8;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.director-cell em {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.director-threat,
+.director-intent {
+  border-color: rgba(255, 64, 101, 0.46);
+  background: rgba(58, 17, 27, 0.68);
+}
+
+.director-threat span,
+.director-kills span,
+.director-intent span {
+  color: #ff9aad;
+}
+
+.director-action,
+.director-chain {
+  border-color: rgba(115, 255, 226, 0.34);
+}
+
+.director-action span,
+.director-chain span,
+.director-burst span,
+.director-payoff span {
+  color: #73ffe2;
+}
+
+.director-kills {
+  border-color: rgba(255, 216, 223, 0.28);
+}
+
+.director-burst,
+.director-payoff {
+  border-color: rgba(115, 255, 226, 0.42);
+}
+
+.director-payoff {
+  background: rgba(31, 48, 52, 0.68);
+}
+
+.combat-director.burst-ready .director-burst,
+.combat-director.burst-fired .director-burst,
+.combat-director.near-clear .director-burst,
+.combat-director.burst-ready .director-payoff,
+.combat-director.burst-fired .director-payoff,
+.combat-director.near-clear .director-payoff {
+  border-color: rgba(115, 255, 226, 0.82);
+  background: rgba(22, 70, 66, 0.76);
+  box-shadow: 0 0 30px rgba(115, 255, 226, 0.2);
+}
+
+.combat-director.burst-fired .director-burst {
+  animation: burst-hud-pop 520ms ease-out;
+}
+
+.director-burst i {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.director-burst b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--burst, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff334f, #73ffe2);
+}
+
+@keyframes burst-hud-pop {
+  0% {
+    transform: scale(1.04);
+    box-shadow: 0 0 42px rgba(115, 255, 226, 0.38);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 30px rgba(115, 255, 226, 0.2);
+  }
+}
+
 .deal-panel {
   position: absolute;
-  top: 56px;
+  top: 180px;
   left: 10px;
   display: flex;
   align-items: center;
@@ -279,7 +448,11 @@ button {
 }
 
 .deal-panel small {
-  display: none;
+  display: block;
+  max-width: 188px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deal-panel strong {
@@ -311,7 +484,7 @@ button {
 
 .target-panel {
   position: absolute;
-  top: 108px;
+  top: 232px;
   left: 10px;
   display: flex;
   align-items: center;
@@ -684,9 +857,9 @@ button {
 
 .card-button {
   position: relative;
-  height: 78px;
-  min-height: 78px;
-  padding: 8px 9px 7px;
+  height: 86px;
+  min-height: 86px;
+  padding: 8px 9px 7px 50px;
   overflow: hidden;
   color: #fff7f8;
   text-align: left;
@@ -725,6 +898,21 @@ button {
 .card-button:hover:not(:disabled) {
   border-color: rgba(115, 255, 226, 0.72);
   transform: translateY(-2px);
+}
+
+.card-button.chain-match {
+  border-color: rgba(115, 255, 226, 0.78);
+  background:
+    linear-gradient(165deg, rgba(20, 104, 91, 0.92), rgba(31, 18, 27, 0.94)),
+    rgba(18, 16, 22, 0.86);
+  box-shadow: 0 0 28px rgba(115, 255, 226, 0.22), 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+.card-button.chain-break-risk {
+  border-color: rgba(255, 64, 101, 0.66);
+  background:
+    linear-gradient(165deg, rgba(102, 34, 45, 0.92), rgba(34, 20, 28, 0.94)),
+    rgba(18, 16, 22, 0.86);
 }
 
 .card-button:disabled {
@@ -770,7 +958,7 @@ button:focus-visible {
 }
 
 .card-button strong {
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 28px);
   margin-bottom: 4px;
   font-size: 13px;
   line-height: 1.05;
@@ -793,7 +981,8 @@ button:focus-visible {
 
 .card-button .card-meta,
 .card-button .card-effect,
-.card-button .chain-preview {
+.card-button .chain-preview,
+.card-button .card-payoff {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -807,7 +996,14 @@ button:focus-visible {
 }
 
 .card-button .chain-preview.breaks-chain {
-  color: #ffd8df;
+  color: #ff9aad;
+}
+
+.card-button .card-payoff {
+  margin-top: 3px;
+  color: #f7edf0;
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .card-button .card-effect {
@@ -829,9 +1025,47 @@ button:focus-visible {
   position: absolute;
   top: 7px;
   right: 8px;
-  color: #73ffe2;
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 10px;
   font-weight: 800;
+}
+
+.card-button .card-cost {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 44px;
+  color: #100f14;
+  border-radius: 8px;
+  background: #73ffe2;
+  box-shadow: 0 0 20px rgba(115, 255, 226, 0.28);
+}
+
+.card-button.chain-break-risk .card-cost {
+  color: #fff7f8;
+  background: #ff4065;
+  box-shadow: 0 0 20px rgba(255, 64, 101, 0.24);
+}
+
+.card-button .card-cost small,
+.card-button .card-cost b {
+  display: block;
+  line-height: 1;
+}
+
+.card-button .card-cost small {
+  color: inherit;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.card-button .card-cost b {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 950;
 }
 
 .burst-card {
@@ -841,7 +1075,16 @@ button:focus-visible {
 }
 
 .debug-panel {
-  display: none;
+  position: absolute;
+  right: 10px;
+  bottom: 104px;
+  width: 280px;
+  max-height: min(360px, calc(100vh - 210px));
+  padding: 8px 10px;
+  border-radius: 8px;
+  opacity: 0.64;
+  overflow: auto;
+  pointer-events: auto;
 }
 
 .debug-panel summary {
@@ -858,6 +1101,10 @@ button:focus-visible {
 
 .debug-panel[open] summary {
   margin-bottom: 10px;
+}
+
+.debug-panel[open] {
+  opacity: 0.92;
 }
 
 .debug-panel header span,
@@ -902,7 +1149,7 @@ button:focus-visible {
   }
 
   .deal-panel {
-    top: 88px;
+    top: 214px;
     right: auto;
     width: min(312px, calc(100vw - 20px));
     min-width: 0;
@@ -913,15 +1160,31 @@ button:focus-visible {
     display: none;
   }
 
+  .combat-director {
+    top: 82px;
+    right: 10px;
+    width: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .director-cell {
+    min-height: 56px;
+    padding: 7px;
+  }
+
+  .director-cell strong {
+    font-size: 13px;
+  }
+
   .target-panel {
-    top: 140px;
+    top: 266px;
     right: auto;
     width: min(300px, calc(100vw - 20px));
     min-width: 0;
   }
 
   .enemy-peek {
-    top: 176px;
+    top: 304px;
     right: 10px;
   }
 
@@ -964,9 +1227,9 @@ button:focus-visible {
   }
 
   .card-button {
-    height: 82px;
-    min-height: 82px;
-    padding: 8px;
+    height: 88px;
+    min-height: 88px;
+    padding: 8px 8px 7px 48px;
   }
 
   .card-button strong {
@@ -980,7 +1243,7 @@ button:focus-visible {
 
 @media (max-width: 640px) {
   .status-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .status-strip > div,
@@ -990,7 +1253,9 @@ button:focus-visible {
   }
 
   .xp-chip,
-  .phase-chip {
+  .phase-chip,
+  .pile-chip,
+  .status-strip > button {
     display: none;
   }
 
@@ -1008,17 +1273,36 @@ button:focus-visible {
   }
 
   .chain-chip em,
+  .intent-chip em,
   .pile-chip em {
     display: none;
   }
 
+  .chain-chip,
+  .intent-chip {
+    min-width: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .chain-chip strong,
+  .intent-chip strong {
+    text-align: center;
+  }
+
+  .chain-chip span,
+  .intent-chip span {
+    text-align: center;
+    font-size: 9px;
+  }
+
   .deal-panel {
-    top: 84px;
+    top: 214px;
     min-height: 40px;
   }
 
   .deal-panel small {
-    display: none;
+    max-width: 150px;
+    font-size: 10px;
   }
 
   .deal-panel button {
@@ -1029,11 +1313,11 @@ button:focus-visible {
   }
 
   .target-panel {
-    top: 132px;
+    top: 262px;
   }
 
   .enemy-peek {
-    top: 168px;
+    top: 300px;
   }
 
   .enemy-slot {
@@ -1057,9 +1341,9 @@ button:focus-visible {
   }
 
   .card-button {
-    height: 72px;
-    min-height: 72px;
-    padding: 7px 8px;
+    height: 82px;
+    min-height: 82px;
+    padding: 7px 7px 6px 44px;
   }
 
   .card-button strong {
@@ -1069,5 +1353,14 @@ button:focus-visible {
 
   .card-button .card-effect {
     display: none;
+  }
+
+  .card-button .card-cost {
+    width: 30px;
+    height: 38px;
+  }
+
+  .card-button .card-cost b {
+    font-size: 18px;
   }
 }

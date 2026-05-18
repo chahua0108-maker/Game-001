@@ -30,6 +30,7 @@ export const cards: Record<string, CardDefinition> = {
     comboNode: 'reclaim',
     targets: 'self',
     drawCards: 1,
+    utilities: ['draw'],
     description: '0 mana 自身牌。抽 1 张，用手牌流动来打开升序费用链。'
   },
   spark_tap: {
@@ -81,6 +82,7 @@ export const cards: Record<string, CardDefinition> = {
     comboNode: 'spark',
     targets: 'self',
     drawCards: 1,
+    utilities: ['draw'],
     description: '1 mana 抽牌承接。抽 1 张，牺牲伤害换路线稳定性。'
   },
   row_cleave: {
@@ -112,7 +114,8 @@ export const cards: Record<string, CardDefinition> = {
     comboNode: 'mark',
     targets: 'self',
     drawCards: 1,
-    description: '2 mana 路线牌。抽 1 张，偏向支援和找终结。'
+    utilities: ['draw', 'reorder'],
+    description: '2 mana 路线牌。抽 1 张并重排路线，偏向支援和找终结。'
   },
   severance_burst: {
     id: 'severance_burst',
@@ -122,7 +125,7 @@ export const cards: Record<string, CardDefinition> = {
     damage: 16,
     comboNode: 'burst',
     targets: 'all-enemies',
-    description: '3 mana 终结牌。对全场敌人造成 16 点基础伤害，只从奖励池进入。'
+    description: '3 mana payoff 终结牌。乱序可打但低收益，接在长链后对全场造成高倍率伤害。'
   },
   red_ledger_burst: {
     id: 'red_ledger_burst',
@@ -132,7 +135,7 @@ export const cards: Record<string, CardDefinition> = {
     damage: 12,
     comboNode: 'burst',
     targets: 'all-enemies',
-    description: '3 mana 清场终结。对全场敌人造成 12 点基础伤害。'
+    description: '3 mana payoff 清场终结。乱序可打但低收益，接在长链后负责清场。'
   },
   wild_mana_stitch: {
     id: 'wild_mana_stitch',
@@ -143,7 +146,9 @@ export const cards: Record<string, CardDefinition> = {
     comboNode: 'reclaim',
     targets: 'self',
     drawCards: 1,
-    description: 'Wild/补链近似。0 mana self 抽 1 张，用来修补断开的费用链。'
+    energyGain: 1,
+    utilities: ['wild', 'draw', 'mana'],
+    description: 'Wild/补链。0 mana self 抽 1 张并返 1 mana，可代替下一段费用修补断链。'
   },
   wild_gap_key: {
     id: 'wild_gap_key',
@@ -153,7 +158,8 @@ export const cards: Record<string, CardDefinition> = {
     damage: 1,
     comboNode: 'hook',
     targets: 'front-enemy',
-    description: 'Wild/补链近似。1 mana 低伤害补位，保持连锁不断。'
+    utilities: ['wild'],
+    description: 'Wild/补链。1 mana 低伤害补位，可代替下一段费用保持连锁不断。'
   },
   lantern_captain: {
     id: 'lantern_captain',
@@ -164,7 +170,8 @@ export const cards: Record<string, CardDefinition> = {
     comboNode: 'mark',
     targets: 'self',
     drawCards: 1,
-    description: '角色卡风味近似。2 mana self 抽 1 张，代表队长支援和路线修正。'
+    utilities: ['draw', 'reorder'],
+    description: '角色卡风味近似。2 mana self 抽 1 张并重排路线，代表队长支援和路线修正。'
   }
 };
 

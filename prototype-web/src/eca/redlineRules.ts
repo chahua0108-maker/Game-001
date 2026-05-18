@@ -143,6 +143,16 @@ export const redlineRules: Rule[] = [
                   reason: `played ${card.id}`
                 }
               ]
+            : []),
+          ...(card.energyGain
+            ? [
+                {
+                  type: 'GainEnergy' as const,
+                  traceId: event.traceId,
+                  amount: card.energyGain,
+                  reason: `played ${card.id}`
+                }
+              ]
             : [])
         ];
       }

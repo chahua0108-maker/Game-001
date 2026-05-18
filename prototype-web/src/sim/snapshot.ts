@@ -11,7 +11,16 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
       drawPile: [...world.player.drawPile],
       discardPile: [...world.player.discardPile]
     },
+    chain: {
+      ...world.chain,
+      playedCosts: [...world.chain.playedCosts]
+    },
     enemies: Object.values(world.enemies).map((enemy) => ({ ...enemy })),
+    enemyIntents: Object.values(world.enemyIntents).map((intent) => ({ ...intent })),
+    enemyIntentSummary: {
+      totalDamage: world.enemyIntentSummary.totalDamage,
+      intentEnemyIds: [...world.enemyIntentSummary.intentEnemyIds]
+    },
     fsm: {
       gameFlow: world.fsm.gameFlow,
       characters: { ...world.fsm.characters }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import type { EnemySnapshot, GameSnapshot } from '../../sim/types';
+import { cards } from '../../data/cards';
+import type { EnemySnapshot, GameEvent, GameSnapshot } from '../../sim/types';
 import { ENEMY_COLUMNS, ENEMY_ROWS } from '../../sim/world';
 
 const SLOT_START_Z = -6;
@@ -22,9 +23,32 @@ interface EnemyMesh {
   deathBaseScale: THREE.Vector3 | null;
   deathBaseY: number;
   hitStartedAt: number | null;
-  attackStartedAt: number | null;
+  chainStartedAt: number | null;
+  payoffStartedAt: number | null;
+  intentStartedAt: number | null;
   lastHp: number;
+  lastSlot: number;
   labelKey: string;
+}
+
+type RedlinePresentationEvent = {
+  type: string;
+  traceId: string;
+  tick: number;
+  targetId?: string;
+  enemyId?: string;
+  cardId?: string;
+  effectMultiplier?: number;
+};
+
+type CardPlayedEvent = Extract<GameEvent, { type: 'CardPlayed' }>;
+
+interface SlashFx {
+  line: THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+  material: THREE.LineBasicMaterial;
+  startedAt: number;
+  duration: number;
+  baseOpacity: number;
 }
 
 function slotColumn(slot: number): number {
@@ -163,9 +187,22 @@ export class CorridorRenderer {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
   private readonly enemies = new Map<string, EnemyMesh>();
-  private readonly seenAttackEvents = new Set<string>();
+  private readonly seenPresentationEvents = new Set<string>();
+  private readonly slashEffects: SlashFx[] = [];
   private readonly burstLight = new THREE.PointLight(0xffd6d6, 0, 16);
+  private readonly burstWaveMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff334f,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  private readonly burstWave = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.86, 80), this.burstWaveMaterial);
+  private readonly baseBackground = new THREE.Color(0x100f14);
+  private readonly burstBackground = new THREE.Color(0x311019);
   private readonly clock = new THREE.Clock();
+  private lastBurstStartedAt = -99;
+  private lastChainStartedAt = -99;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -181,6 +218,9 @@ export class CorridorRenderer {
     this.scene.add(keyLight);
     this.burstLight.position.set(0, 2.2, -7);
     this.scene.add(this.burstLight);
+    this.burstWave.rotation.x = -Math.PI / 2;
+    this.burstWave.position.set(0, 0.13, -8);
+    this.scene.add(this.burstWave);
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -188,29 +228,31 @@ export class CorridorRenderer {
 
   render(snapshot: GameSnapshot): void {
     const elapsed = this.clock.getElapsedTime();
+    const cardPlaysByTrace = this.collectCardPlays(snapshot.debug.events);
     const burstAge = snapshot.lastBurstTick === null ? 999 : snapshot.tick - snapshot.lastBurstTick;
-    this.burstLight.intensity = Math.max(0, 7 - burstAge * 0.7);
+    const burstEventAge = elapsed - this.lastBurstStartedAt;
+    const burstEventPulse = Math.max(0, 1 - burstEventAge / 0.72);
+    const chainEventAge = elapsed - this.lastChainStartedAt;
+    const chainPulse = Math.max(0, 1 - chainEventAge / 0.36);
+    this.burstLight.intensity = Math.max(0, 7 - burstAge * 0.7) + burstEventPulse * 7;
+    this.updateBurstWave(burstEventAge, burstEventPulse);
 
     for (const enemy of snapshot.enemies) {
       this.syncEnemy(enemy, elapsed);
     }
 
     for (const event of snapshot.debug.events) {
-      if (event.type !== 'EnemyAttacked') {
+      const presentationEvent = event as RedlinePresentationEvent;
+      const key = this.presentationEventKey(presentationEvent);
+      if (this.seenPresentationEvents.has(key)) {
         continue;
       }
 
-      const key = `${event.traceId}:${event.tick}:${event.enemyId}`;
-      if (this.seenAttackEvents.has(key)) {
-        continue;
-      }
-
-      this.seenAttackEvents.add(key);
-      const mesh = this.enemies.get(event.enemyId);
-      if (mesh) {
-        mesh.attackStartedAt = elapsed;
-      }
+      this.seenPresentationEvents.add(key);
+      this.handleRedlinePresentationEvent(presentationEvent, snapshot, cardPlaysByTrace, elapsed);
     }
+
+    this.updateSlashEffects(elapsed);
 
     for (const [id, mesh] of this.enemies) {
       const stillExists = snapshot.enemies.some((enemy) => enemy.id === id && enemy.alive);
@@ -220,7 +262,224 @@ export class CorridorRenderer {
     }
 
     this.camera.position.x = Math.sin(elapsed * 0.8) * 0.06;
+    this.camera.position.z = 5.4 - burstEventPulse * 0.22 - chainPulse * 0.08;
     this.renderer.render(this.scene, this.camera);
+  }
+
+  private collectCardPlays(events: GameEvent[]): Map<string, CardPlayedEvent> {
+    const cardPlays = new Map<string, CardPlayedEvent>();
+    for (const event of events) {
+      if (event.type === 'CardPlayed') {
+        cardPlays.set(event.traceId, event);
+      }
+    }
+    return cardPlays;
+  }
+
+  private presentationEventKey(event: RedlinePresentationEvent): string {
+    return `${event.type}:${event.traceId}:${event.tick}:${event.targetId ?? event.enemyId ?? event.cardId ?? 'global'}`;
+  }
+
+  private handleRedlinePresentationEvent(
+    event: RedlinePresentationEvent,
+    snapshot: GameSnapshot,
+    cardPlaysByTrace: Map<string, CardPlayedEvent>,
+    elapsed: number
+  ): void {
+    const eventType = event.type;
+
+    if (
+      eventType === 'AutoAttack' ||
+      eventType === 'EnemyAdvanced' ||
+      eventType === 'EnemyPressure' ||
+      eventType === 'EnemyAttacked'
+    ) {
+      return;
+    }
+
+    if (eventType === 'CardPlayed') {
+      this.triggerCardPlayedFeedback(event as CardPlayedEvent, snapshot, elapsed);
+      return;
+    }
+
+    if (eventType === 'DamageApplied') {
+      const cardId = event.cardId ?? cardPlaysByTrace.get(event.traceId)?.cardId;
+      const mesh = event.targetId ? this.enemies.get(event.targetId) : undefined;
+      if (mesh) {
+        mesh.hitStartedAt = elapsed;
+        if (cardId) {
+          const chainMultiplier = cardPlaysByTrace.get(event.traceId)?.effectMultiplier ?? 1;
+          this.spawnSlash(mesh, cardId, elapsed, 'hit', chainMultiplier);
+        }
+      }
+      return;
+    }
+
+    if (eventType === 'EnemyKilled') {
+      const cardId = event.cardId ?? cardPlaysByTrace.get(event.traceId)?.cardId;
+      const mesh = event.enemyId ? this.enemies.get(event.enemyId) : undefined;
+      if (mesh) {
+        mesh.hitStartedAt = elapsed;
+        mesh.payoffStartedAt = elapsed;
+        if (cardId) {
+          const chainMultiplier = cardPlaysByTrace.get(event.traceId)?.effectMultiplier ?? 1;
+          this.spawnSlash(mesh, cardId, elapsed, 'payoff', chainMultiplier);
+        }
+      }
+      return;
+    }
+
+    if (eventType === 'ClearBurstRequested') {
+      this.triggerClearPayoff(snapshot, event.cardId, elapsed);
+      return;
+    }
+
+    // Future runtime hook point: these events are not emitted yet, but keeping the
+    // mapping centralized prevents old heartbeat events from becoming VFX triggers again.
+    if (eventType === 'ChainAdvanced') {
+      this.lastChainStartedAt = elapsed;
+      const targetId = event.targetId ?? event.enemyId;
+      const mesh = targetId ? this.enemies.get(targetId) : undefined;
+      if (mesh) {
+        mesh.chainStartedAt = elapsed;
+      }
+      return;
+    }
+
+    if (eventType === 'PayoffTriggered') {
+      const targetId = event.targetId ?? event.enemyId;
+      const mesh = targetId ? this.enemies.get(targetId) : undefined;
+      if (mesh) {
+        mesh.payoffStartedAt = elapsed;
+      } else {
+        this.lastBurstStartedAt = elapsed;
+      }
+      return;
+    }
+
+    if (eventType === 'EnemyIntentResolved') {
+      const targetId = event.targetId ?? event.enemyId;
+      const mesh = targetId ? this.enemies.get(targetId) : undefined;
+      if (mesh) {
+        mesh.intentStartedAt = elapsed;
+      }
+    }
+  }
+
+  private triggerCardPlayedFeedback(event: CardPlayedEvent, snapshot: GameSnapshot, elapsed: number): void {
+    const card = cards[event.cardId];
+    this.lastChainStartedAt = elapsed;
+
+    if (event.targetId) {
+      const mesh = this.enemies.get(event.targetId);
+      if (mesh) {
+        mesh.chainStartedAt = elapsed;
+      }
+      return;
+    }
+
+    if (card?.targets === 'front-row') {
+      for (const enemy of snapshot.enemies.filter((item) => item.alive && item.slot < ENEMY_COLUMNS)) {
+        const mesh = this.enemies.get(enemy.id);
+        if (mesh) {
+          mesh.chainStartedAt = elapsed;
+        }
+      }
+      return;
+    }
+
+    if (card?.targets === 'all-enemies') {
+      for (const enemy of snapshot.enemies.filter((item) => item.alive)) {
+        const mesh = this.enemies.get(enemy.id);
+        if (mesh) {
+          mesh.chainStartedAt = elapsed;
+        }
+      }
+      return;
+    }
+
+    this.burstLight.intensity = Math.max(this.burstLight.intensity, 2.5 + event.effectMultiplier);
+  }
+
+  private triggerClearPayoff(snapshot: GameSnapshot, cardId: string | undefined, elapsed: number): void {
+    this.lastBurstStartedAt = elapsed;
+    this.lastChainStartedAt = elapsed;
+    for (const enemy of snapshot.enemies.filter((item) => item.alive)) {
+      const mesh = this.enemies.get(enemy.id);
+      if (mesh) {
+        mesh.payoffStartedAt = elapsed;
+        this.spawnSlash(mesh, cardId, elapsed, 'clear', 2);
+      }
+    }
+  }
+
+  private updateBurstWave(age: number, pulse: number): void {
+    if (pulse <= 0) {
+      this.burstWave.visible = false;
+      this.burstWaveMaterial.opacity = 0;
+      this.scene.background = this.baseBackground;
+      return;
+    }
+
+    this.burstWave.visible = true;
+    const scale = 1 + age * 10;
+    this.burstWave.scale.set(scale, scale, 1);
+    this.burstWaveMaterial.opacity = pulse * 0.5;
+    this.scene.background = this.baseBackground.clone().lerp(this.burstBackground, pulse * 0.72);
+  }
+
+  private spawnSlash(
+    mesh: EnemyMesh,
+    cardId: string | undefined,
+    elapsed: number,
+    weight: 'hit' | 'payoff' | 'clear',
+    chainMultiplier: number
+  ): void {
+    const card = cardId ? cards[cardId] : undefined;
+    const isBurst = card?.targets === 'all-enemies';
+    const isPayoff = weight === 'payoff' || weight === 'clear';
+    const color = isPayoff ? 0xfff0f3 : isBurst ? 0x73ffe2 : 0xff334f;
+    const zReach = isBurst || weight === 'clear' ? 0.72 : 0.28 + Math.min(chainMultiplier - 1, 2) * 0.1;
+    const yOffset = weight === 'clear' ? 0.18 : 0;
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(mesh.currentX - 0.82, 1.72 + yOffset, mesh.currentZ + zReach),
+      new THREE.Vector3(mesh.currentX + 0.86, 0.84 + yOffset, mesh.currentZ - zReach)
+    ]);
+    const baseOpacity = isPayoff ? 1 : 0.82;
+    const material = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: baseOpacity
+    });
+    const line = new THREE.Line(geometry, material);
+    line.scale.setScalar(1 + Math.min(chainMultiplier - 1, 2) * 0.12);
+    this.scene.add(line);
+    this.slashEffects.push({
+      line,
+      material,
+      startedAt: elapsed,
+      duration: isPayoff ? 0.36 : 0.24,
+      baseOpacity
+    });
+  }
+
+  private updateSlashEffects(elapsed: number): void {
+    for (let index = this.slashEffects.length - 1; index >= 0; index -= 1) {
+      const effect = this.slashEffects[index];
+      const age = elapsed - effect.startedAt;
+      const progress = age / effect.duration;
+      if (progress >= 1) {
+        this.scene.remove(effect.line);
+        effect.line.geometry.dispose();
+        effect.material.dispose();
+        this.slashEffects.splice(index, 1);
+        continue;
+      }
+
+      effect.material.opacity = effect.baseOpacity * (1 - progress);
+      effect.line.position.y = progress * 0.28;
+      effect.line.scale.setScalar(1 + progress * 0.18);
+    }
   }
 
   private animateDeath(mesh: EnemyMesh, elapsed: number): void {
@@ -239,6 +498,7 @@ export class CorridorRenderer {
     mesh.bodyMaterial.opacity = alpha;
     mesh.hpMaterial.opacity = alpha;
     mesh.labelMaterial.opacity = alpha;
+    mesh.bodyMaterial.emissiveIntensity = 2.8 + alpha * 3.2;
     if (mesh.deathBaseScale) {
       mesh.body.scale.copy(mesh.deathBaseScale).multiplyScalar(burstScale);
     }
@@ -364,8 +624,11 @@ export class CorridorRenderer {
         deathBaseScale: null,
         deathBaseY: 1,
         hitStartedAt: null,
-        attackStartedAt: null,
+        chainStartedAt: null,
+        payoffStartedAt: null,
+        intentStartedAt: null,
         lastHp: enemy.hp,
+        lastSlot: enemy.slot,
         labelKey: label.key
       };
       this.enemies.set(enemy.id, mesh);
@@ -375,6 +638,9 @@ export class CorridorRenderer {
       mesh.hitStartedAt = elapsed;
     }
     mesh.lastHp = enemy.hp;
+    if (enemy.slot !== mesh.lastSlot) {
+      mesh.lastSlot = enemy.slot;
+    }
 
     const labelKey = `${enemy.definitionId}:${enemy.name}:${enemy.hp}/${enemy.maxHp}`;
     if (labelKey !== mesh.labelKey) {
@@ -395,11 +661,15 @@ export class CorridorRenderer {
     const spawnAlpha = Math.min(1, (elapsed - mesh.spawnStartedAt) / 0.34);
     const hitAge = mesh.hitStartedAt === null ? 99 : elapsed - mesh.hitStartedAt;
     const hitPulse = Math.max(0, 1 - hitAge / 0.28);
-    const attackAge = mesh.attackStartedAt === null ? 99 : elapsed - mesh.attackStartedAt;
-    const attackPulse = attackAge < 0.5 ? Math.sin((1 - attackAge / 0.5) * Math.PI) : 0;
+    const chainAge = mesh.chainStartedAt === null ? 99 : elapsed - mesh.chainStartedAt;
+    const chainPulse = chainAge < 0.36 ? Math.sin((1 - chainAge / 0.36) * Math.PI) : 0;
+    const payoffAge = mesh.payoffStartedAt === null ? 99 : elapsed - mesh.payoffStartedAt;
+    const payoffPulse = Math.max(0, 1 - payoffAge / 0.52);
+    const intentAge = mesh.intentStartedAt === null ? 99 : elapsed - mesh.intentStartedAt;
+    const intentPulse = intentAge < 0.42 ? Math.sin((1 - intentAge / 0.42) * Math.PI) : 0;
     const baseScale = enemyTypeScale(enemy.definitionId);
     const healthPressure = (1 - enemy.hp / enemy.maxHp) * 0.25;
-    const pulseScale = 1 + hitPulse * 0.18 + attackPulse * 0.16 + (1 - spawnAlpha) * 0.32;
+    const pulseScale = 1 + hitPulse * 0.18 + chainPulse * 0.18 + payoffPulse * 0.3 + intentPulse * 0.08 + (1 - spawnAlpha) * 0.32;
 
     mesh.deathStartedAt = null;
     mesh.deathBaseScale = null;
@@ -409,15 +679,16 @@ export class CorridorRenderer {
     mesh.bodyMaterial.opacity = spawnAlpha;
     mesh.hpMaterial.opacity = spawnAlpha;
     mesh.labelMaterial.opacity = spawnAlpha;
-    mesh.bodyMaterial.emissiveIntensity = 1 + hitPulse * 2.8 + attackPulse * 4;
-    mesh.body.position.set(mesh.currentX, 1 + Math.sin(elapsed * 4 + enemy.z) * 0.08 + attackPulse * 0.12, mesh.currentZ + attackPulse * 1.1);
+    mesh.bodyMaterial.emissiveIntensity = 1 + hitPulse * 2.8 + chainPulse * 2.2 + payoffPulse * 4.6 + intentPulse * 1.2;
+    const pressureZ = chainPulse * -0.28 + intentPulse * 0.36;
+    mesh.body.position.set(mesh.currentX, 1 + Math.sin(elapsed * 4 + enemy.z) * 0.08 + payoffPulse * 0.18, mesh.currentZ + pressureZ);
     mesh.deathBaseY = mesh.body.position.y;
     mesh.body.rotation.y += 0.012;
     mesh.body.scale.set(baseScale.x * (pulseScale + healthPressure), baseScale.y * (pulseScale + healthPressure), baseScale.z * (pulseScale + healthPressure));
-    mesh.hpRing.position.set(mesh.currentX, 1.9, mesh.currentZ);
+    mesh.hpRing.position.set(mesh.currentX, 1.9, mesh.currentZ + pressureZ);
     mesh.hpRing.rotation.x = Math.PI / 2;
     mesh.hpRing.scale.set(enemy.hp / enemy.maxHp, enemy.hp / enemy.maxHp, 1);
-    mesh.label.position.set(mesh.currentX, 2.55, mesh.currentZ);
+    mesh.label.position.set(mesh.currentX, 2.55, mesh.currentZ + pressureZ);
     mesh.label.scale.set(1.45, 0.56, 1);
   }
 }

@@ -2,12 +2,13 @@ import { cards } from '../data/cards';
 import { setCharacterState, setGameFlowState } from '../fsm/stateMachine';
 import { evaluateRules } from '../eca/ruleSet';
 import { redlineRules } from '../eca/redlineRules';
-import { ENEMY_COLUMNS, ENEMY_ROWS, createEnemy, createInitialWorld, slotToLane, slotToZ } from './world';
-import type { CardId, Command, EntityId, GameEvent, Intent, TraceEntry, TraceId, WorldState } from './types';
+import { ENEMY_COLUMNS, ENEMY_ROWS, createEnemy, createInitialChainState, createInitialWorld, slotToLane, slotToZ } from './world';
+import type { CardDefinition, CardId, Command, EntityId, GameEvent, Intent, TraceEntry, TraceId, WorldState } from './types';
 
-const DEBUG_LIMIT = 80;
+const DEBUG_LIMIT = 2000;
 const HAND_SIZE = 4;
 const LEVEL_XP_THRESHOLDS = [0, 18, 42, 78, 125, 185];
+const ENEMY_PRESSURE_Z = -3.2;
 
 function pushTrace(world: WorldState, entry: TraceEntry): void {
   world.debug.trace.push(entry);
@@ -93,6 +94,39 @@ function roundAttackEligibleEnemies(world: WorldState) {
     .filter((enemy): enemy is NonNullable<typeof enemy> => Boolean(enemy?.alive && enemy.slot >= 0 && enemy.slot < ENEMY_COLUMNS));
 }
 
+function refreshEnemyIntents(world: WorldState, traceId?: TraceId, emitEvents = false): GameEvent[] {
+  const nextIntents = Object.fromEntries(
+    roundAttackEligibleEnemies(world).map((enemy) => [
+      enemy.id,
+      {
+        enemyId: enemy.id,
+        kind: 'attack' as const,
+        amount: enemy.damage,
+        slot: enemy.slot,
+        description: `End turn: deal ${enemy.damage} HP damage`,
+        willRefill: true
+      }
+    ])
+  );
+
+  world.enemyIntents = nextIntents;
+  world.enemyIntentSummary = {
+    totalDamage: Object.values(nextIntents).reduce((total, intent) => total + intent.amount, 0),
+    intentEnemyIds: Object.keys(nextIntents)
+  };
+
+  if (!emitEvents || !traceId) {
+    return [];
+  }
+
+  return Object.values(nextIntents).map((intent) => ({
+    type: 'EnemyIntentDeclared',
+    tick: world.tick,
+    traceId,
+    intent
+  }));
+}
+
 function enemyColumn(enemy: { slot: number }): number {
   return enemy.slot % ENEMY_COLUMNS;
 }
@@ -154,14 +188,78 @@ function drawCardsFromDeck(world: WorldState, count: number, excludeFromReshuffl
 function resetCostChain(world: WorldState): void {
   world.player.lastPlayedCost = null;
   world.player.costChainMultiplier = 1;
+  world.chain = createInitialChainState();
 }
 
-function advanceCostChain(world: WorldState, cost: number): number {
-  const continues = world.player.lastPlayedCost !== null && cost === world.player.lastPlayedCost + 1;
-  const multiplier = continues ? world.player.costChainMultiplier + 1 : 1;
-  world.player.lastPlayedCost = cost;
-  world.player.costChainMultiplier = multiplier;
-  return multiplier;
+function mirrorChainToPlayer(world: WorldState): void {
+  world.player.lastPlayedCost = world.chain.lastCost;
+  world.player.costChainMultiplier = world.chain.multiplier;
+}
+
+function advanceCostChain(
+  world: WorldState,
+  card: CardDefinition,
+  traceId: TraceId
+): { multiplier: number; events: GameEvent[] } {
+  const isWild = card.utilities?.includes('wild') ?? false;
+  const expectedCost = world.chain.nextExpectedCost;
+  const canRepairWithWild = isWild && world.chain.playedCosts.length > 0;
+  const playedCost = canRepairWithWild ? expectedCost : card.cost;
+  const continues = world.chain.playedCosts.length === 0 ? playedCost === 0 : playedCost === expectedCost;
+  const events: GameEvent[] = [];
+
+  if (!continues) {
+    const breakReason = `expected MP ${expectedCost}, played MP ${card.cost}`;
+    world.chain.playedCosts.push(card.cost);
+    world.chain.lastCost = card.cost;
+    world.chain.nextExpectedCost = card.cost + 1;
+    world.chain.multiplier = 1;
+    world.chain.broken = true;
+    world.chain.breakReason = breakReason;
+    mirrorChainToPlayer(world);
+    events.push({
+      type: 'ChainBroken',
+      tick: world.tick,
+      traceId,
+      cardId: card.id,
+      expectedCost,
+      playedCost: card.cost,
+      breakReason
+    });
+    return { multiplier: 1, events };
+  }
+
+  const multiplier = world.chain.playedCosts.length === 0 ? 1 : world.chain.multiplier + 1;
+  world.chain.playedCosts.push(playedCost);
+  world.chain.lastCost = playedCost;
+  world.chain.nextExpectedCost = playedCost + 1;
+  world.chain.multiplier = multiplier;
+  mirrorChainToPlayer(world);
+
+  events.push({
+    type: 'ChainAdvanced',
+    tick: world.tick,
+    traceId,
+    cardId: card.id,
+    playedCost,
+    nextExpectedCost: world.chain.nextExpectedCost,
+    multiplier
+  });
+
+  if (canRepairWithWild && playedCost !== card.cost) {
+    world.chain.repairedThisTurn = true;
+    events.push({
+      type: 'ChainRepaired',
+      tick: world.tick,
+      traceId,
+      cardId: card.id,
+      repairedCost: playedCost,
+      nextExpectedCost: world.chain.nextExpectedCost,
+      multiplier
+    });
+  }
+
+  return { multiplier, events };
 }
 
 function generateRewardChoices(world: WorldState): CardId[] {
@@ -299,6 +397,7 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
   switch (command.type) {
     case 'DealHand': {
       snapshotRoundAttackEnemies(world);
+      const intentEvents = refreshEnemyIntents(world, command.traceId, true);
       const dealtCards = drawCardsFromDeck(world, command.count);
       resetCostChain(world);
       world.player.hand = dealtCards;
@@ -309,7 +408,8 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
           tick: world.tick,
           traceId: command.traceId,
           cardIds: [...dealtCards]
-        }
+        },
+        ...intentEvents
       ];
     }
     case 'DiscardHand':
@@ -402,6 +502,9 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
           ]
         : [];
     }
+    case 'GainEnergy':
+      world.player.energy += command.amount;
+      return [];
     case 'DamageEnemy': {
       const enemy = world.enemies[command.targetId];
       if (!enemy || !enemy.alive) {
@@ -421,6 +524,7 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
 
       if (enemy.hp <= 0) {
         enemy.alive = false;
+        refreshEnemyIntents(world);
         return [
           damageEvent,
           {
@@ -438,7 +542,19 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
     case 'AdvanceEnemy': {
       const enemy = world.enemies[command.enemyId];
       if (enemy?.alive) {
-        enemy.z = Math.min(-1.3, enemy.z + command.deltaZ);
+        const fromZ = enemy.z;
+        enemy.z = Math.min(ENEMY_PRESSURE_Z, enemy.z + command.deltaZ);
+        return [
+          {
+            type: 'EnemyAdvanced',
+            tick: world.tick,
+            traceId: command.traceId,
+            enemyId: enemy.id,
+            fromZ,
+            toZ: enemy.z,
+            deltaZ: enemy.z - fromZ
+          }
+        ];
       }
       return [];
     }
@@ -447,13 +563,14 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
       if (!enemy?.alive) {
         return [];
       }
-      world.player.hp = Math.max(0, world.player.hp - enemy.damage);
+      const amount = command.amount ?? enemy.damage;
+      world.player.hp = Math.max(0, world.player.hp - amount);
       const attackEvent: GameEvent = {
         type: 'EnemyAttacked',
         tick: world.tick,
         traceId: command.traceId,
         enemyId: enemy.id,
-        amount: enemy.damage,
+        amount,
         remainingHp: world.player.hp
       };
       if (world.player.hp <= 0) {
@@ -473,6 +590,7 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
           .filter((enemy) => enemyColumn(enemy) === column)
           .forEach((enemy, row) => setEnemySlot(enemy, columnSlot(column, row)));
       }
+      refreshEnemyIntents(world);
       return [];
     }
     case 'FillEnemySlots': {
@@ -486,6 +604,7 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
         }
       }
       const active = activeAliveEnemies(world);
+      refreshEnemyIntents(world);
       return [
         {
           type: 'EnemiesRepositioned',
@@ -507,9 +626,6 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
       ];
     case 'DamagePlayer':
       world.player.hp = Math.max(0, world.player.hp - command.amount);
-      if (world.enemies[command.sourceId]?.alive) {
-        world.enemies[command.sourceId].z = -12;
-      }
       if (world.player.hp <= 0) {
         return [
           ...setGameFlowState(world, 'Settlement', 'player died', command.traceId).flatMap((next) => applyCommand(world, next))
@@ -686,15 +802,27 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
         for (const command of playCommands) {
           queue.push(...applyCommand(world, command));
         }
-        const effectMultiplier = advanceCostChain(world, card.cost);
+        const chainResult = advanceCostChain(world, card, intent.traceId);
+        queue.push(...chainResult.events);
         queue.push({
           type: 'CardPlayed',
           tick: world.tick,
           traceId: intent.traceId,
           cardId: intent.cardId,
           targetId: intent.targetId,
-          effectMultiplier
+          effectMultiplier: chainResult.multiplier
         });
+        if (card.comboNode === 'burst') {
+          queue.push({
+            type: 'PayoffTriggered',
+            tick: world.tick,
+            traceId: intent.traceId,
+            cardId: intent.cardId,
+            chainLength: world.chain.playedCosts.length,
+            multiplier: chainResult.multiplier,
+            enhanced: chainResult.multiplier >= 3
+          });
+        }
       }
     }
 
@@ -762,6 +890,7 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
           if (world.player.hp <= 0) {
             break;
           }
+          const enemyIntent = world.enemyIntents[enemy.id];
           queue.push(
             ...applyCommand(world, {
               type: 'EnemyAttack',
@@ -769,6 +898,14 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
               enemyId: enemy.id
             })
           );
+          queue.push({
+            type: 'EnemyIntentResolved',
+            tick: world.tick,
+            traceId: intent.traceId,
+            enemyId: enemy.id,
+            amount: enemyIntent?.amount ?? enemy.damage,
+            remainingHp: world.player.hp
+          });
         }
         if (world.player.hp > 0) {
           for (const command of setGameFlowState(world, 'EnemyRefill', 'enemy attacks resolved', intent.traceId)) {

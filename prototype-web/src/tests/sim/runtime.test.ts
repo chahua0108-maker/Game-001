@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cards } from '../../data/cards';
 import { tickWorld } from '../../sim/runtime';
+import { buildSnapshot } from '../../sim/snapshot';
 import { createInitialWorld } from '../../sim/world';
 import type { GameEvent, WorldState } from '../../sim/types';
 
@@ -331,6 +332,189 @@ describe('redline prototype runtime', () => {
     expect(playedCardEvent(turnWorld, 'test-turn-chain-1')).toMatchObject({ effectMultiplier: 1 });
   });
 
+  it('exposes current chain state, next expected cost, and break reason', () => {
+    const world = createInitialWorld();
+    dealHand(world);
+    world.player.hand = ['debt_hook', 'row_cleave'];
+
+    expect(world.chain).toMatchObject({
+      playedCosts: [],
+      lastCost: null,
+      nextExpectedCost: 0,
+      multiplier: 1,
+      broken: false
+    });
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'debt_hook',
+        targetId: 'enemy-1',
+        traceId: 'test-chain-state-0'
+      }
+    ]);
+
+    expect(world.chain).toMatchObject({
+      playedCosts: [0],
+      lastCost: 0,
+      nextExpectedCost: 1,
+      multiplier: 1,
+      broken: false
+    });
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'row_cleave',
+        traceId: 'test-chain-state-break'
+      }
+    ]);
+
+    expect(world.chain).toMatchObject({
+      playedCosts: [0, 2],
+      lastCost: 2,
+      nextExpectedCost: 3,
+      multiplier: 1,
+      broken: true,
+      breakReason: 'expected MP 1, played MP 2'
+    });
+    expect(
+      world.debug.events.some((event) => event.type === 'ChainBroken' && event.traceId === 'test-chain-state-break')
+    ).toBe(true);
+  });
+
+  it('uses Wild Mana Stitch as a draw/mana wild repair that preserves a missing chain step', () => {
+    const world = createInitialWorld();
+    dealHand(world);
+    world.player.hand = ['debt_hook', 'wild_mana_stitch', 'row_cleave'];
+    world.player.drawPile = ['redline_cut'];
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'debt_hook',
+        targetId: 'enemy-1',
+        traceId: 'test-wild-chain-0'
+      }
+    ]);
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'wild_mana_stitch',
+        traceId: 'test-wild-repair'
+      }
+    ]);
+
+    expect(world.chain).toMatchObject({
+      playedCosts: [0, 1],
+      lastCost: 1,
+      nextExpectedCost: 2,
+      multiplier: 2,
+      broken: false,
+      repairedThisTurn: true
+    });
+    expect(world.player.hand).toContain('redline_cut');
+    expect(world.player.energy).toBe(4);
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'row_cleave',
+        traceId: 'test-wild-chain-2'
+      }
+    ]);
+
+    expect(playedCardEvent(world, 'test-wild-chain-2')).toMatchObject({ effectMultiplier: 3 });
+  });
+
+  it('amplifies payoff cards at the tail of a chain while unordered payoff remains low value', () => {
+    const chained = createInitialWorld();
+    dealHand(chained);
+    chained.player.maxEnergy = 6;
+    chained.player.energy = 6;
+    chained.player.hand = ['debt_hook', 'redline_cut', 'row_cleave', 'severance_burst'];
+    for (const enemy of Object.values(chained.enemies)) {
+      enemy.hp = 200;
+      enemy.maxHp = 200;
+    }
+
+    tickWorld(chained, [
+      {
+        type: 'play-card',
+        cardId: 'debt_hook',
+        targetId: 'enemy-1',
+        traceId: 'test-payoff-0'
+      }
+    ]);
+    tickWorld(chained, [
+      {
+        type: 'play-card',
+        cardId: 'redline_cut',
+        targetId: 'enemy-2',
+        traceId: 'test-payoff-1'
+      }
+    ]);
+    tickWorld(chained, [
+      {
+        type: 'play-card',
+        cardId: 'row_cleave',
+        traceId: 'test-payoff-2'
+      }
+    ]);
+    tickWorld(chained, [
+      {
+        type: 'play-card',
+        cardId: 'severance_burst',
+        traceId: 'test-payoff-3'
+      }
+    ]);
+
+    const chainedPayoffDamage = chained.debug.events.filter(
+      (event): event is Extract<GameEvent, { type: 'DamageApplied' }> =>
+        event.type === 'DamageApplied' && event.traceId === 'test-payoff-3'
+    );
+    expect(playedCardEvent(chained, 'test-payoff-3')).toMatchObject({ effectMultiplier: 4 });
+    expect(chained.debug.events).toContainEqual(
+      expect.objectContaining({
+        type: 'PayoffTriggered',
+        traceId: 'test-payoff-3',
+        cardId: 'severance_burst',
+        chainLength: 4,
+        enhanced: true
+      })
+    );
+    expect(chainedPayoffDamage.every((event) => event.amount === cards.severance_burst.damage * 4)).toBe(true);
+
+    const unordered = createInitialWorld();
+    dealHand(unordered);
+    unordered.player.hand = ['severance_burst'];
+    unordered.player.energy = 3;
+
+    tickWorld(unordered, [
+      {
+        type: 'play-card',
+        cardId: 'severance_burst',
+        traceId: 'test-payoff-unordered'
+      }
+    ]);
+
+    const unorderedPayoffDamage = unordered.debug.events.filter(
+      (event): event is Extract<GameEvent, { type: 'DamageApplied' }> =>
+        event.type === 'DamageApplied' && event.traceId === 'test-payoff-unordered'
+    );
+    expect(playedCardEvent(unordered, 'test-payoff-unordered')).toMatchObject({ effectMultiplier: 1 });
+    expect(unordered.debug.events).toContainEqual(
+      expect.objectContaining({
+        type: 'PayoffTriggered',
+        traceId: 'test-payoff-unordered',
+        cardId: 'severance_burst',
+        chainLength: 1,
+        enhanced: false
+      })
+    );
+    expect(unorderedPayoffDamage.every((event) => event.amount === cards.severance_burst.damage)).toBe(true);
+  });
+
   it('does not let failed plays mutate the current cost chain', () => {
     const world = createInitialWorld();
     dealHand(world);
@@ -504,7 +688,7 @@ describe('redline prototype runtime', () => {
     expect(world.fsm.characters['enemy-1']).toBe('Dead');
   });
 
-  it('does not attack during ordinary time advancement', () => {
+  it('keeps advance-time as clock/deal input without realtime combat side effects', () => {
     const world = createInitialWorld();
     dealHand(world);
 
@@ -517,18 +701,29 @@ describe('redline prototype runtime', () => {
       }
     ]);
 
+    const hpAfterCard = world.player.hp;
+    const enemyHpAfterCard = world.enemies['enemy-1'].hp;
+
     tickWorld(world, [
       {
         type: 'advance-time',
-        deltaSeconds: 3,
+        deltaSeconds: 8,
         traceId: 'test-time'
       }
     ]);
 
-    expect(world.player.hp).toBe(60);
+    expect(world.player.hp).toBe(hpAfterCard);
+    expect(world.enemies['enemy-1'].hp).toBe(enemyHpAfterCard);
     expect(world.player.energy).toBe(2);
     expect(world.fsm.gameFlow).toBe('PlayerTurn');
-    expect(world.debug.events.some((event) => event.type === 'EnemyAttacked')).toBe(false);
+    expect(world.debug.events.some((event) => event.traceId === 'test-time' && event.type === 'TimeAdvanced')).toBe(true);
+    expect(world.debug.events.some((event) => event.traceId === 'test-time' && event.type === 'EnemyAdvanced')).toBe(false);
+    expect(world.debug.events.some((event) => event.traceId === 'test-time' && event.type === 'EnemyPressure')).toBe(false);
+    expect(world.debug.events.some((event) => event.traceId === 'test-time' && event.type === 'AutoAttack')).toBe(false);
+    expect(world.debug.events.some((event) => event.traceId === 'test-time' && event.type === 'EnemyAttacked')).toBe(false);
+    expect(world.debug.events.some((event) => event.traceId === 'test-time' && event.type === 'ClearBurstRequested')).toBe(
+      false
+    );
   });
 
   it('ends turn, resolves one attack per living enemy, refills slots, and auto-deals next round', () => {
@@ -798,5 +993,30 @@ describe('redline prototype runtime', () => {
     expect(world.player.hand).toEqual(['row_cleave', 'debt_hook', 'redline_cut', 'heartbeat_spark']);
     expect(world.player.drawPile).toEqual([]);
     expect(world.player.discardPile).toEqual([]);
+  });
+
+  it('declares readable enemy intents for current front attackers and resolves them on end turn', () => {
+    const world = createInitialWorld();
+    dealHand(world);
+    const snapshot = buildSnapshot(world);
+
+    expect(world.enemyIntentSummary).toMatchObject({
+      totalDamage: 17,
+      intentEnemyIds: ['enemy-1', 'enemy-2', 'enemy-3', 'enemy-4', 'enemy-5']
+    });
+    expect(world.enemyIntents['enemy-1']).toMatchObject({
+      enemyId: 'enemy-1',
+      kind: 'attack',
+      amount: 2,
+      description: 'End turn: deal 2 HP damage'
+    });
+    expect(snapshot.enemyIntentSummary.totalDamage).toBe(17);
+    expect(snapshot.enemyIntents).toHaveLength(5);
+
+    endTurn(world);
+
+    expect(
+      world.debug.events.filter((event) => event.type === 'EnemyIntentResolved' && event.traceId === 'test-end-turn')
+    ).toHaveLength(5);
   });
 });

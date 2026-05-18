@@ -1,7 +1,10 @@
 import { cards } from '../data/cards';
+import { enemies as enemyDefinitions } from '../data/enemies';
 import { nextTraceId } from '../input/keyboard';
 import { ENEMY_COLUMNS } from '../sim/world';
 import type { CardDefinition, EnemySnapshot, GameEvent, GameSnapshot, Intent } from '../sim/types';
+
+const enemyDamageByDefinition = new Map(enemyDefinitions.map((enemy) => [enemy.id, enemy.damage]));
 
 export function validHudSelectedTargetId(
   targetId: string | null | undefined,
@@ -178,18 +181,12 @@ export class Hud {
     const chainStarted = snapshot.player.lastPlayedCost !== null;
     const nextChainCost = chainStarted ? snapshot.player.lastPlayedCost! + 1 : 0;
     const nextChainMultiplier = chainStarted ? snapshot.player.costChainMultiplier + 1 : 1;
-    const chainHint = chainStarted ? `下张 MP ${nextChainCost} -> x${nextChainMultiplier}` : 'MP 0 起链';
+    const chainRouteLabel = this.chainRouteLabel(snapshot);
+    const chainHint = chainStarted ? `Next MP${nextChainCost} -> x${nextChainMultiplier}` : 'Start MP0';
     const frontEnemySlots = Array.from({ length: ENEMY_COLUMNS }, (_, slot) =>
       snapshot.enemies.find((enemy) => enemy.alive && enemy.slot === slot)
     );
     const livingFrontEnemies = frontEnemySlots.filter(Boolean).length;
-    const playableCount = snapshot.player.hand.filter((cardId) => {
-      const card = cards[cardId];
-      return isPlayerTurn && snapshot.player.energy >= card.cost;
-    }).length;
-    const deckLoopLabel = `Deck ${snapshot.player.deck.length} · Draw ${snapshot.player.drawPile.length} · Discard ${snapshot.player.discardPile.length} · Hand ${snapshot.player.hand.length}`;
-    const canEndTurn = canHudEndTurn(snapshot.fsm.gameFlow);
-    const endTurnTitle = isPlayerTurn ? '结束当前玩家回合' : '当前不是玩家出牌阶段';
     const flowLabel =
       snapshot.fsm.gameFlow === 'Deal'
         ? '回合开始'
@@ -204,6 +201,60 @@ export class Hud {
           : snapshot.fsm.gameFlow === 'Settlement'
             ? '游戏结束'
             : snapshot.fsm.gameFlow;
+    const activeEnemies = snapshot.enemies.filter((enemy) => enemy.alive);
+    const frontThreatEnemies = activeEnemies.filter((enemy) => enemy.slot >= 0 && enemy.slot < ENEMY_COLUMNS);
+    const priorityThreat = [...frontThreatEnemies].sort((left, right) => left.hp - right.hp)[0];
+    const enemyIntent = this.enemyIntentSummary(frontThreatEnemies);
+    const unresolvedIntentLabel =
+      enemyIntent.totalDamage > 0
+        ? `未解决 ${enemyIntent.totalDamage} 伤害`
+        : activeEnemies.length > 0
+          ? '前排暂无伤害'
+          : '清场无后果';
+    const playableCount = snapshot.player.hand.filter((cardId) => {
+      const card = cards[cardId];
+      return isPlayerTurn && snapshot.player.energy >= card.cost;
+    }).length;
+    const playableVerbs = Array.from(
+      new Set(
+        snapshot.player.hand
+          .filter((cardId) => isPlayerTurn && snapshot.player.energy >= cards[cardId].cost)
+          .map((cardId) => cards[cardId].verb)
+      )
+    ).slice(0, 4);
+    const burstCardsReady = snapshot.player.hand.some((cardId) => {
+      const card = cards[cardId];
+      return isPlayerTurn && card.targets === 'all-enemies' && snapshot.player.energy >= card.cost;
+    });
+    const burstRecentlyFired = snapshot.lastBurstTick !== null && snapshot.tick - snapshot.lastBurstTick <= 8;
+    const nearClear = activeEnemies.length > 0 && activeEnemies.length <= 3;
+    const directorState = burstRecentlyFired
+      ? 'burst-fired'
+      : burstCardsReady
+        ? 'burst-ready'
+        : nearClear
+          ? 'near-clear'
+          : '';
+    const threatLabel =
+      frontThreatEnemies.length > 0
+        ? `${frontThreatEnemies.length} 前排压线`
+        : activeEnemies.length > 0
+          ? `${activeEnemies.length} 后排压上`
+          : '清场窗口';
+    const threatDetail = priorityThreat
+      ? `${priorityThreat.name} HP ${priorityThreat.hp}/${priorityThreat.maxHp}`
+      : activeEnemies.length > 0
+        ? '下一波正在补位'
+        : '回收节奏，准备下一轮';
+    const actionLabel = isPlayerTurn
+      ? playableCount > 0
+        ? `${playableCount} 可打 · ${playableVerbs.join(' / ')}`
+        : '无可打牌'
+      : flowLabel;
+    const payoffPreview = this.payoffPreviewLabel(snapshot);
+    const deckLoopLabel = `Deck ${snapshot.player.deck.length} · Draw ${snapshot.player.drawPile.length} · Discard ${snapshot.player.discardPile.length} · Hand ${snapshot.player.hand.length}`;
+    const canEndTurn = canHudEndTurn(snapshot.fsm.gameFlow);
+    const endTurnTitle = isPlayerTurn ? `结束当前玩家回合；${unresolvedIntentLabel}` : '当前不是玩家出牌阶段';
     const emptyHandText = isDeal
         ? '回合开始，先发牌。'
       : isSettlement
@@ -236,8 +287,13 @@ export class Hud {
         </div>
         <div class="status-chip chain-chip ${chainStarted ? 'active' : ''}">
           <strong>CHAIN</strong>
-          <span>x${snapshot.player.costChainMultiplier}</span>
+          <span>${chainRouteLabel}</span>
           <em>${chainHint}</em>
+        </div>
+        <div class="status-chip intent-chip ${enemyIntent.totalDamage > 0 ? 'danger' : ''}">
+          <strong>意图</strong>
+          <span>${enemyIntent.totalDamage > 0 ? `-${enemyIntent.totalDamage} HP` : '安全'}</span>
+          <em>${enemyIntent.detail}</em>
         </div>
         <div class="status-chip phase-chip">
           <strong>FSM</strong>
@@ -249,6 +305,29 @@ export class Hud {
           <em>牌库/抽/弃/手</em>
         </div>
         <button type="button" data-restart>Restart</button>
+      </section>
+
+      <section class="combat-director chain-director ${directorState}" aria-label="hyper turn chain director">
+        <div class="director-cell director-chain">
+          <span>本回合链路</span>
+          <strong>${chainRouteLabel}</strong>
+          <em>${chainHint}</em>
+        </div>
+        <div class="director-cell director-action">
+          <span>下一张期望</span>
+          <strong>${chainStarted ? `MP ${nextChainCost}` : 'MP 0'}</strong>
+          <em>${actionLabel}</em>
+        </div>
+        <div class="director-cell director-intent">
+          <span>敌人意图</span>
+          <strong>${enemyIntent.totalDamage > 0 ? `将受 ${enemyIntent.totalDamage} 伤害` : threatLabel}</strong>
+          <em>${enemyIntent.detail || threatDetail}</em>
+        </div>
+        <div class="director-cell director-payoff">
+          <span>Payoff 预览</span>
+          <strong>${payoffPreview.title}</strong>
+          <em>${payoffPreview.detail}</em>
+        </div>
       </section>
 
       <section class="deal-panel" aria-label="deal cards">
@@ -263,7 +342,7 @@ export class Hud {
               : snapshot.fsm.gameFlow === 'Reward'
                 ? deckLoopLabel
               : isPlayerTurn
-                ? `${deckLoopLabel} · 可出牌 ${playableCount}`
+                ? `${unresolvedIntentLabel} · 可出牌 ${playableCount}`
                 : '怪物正在结算'
           }</small>
         </div>
@@ -358,26 +437,30 @@ export class Hud {
                     : `出牌：${card.name}`;
                   const targetLabel = this.targetLabel(card.targets);
                   const effectLabel = this.cardEffectLabel(card);
+                  const chainRead = this.cardChainRead(card, snapshot);
                   const costLabel = this.cardCostLabel(card);
-                  const chainPreview = this.costChainPreviewLabel(card, snapshot);
+                  const chainPreview = chainRead.label;
+                  const payoffLabel = this.cardPayoffLabel(card, chainRead.multiplier);
                   const activeTargetLabel = card.targets === 'front-enemy' && selectedTarget ? `目标 ${selectedTarget.name}` : targetLabel;
                   const selectedTargetAttr =
                     card.targets === 'front-enemy' && selectedTarget ? `data-selected-target-id="${selectedTarget.id}"` : '';
-                  const tooltip = `${reason}。${chainPreview} · ${costLabel} · ${effectLabel}。${this.visibleCardDescription(card.description)}`;
+                  const tooltip = `${reason}。${chainPreview} · ${costLabel} · ${effectLabel}${payoffLabel ? ` · ${payoffLabel}` : ''}。${this.visibleCardDescription(card.description)}`;
                   const missingText =
                     isPlayerTurn && missingEnergy > 0
                       ? `<em class="missing-cost">缺 MP ${missingEnergy}</em>`
                       : '';
                   return `
-                    <button class="card-button ${card.targets === 'all-enemies' ? 'burst-card' : ''} ${
+                    <button class="card-button ${card.targets === 'all-enemies' ? 'burst-card' : ''} ${chainRead.className} ${
                       disabled && isPlayerTurn ? 'locked-card' : ''
                     }" type="button" data-card-id="${card.id}" ${selectedTargetAttr} aria-label="${reason}" title="${tooltip}" ${
                       disabled ? 'disabled' : ''
                     }>
-                      <span class="hotkey">${index + 1}</span>
+                      <span class="card-cost"><small>MP</small><b>${card.cost}</b></span>
+                      <span class="hotkey">#${index + 1}</span>
                       <strong>${card.name}</strong>
                       <span class="card-meta">${card.verb} · ${activeTargetLabel}</span>
-                      <span class="chain-preview ${chainPreview.startsWith('断链') ? 'breaks-chain' : ''}">${chainPreview}</span>
+                      <span class="chain-preview ${chainRead.breaksChain ? 'breaks-chain' : ''}">${chainPreview}</span>
+                      ${payoffLabel ? `<span class="card-payoff">${payoffLabel}</span>` : ''}
                       <small class="card-effect">${costLabel} · ${effectLabel}</small>
                       ${missingText}
                     </button>
@@ -460,13 +543,98 @@ export class Hud {
     return `MP ${card.cost}`;
   }
 
-  private costChainPreviewLabel(card: CardDefinition, snapshot: GameSnapshot): string {
+  private cardChainRead(
+    card: CardDefinition,
+    snapshot: GameSnapshot
+  ): { label: string; multiplier: number; breaksChain: boolean; className: string } {
+    const hasEnergy = snapshot.player.energy >= card.cost;
+    const isPlayerTurn = snapshot.fsm.gameFlow === 'PlayerTurn';
+
     if (snapshot.player.lastPlayedCost === null) {
-      return '打出 x1';
+      const startsChain = card.cost === 0;
+      return {
+        label: startsChain ? '起链 x1' : '非起手 x1',
+        multiplier: 1,
+        breaksChain: false,
+        className: isPlayerTurn && hasEnergy && startsChain ? 'chain-match' : ''
+      };
     }
 
     const continues = card.cost === snapshot.player.lastPlayedCost + 1;
-    return continues ? `打出 x${snapshot.player.costChainMultiplier + 1}` : '断链 x1';
+    const multiplier = continues ? snapshot.player.costChainMultiplier + 1 : 1;
+    return {
+      label: continues ? `接链 x${multiplier}` : '断链 x1',
+      multiplier,
+      breaksChain: !continues,
+      className: isPlayerTurn && hasEnergy ? (continues ? 'chain-match' : 'chain-break-risk') : ''
+    };
+  }
+
+  private chainRouteLabel(snapshot: GameSnapshot): string {
+    const lastCost = snapshot.player.lastPlayedCost;
+    if (lastCost === null) {
+      return 'MP0?';
+    }
+
+    const chainLength = Math.max(1, snapshot.player.costChainMultiplier);
+    const firstCost = Math.max(0, lastCost - chainLength + 1);
+    const costs = Array.from({ length: chainLength }, (_, index) => `MP${firstCost + index}`);
+    return costs.join(' -> ');
+  }
+
+  private enemyIntentSummary(enemies: EnemySnapshot[]): { totalDamage: number; detail: string } {
+    const intentEnemies = enemies.filter((enemy) => enemy.slot >= 0 && enemy.slot < ENEMY_COLUMNS);
+    const totalDamage = intentEnemies.reduce((sum, enemy) => sum + this.enemyIntentDamage(enemy), 0);
+    const detail =
+      intentEnemies.length > 0
+        ? intentEnemies
+            .slice(0, 2)
+            .map((enemy) => `${enemy.name} ${this.enemyIntentDamage(enemy)}`)
+            .join(' / ') + (intentEnemies.length > 2 ? ` / +${intentEnemies.length - 2}` : '')
+        : '无前排攻击';
+    return { totalDamage, detail };
+  }
+
+  private enemyIntentDamage(enemy: EnemySnapshot): number {
+    return enemyDamageByDefinition.get(enemy.definitionId) ?? 0;
+  }
+
+  private payoffPreviewLabel(snapshot: GameSnapshot): { title: string; detail: string } {
+    const candidates = snapshot.player.hand
+      .map((cardId) => cards[cardId])
+      .filter((card): card is CardDefinition => Boolean(card))
+      .filter((card) => this.isPayoffCard(card) && snapshot.player.energy >= card.cost)
+      .map((card) => ({ card, chain: this.cardChainRead(card, snapshot) }))
+      .sort((left, right) => right.chain.multiplier - left.chain.multiplier || right.card.damage - left.card.damage);
+
+    const best = candidates[0];
+    if (!best) {
+      return { title: '等待终结牌', detail: '用 0->1->2 找 payoff' };
+    }
+
+    return {
+      title: `${best.card.name} x${best.chain.multiplier}`,
+      detail: this.cardPayoffLabel(best.card, best.chain.multiplier) || this.cardEffectLabel(best.card)
+    };
+  }
+
+  private cardPayoffLabel(card: CardDefinition, multiplier: number): string {
+    if (!this.isPayoffCard(card)) {
+      return '';
+    }
+
+    if (card.damage <= 0 && !card.drawCards) {
+      return '';
+    }
+
+    const damage = card.damage > 0 ? `${this.damageScopeLabel(card.targets)} ${card.damage * multiplier}` : '';
+    const draw = card.drawCards ? `抽${card.drawCards}` : '';
+    const parts = [damage, draw].filter(Boolean);
+    return `Payoff x${multiplier}: ${parts.join(' · ')}`;
+  }
+
+  private isPayoffCard(card: CardDefinition): boolean {
+    return card.comboNode === 'burst' || card.cost >= 2 || card.targets === 'all-enemies';
   }
 
   private cardEffectLabel(card: CardDefinition): string {
