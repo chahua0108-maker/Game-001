@@ -62,6 +62,9 @@ button {
 .enemy-peek-toggle,
 .reward-panel,
 .reward-card,
+.route-choice,
+.run-layer-main,
+.run-layer-meta,
 .director-cell,
 .combat-feed,
 .debug-panel {
@@ -81,9 +84,25 @@ button {
   border-radius: 8px;
 }
 
+.status-strip > div *,
+.status-strip > button,
+.deal-panel *,
+.reward-card *,
+.route-choice *,
+.card-button * {
+  min-width: 0;
+}
+
+.status-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .status-strip > .resource-chip,
 .status-strip > .chain-chip,
 .status-strip > .intent-chip,
+.status-strip > .authorization-chip,
 .status-strip > .pile-chip {
   display: grid;
 }
@@ -219,6 +238,49 @@ button {
   color: #ff9aad;
 }
 
+.authorization-chip {
+  min-width: 112px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: center;
+  column-gap: 6px;
+  row-gap: 1px;
+}
+
+.authorization-chip strong {
+  color: rgba(255, 247, 248, 0.82);
+  white-space: nowrap;
+}
+
+.authorization-chip span {
+  color: rgba(255, 255, 255, 0.68);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.authorization-chip em {
+  grid-column: 1 / -1;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authorization-chip.active {
+  border-color: rgba(255, 216, 104, 0.72);
+  background: rgba(58, 42, 16, 0.68);
+  box-shadow: 0 0 24px rgba(255, 216, 104, 0.16);
+}
+
+.authorization-chip.active strong,
+.authorization-chip.active span {
+  color: #ffe078;
+}
+
 .phase-chip {
   min-width: 112px;
 }
@@ -233,8 +295,12 @@ button {
 }
 
 .pile-chip span {
+  min-width: 0;
   color: #fff7f8;
   text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pile-chip em {
@@ -458,6 +524,9 @@ button {
 .deal-panel strong {
   color: #73ffe2;
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deal-panel button {
@@ -484,7 +553,7 @@ button {
 
 .target-panel {
   position: absolute;
-  top: 232px;
+  top: 256px;
   left: 10px;
   display: flex;
   align-items: center;
@@ -523,9 +592,84 @@ button {
   box-shadow: 0 0 22px rgba(115, 255, 226, 0.16);
 }
 
+.run-layer-panel {
+  position: absolute;
+  top: 76px;
+  right: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  width: 244px;
+  pointer-events: none;
+}
+
+.run-layer-main,
+.run-layer-meta {
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.run-layer-main span,
+.run-layer-main strong,
+.run-layer-main em,
+.run-layer-main small,
+.run-layer-meta span,
+.run-layer-meta strong,
+.run-layer-meta em {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-layer-main span,
+.run-layer-meta span {
+  color: #73ffe2;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.run-layer-main strong,
+.run-layer-meta strong {
+  margin-top: 2px;
+  color: #fff7f8;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.run-layer-main em,
+.run-layer-main small,
+.run-layer-meta em {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.run-layer-main small {
+  color: rgba(255, 216, 223, 0.78);
+}
+
+.run-layer-meta {
+  border-color: rgba(255, 216, 104, 0.34);
+  background: rgba(42, 34, 26, 0.62);
+}
+
+.run-layer-meta span {
+  color: #ffe078;
+}
+
 .enemy-peek {
   position: absolute;
-  top: 100px;
+  top: 150px;
   right: 10px;
   display: grid;
   justify-items: end;
@@ -591,6 +735,15 @@ button {
   color: rgba(255, 255, 255, 0.64);
   font-size: 10px;
   line-height: 1;
+}
+
+.enemy-slot .enemy-intent-badge {
+  margin-top: 2px;
+  color: #ffe078;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .enemy-slot .slot-id {
@@ -692,6 +845,9 @@ button {
 .combat-feed li {
   color: rgba(255, 255, 255, 0.76);
   font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .combat-feed ol {
@@ -726,8 +882,10 @@ button {
   left: 50%;
   top: 52%;
   width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
   display: grid;
   gap: 12px;
+  overflow: auto;
   padding: 14px;
   border-radius: 8px;
   transform: translate(-50%, -50%);
@@ -749,11 +907,17 @@ button {
 
 .reward-panel header strong {
   font-size: 18px;
+  overflow-wrap: anywhere;
+  line-height: 1.12;
 }
 
 .reward-panel header small {
   color: rgba(255, 255, 255, 0.72);
   font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .reward-choices {
@@ -762,7 +926,15 @@ button {
   gap: 10px;
 }
 
-.reward-card {
+.route-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reward-card,
+.route-choice {
+  display: grid;
   min-height: 138px;
   padding: 12px;
   color: #fff7f8;
@@ -774,7 +946,21 @@ button {
     rgba(18, 16, 22, 0.9);
 }
 
-.reward-card:hover {
+.reward-card {
+  grid-template-rows: auto auto auto 1fr;
+}
+
+.route-choice {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  min-height: 116px;
+  border-color: rgba(255, 216, 104, 0.3);
+  background:
+    linear-gradient(165deg, rgba(56, 45, 20, 0.92), rgba(22, 21, 28, 0.94)),
+    rgba(18, 16, 22, 0.9);
+}
+
+.reward-card:hover,
+.route-choice:hover {
   border-color: rgba(115, 255, 226, 0.72);
   transform: translateY(-2px);
 }
@@ -782,37 +968,69 @@ button {
 .reward-card span,
 .reward-card strong,
 .reward-card small,
-.reward-card em {
+.reward-card em,
+.route-choice span,
+.route-choice strong,
+.route-choice small,
+.route-choice em {
   display: block;
 }
 
-.reward-card span {
+.reward-card span,
+.route-choice span {
   color: #73ffe2;
   font-size: 10px;
   font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 
-.reward-card strong {
-  margin-top: 8px;
-  font-size: 15px;
+.route-choice span {
+  color: #ffe078;
 }
 
-.reward-card small {
+.reward-card strong,
+.route-choice strong {
   margin-top: 8px;
-  color: #ffd8df;
-  font-size: 11px;
+  font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.reward-card em {
+.reward-card small,
+.route-choice small {
+  margin-top: 8px;
+  color: #ffd8df;
+  font-size: 11px;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-choice small {
+  color: #fff2b8;
+}
+
+.reward-card em,
+.route-choice em {
   margin-top: 10px;
   color: rgba(255, 255, 255, 0.78);
   font-size: 11px;
   font-style: normal;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.route-choice em {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .game-over-panel span {
@@ -857,8 +1075,8 @@ button {
 
 .card-button {
   position: relative;
-  height: 86px;
-  min-height: 86px;
+  height: 118px;
+  min-height: 118px;
   padding: 8px 9px 7px 50px;
   overflow: hidden;
   color: #fff7f8;
@@ -908,6 +1126,21 @@ button {
   box-shadow: 0 0 28px rgba(115, 255, 226, 0.22), 0 12px 28px rgba(0, 0, 0, 0.3);
 }
 
+.card-button.authorization-payable {
+  border-color: rgba(255, 216, 104, 0.82);
+  box-shadow: 0 0 28px rgba(255, 216, 104, 0.18), 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+.card-button.authorization-payable .card-cost {
+  color: #181016;
+  background: #ffe078;
+  box-shadow: 0 0 20px rgba(255, 216, 104, 0.28);
+}
+
+.card-button.authorization-payable .card-effect {
+  display: none;
+}
+
 .card-button.chain-break-risk {
   border-color: rgba(255, 64, 101, 0.66);
   background:
@@ -935,6 +1168,10 @@ button {
 
 .card-button.locked-card .hotkey {
   color: rgba(115, 255, 226, 0.62);
+}
+
+.card-button.locked-card .card-effect {
+  display: none;
 }
 
 .status-strip button:active,
@@ -982,10 +1219,20 @@ button:focus-visible {
 .card-button .card-meta,
 .card-button .card-effect,
 .card-button .chain-preview,
+.card-button .card-intent-preview,
 .card-button .card-payoff {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.card-button .card-meta {
+  font-weight: 850;
+}
+
+.card-button .card-meta b {
+  color: #73ffe2;
+  font-weight: 950;
 }
 
 .card-button .chain-preview {
@@ -997,6 +1244,13 @@ button:focus-visible {
 
 .card-button .chain-preview.breaks-chain {
   color: #ff9aad;
+}
+
+.card-button .card-intent-preview {
+  margin-top: 3px;
+  color: #ffe078;
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .card-button .card-payoff {
@@ -1019,6 +1273,22 @@ button:focus-visible {
   font-style: normal;
   font-weight: 800;
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-button .authorization-cost {
+  display: block;
+  margin-top: 3px;
+  color: #ffe078;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-button .hotkey {
@@ -1113,6 +1383,7 @@ button:focus-visible {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 11px;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .debug-panel dl,
@@ -1177,14 +1448,23 @@ button:focus-visible {
   }
 
   .target-panel {
-    top: 266px;
+    top: 286px;
     right: auto;
     width: min(300px, calc(100vw - 20px));
     min-width: 0;
   }
 
+  .run-layer-panel {
+    top: auto;
+    right: 10px;
+    bottom: 188px;
+    left: 10px;
+    width: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .enemy-peek {
-    top: 304px;
+    top: 314px;
     right: 10px;
   }
 
@@ -1209,6 +1489,8 @@ button:focus-visible {
 
   .reward-panel {
     top: 54%;
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
     padding: 10px;
   }
 
@@ -1217,18 +1499,29 @@ button:focus-visible {
     gap: 7px;
   }
 
-  .reward-card {
+  .route-choices {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .reward-card,
+  .route-choice {
     min-height: 86px;
     padding: 9px;
   }
 
-  .reward-card em {
+  .reward-card em,
+  .route-choice em {
     margin-top: 6px;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .card-button {
-    height: 88px;
-    min-height: 88px;
+    height: 108px;
+    min-height: 108px;
     padding: 8px 8px 7px 48px;
   }
 
@@ -1252,9 +1545,9 @@ button:focus-visible {
     padding-inline: 6px;
   }
 
-  .xp-chip,
-  .phase-chip,
-  .pile-chip,
+  .status-strip > .xp-chip,
+  .status-strip > .phase-chip,
+  .status-strip > .pile-chip,
   .status-strip > button {
     display: none;
   }
@@ -1274,30 +1567,34 @@ button:focus-visible {
 
   .chain-chip em,
   .intent-chip em,
+  .authorization-chip em,
   .pile-chip em {
     display: none;
   }
 
   .chain-chip,
-  .intent-chip {
+  .intent-chip,
+  .authorization-chip {
     min-width: 0;
     grid-template-columns: 1fr;
   }
 
   .chain-chip strong,
-  .intent-chip strong {
+  .intent-chip strong,
+  .authorization-chip strong {
     text-align: center;
   }
 
   .chain-chip span,
-  .intent-chip span {
+  .intent-chip span,
+  .authorization-chip span {
     text-align: center;
     font-size: 9px;
   }
 
   .deal-panel {
     top: 214px;
-    min-height: 40px;
+    min-height: 52px;
   }
 
   .deal-panel small {
@@ -1307,21 +1604,53 @@ button:focus-visible {
 
   .deal-panel button {
     min-width: 86px;
-    height: 32px;
+    height: 44px;
     padding: 0 10px;
     font-size: 12px;
   }
 
   .target-panel {
-    top: 262px;
+    top: 286px;
+  }
+
+  .run-layer-panel {
+    top: auto;
+    bottom: 178px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .run-layer-main,
+  .run-layer-meta {
+    min-height: 28px;
+    padding: 5px 8px;
+  }
+
+  .run-layer-meta {
+    display: none;
+  }
+
+  .run-layer-main {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+  }
+
+  .run-layer-main strong,
+  .run-layer-main em {
+    margin-top: 0;
   }
 
   .enemy-peek {
-    top: 300px;
+    top: 320px;
+  }
+
+  .enemy-peek-toggle {
+    min-height: 44px;
   }
 
   .enemy-slot {
-    min-height: 28px;
+    min-height: 44px;
     padding: 4px;
   }
 
@@ -1336,14 +1665,22 @@ button:focus-visible {
   }
 
   .card-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
+    right: 0;
+    left: 0;
+    bottom: 8px;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 10px 4px;
+    scroll-snap-type: x proximity;
   }
 
   .card-button {
-    height: 82px;
-    min-height: 82px;
+    flex: 0 0 min(232px, 78vw);
+    height: 98px;
+    min-height: 98px;
     padding: 7px 7px 6px 44px;
+    scroll-snap-align: start;
   }
 
   .card-button strong {
@@ -1351,7 +1688,8 @@ button:focus-visible {
     font-size: 11px;
   }
 
-  .card-button .card-effect {
+  .card-button .card-effect,
+  .card-button .card-payoff {
     display: none;
   }
 

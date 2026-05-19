@@ -1,12 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { cards } from '../../data/cards';
 import { tickWorld } from '../../sim/runtime';
 import { createInitialWorld } from '../../sim/world';
 import type { WorldState } from '../../sim/types';
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 function dealHand(world: WorldState): void {
   tickWorld(world, [
@@ -110,21 +106,20 @@ describe('core loop regression coverage', () => {
     expect(world.debug.failedConditions.some((condition) => condition.conditionId === 'front-target')).toBe(false);
   });
 
-  it('randomly auto-targets a first-row enemy when no target is supplied', () => {
+  it('auto-targets the highest current first-row intent when no target is supplied', () => {
     const world = createInitialWorld();
     dealHand(world);
-    vi.spyOn(Math, 'random').mockReturnValue(0.49);
 
     playCard(world, 'debt_hook');
 
     expect(world.enemies['enemy-1'].hp).toBe(world.enemies['enemy-1'].maxHp);
-    expect(world.enemies['enemy-3'].hp).toBe(world.enemies['enemy-3'].maxHp - cards.debt_hook.damage);
+    expect(world.enemies['enemy-2'].hp).toBe(world.enemies['enemy-2'].maxHp - cards.debt_hook.damage);
     expect(world.enemies['enemy-6'].hp).toBe(world.enemies['enemy-6'].maxHp);
     expect(world.player.energy).toBe(world.player.maxEnergy);
     expect(world.player.hand).not.toContain('debt_hook');
     expect(
       world.debug.events.some(
-        (event) => event.type === 'CardPlayed' && event.cardId === 'debt_hook' && event.targetId === 'enemy-3'
+        (event) => event.type === 'CardPlayed' && event.cardId === 'debt_hook' && event.targetId === 'enemy-2'
       )
     ).toBe(true);
     expect(world.debug.failedConditions.some((condition) => condition.conditionId === 'front-target')).toBe(false);

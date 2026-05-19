@@ -413,6 +413,14 @@ describe('redline prototype runtime', () => {
       broken: false,
       repairedThisTurn: true
     });
+    expect(playedCardEvent(world, 'test-wild-repair')).toMatchObject({
+      effectiveCost: 1,
+      chainRepaired: true,
+      repairedCost: 1
+    });
+    expect(
+      world.debug.commands.some((command) => command.type === 'GainEnergy' && command.traceId === 'test-wild-repair')
+    ).toBe(true);
     expect(world.player.hand).toContain('redline_cut');
     expect(world.player.energy).toBe(4);
 
@@ -425,6 +433,138 @@ describe('redline prototype runtime', () => {
     ]);
 
     expect(playedCardEvent(world, 'test-wild-chain-2')).toMatchObject({ effectMultiplier: 3 });
+  });
+
+  it('does not refund MP when Wild Mana Stitch opens a chain instead of repairing one', () => {
+    const world = createInitialWorld();
+    dealHand(world);
+    world.player.hand = ['wild_mana_stitch'];
+    world.player.drawPile = ['debt_hook'];
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'wild_mana_stitch',
+        traceId: 'test-wild-opener'
+      }
+    ]);
+
+    expect(playedCardEvent(world, 'test-wild-opener')).toMatchObject({
+      effectiveCost: 0,
+      chainRepaired: false,
+      repairedCost: undefined
+    });
+    expect(world.debug.events.some((event) => event.type === 'ChainRepaired' && event.traceId === 'test-wild-opener')).toBe(
+      false
+    );
+    expect(
+      world.debug.commands.some((command) => command.type === 'GainEnergy' && command.traceId === 'test-wild-opener')
+    ).toBe(false);
+    expect(world.player.energy).toBe(3);
+    expect(world.player.maxEnergy).toBe(3);
+    expect(world.player.hand).toContain('debt_hook');
+  });
+
+  it('keeps Wild from repairing an already broken chain or refunding MP', () => {
+    const world = createInitialWorld();
+    dealHand(world);
+    world.player.hand = ['debt_hook', 'row_cleave', 'wild_mana_stitch'];
+    world.player.drawPile = ['redline_cut'];
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'debt_hook',
+        targetId: 'enemy-1',
+        traceId: 'test-wild-broken-0'
+      }
+    ]);
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'row_cleave',
+        traceId: 'test-wild-broken-2'
+      }
+    ]);
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'wild_mana_stitch',
+        traceId: 'test-wild-broken-repair'
+      }
+    ]);
+
+    expect(world.chain.broken).toBe(true);
+    expect(playedCardEvent(world, 'test-wild-broken-repair')).toMatchObject({
+      effectiveCost: 0,
+      chainRepaired: false,
+      repairedCost: undefined
+    });
+    expect(
+      world.debug.events.some((event) => event.type === 'ChainRepaired' && event.traceId === 'test-wild-broken-repair')
+    ).toBe(false);
+    expect(
+      world.debug.commands.some((command) => command.type === 'GainEnergy' && command.traceId === 'test-wild-broken-repair')
+    ).toBe(false);
+    expect(
+      world.debug.events.some((event) => event.type === 'AuthorizationGranted' && event.traceId === 'test-wild-broken-repair')
+    ).toBe(false);
+  });
+
+  it('lets Wild Gap Key pay its printed cost while repairing the effective chain cost', () => {
+    const world = createInitialWorld();
+    dealHand(world);
+    world.player.hand = ['debt_hook', 'redline_cut', 'wild_gap_key'];
+    Object.values(world.enemies).forEach((enemy) => {
+      enemy.hp = 50;
+      enemy.maxHp = 50;
+    });
+
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'debt_hook',
+        targetId: 'enemy-1',
+        traceId: 'test-wild-gap-0'
+      }
+    ]);
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'redline_cut',
+        targetId: 'enemy-2',
+        traceId: 'test-wild-gap-1'
+      }
+    ]);
+    tickWorld(world, [
+      {
+        type: 'play-card',
+        cardId: 'wild_gap_key',
+        targetId: 'enemy-3',
+        traceId: 'test-wild-gap-repair-2'
+      }
+    ]);
+
+    expect(playedCardEvent(world, 'test-wild-gap-repair-2')).toMatchObject({
+      printedCost: 1,
+      currentEnergyPaid: 1,
+      effectiveCost: 2,
+      effectMultiplier: 3,
+      chainRepaired: true,
+      repairedCost: 2
+    });
+    expect(world.debug.events).toContainEqual(
+      expect.objectContaining({
+        type: 'ChainRepaired',
+        traceId: 'test-wild-gap-repair-2',
+        repairedCost: 2,
+        nextExpectedCost: 3
+      })
+    );
+    expect(
+      world.debug.events.some((event) => event.type === 'AuthorizationGranted' && event.traceId === 'test-wild-gap-repair-2')
+    ).toBe(true);
+    expect(world.player.maxEnergy).toBe(3);
   });
 
   it('amplifies payoff cards at the tail of a chain while unordered payoff remains low value', () => {

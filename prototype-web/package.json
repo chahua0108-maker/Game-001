@@ -5,9 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:qa": "vite --host 127.0.0.1 --port 5174",
     "build": "tsc && vite build",
+    "check": "npm test -- --run && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:sim": "vitest run src/tests/sim",
+    "test:ui": "vitest run src/tests/ui",
+    "qa:ui": "node scripts/qa-ui.mjs",
+    "qa:similarity": "node scripts/qa-similarity.mjs",
+    "qa:lifecycle": "node scripts/qa-lifecycle.mjs"
   },
   "dependencies": {
     "three": "^0.164.1"

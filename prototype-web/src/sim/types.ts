@@ -1,10 +1,84 @@
+import type { ShortRunRouteState } from './runRoute';
+
 export type TraceId = string;
 export type EntityId = string;
 export type CardId = string;
+export type CardZone = 'deck' | 'hand' | 'drawPile' | 'discardPile' | 'exhaustPile' | 'retainedCards';
+export type CardGemColor = 'red' | 'blue' | 'gold';
+export type CardGemId = 'crimson_chip' | 'tempo_lens' | 'ledger_seal';
+export type CardUpgradeChoiceType = 'raise-level' | 'add-gem-slot' | 'socket-gem';
 
-export type GameFlowState = 'Boot' | 'Deal' | 'PlayerTurn' | 'EnemyAttack' | 'EnemyRefill' | 'Reward' | 'Settlement';
+export type GameFlowState =
+  | 'Boot'
+  | 'Deal'
+  | 'PlayerTurn'
+  | 'EnemyAttack'
+  | 'EnemyRefill'
+  | 'Reward'
+  | 'RouteSelect'
+  | 'Settlement';
 export type CharacterState = 'Idle' | 'Move' | 'Cast' | 'HitStun' | 'Dead';
+export type RunStatus = 'in-progress' | 'victory' | 'failure';
 export type CardUtility = 'wild' | 'draw' | 'mana' | 'reorder';
+export type CardType = 'attack' | 'skill' | 'resource' | 'draw' | 'repair' | 'payoff' | 'status';
+export type CardChainRole = 'starter' | 'bridge' | 'expand' | 'repair' | 'payoff';
+export type CardCycleRole = 'opener' | 'connector' | 'route-segment' | 'draw-fixer' | 'wild-fixer' | 'finisher';
+export type CardBuildRole = 'basic-chain' | 'reward-chain' | 'draw-fixer' | 'wild-fixer' | 'payoff-finisher' | 'reserve-test';
+export type CardAvailability = 'starting' | 'reward' | 'starting-and-reward' | 'reserve-test';
+export type CardPlayLifecycle = 'discard' | 'exhaust';
+export type CardTurnEndLifecycle = 'discard' | 'retain';
+export type RewardBranch = 'repair-resource' | 'payoff' | 'route-bridge';
+export type CardRewardRarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'status' | 'test';
+export type CardMechanicTag =
+  | 'attack'
+  | 'skill'
+  | 'status'
+  | 'pollution'
+  | 'exhaust'
+  | 'retain'
+  | 'draw'
+  | 'cost-change'
+  | 'shield'
+  | 'chain'
+  | 'authorization'
+  | 'payoff'
+  | 'repair'
+  | 'resource'
+  | 'reorder'
+  | 'topdeck'
+  | 'reward-rarity'
+  | 'front-enemy'
+  | 'front-row'
+  | 'all-enemies'
+  | 'self';
+export type EnergyGainCondition = 'chain-repaired';
+export type CardKeyword =
+  | '开链'
+  | '接链'
+  | '修补'
+  | '终结'
+  | '授权'
+  | '意图'
+  | '护栏'
+  | '抽牌'
+  | '返MP'
+  | '消耗'
+  | '保留'
+  | '状态'
+  | '污染'
+  | '过载'
+  | '净化'
+  | '打断'
+  | '护盾'
+  | '降费'
+  | '费用变化'
+  | '整备';
+
+export interface CardCostModifier {
+  scope: 'next-card-this-turn' | 'self-while-retained' | 'turn';
+  amount: number;
+  appliesTo?: CardType | CardType[];
+}
 
 export interface CardDefinition {
   id: CardId;
@@ -15,9 +89,75 @@ export interface CardDefinition {
   comboNode: 'hook' | 'cut' | 'spark' | 'mark' | 'reclaim' | 'burst';
   description: string;
   targets: 'front-enemy' | 'front-row' | 'all-enemies' | 'self';
+  cardType: CardType;
+  chainRole: CardChainRole;
+  cycleRole: CardCycleRole;
+  buildRole: CardBuildRole;
+  availability: CardAvailability;
+  rulesText: string;
+  mobileEffect: string;
+  keywords: CardKeyword[];
+  detail: string;
+  mechanicTags?: CardMechanicTag[];
+  rewardRarity?: CardRewardRarity;
+  rewardBranches?: RewardBranch[];
   drawCards?: number;
   energyGain?: number;
+  energyGainCondition?: EnergyGainCondition;
   utilities?: CardUtility[];
+  preDrawTopdeckPayoff?: boolean;
+  countsForChain?: boolean;
+  shield?: number;
+  costModifier?: CardCostModifier;
+  lifecycle?: {
+    onPlay?: CardPlayLifecycle;
+    onTurnEnd?: CardTurnEndLifecycle;
+  };
+  runUpgrade?: {
+    maxLevel: number;
+    damagePerLevel: number;
+    maxGemSlots: number;
+    allowedGemColors: CardGemColor[];
+  };
+}
+
+export interface CardGemSlot {
+  color: CardGemColor;
+  gemId: CardGemId | null;
+}
+
+export interface CardEnhancement {
+  cardId: CardId;
+  level: number;
+  gemSlots: CardGemSlot[];
+}
+
+export interface CardUpgradeChoice {
+  id: string;
+  type: CardUpgradeChoiceType;
+  targetCardId: CardId;
+  label: string;
+  description: string;
+  gemColor?: CardGemColor;
+  gemId?: CardGemId;
+  damageBonusPreview: number;
+}
+
+export interface CardUpgradeHistoryEntry {
+  tick: number;
+  traceId: TraceId;
+  cardId: CardId;
+  choiceId: string;
+  choiceType: CardUpgradeChoiceType;
+  level: number;
+  gemSlots: CardGemSlot[];
+}
+
+export interface CardUpgradeState {
+  enhancements: Partial<Record<CardId, CardEnhancement>>;
+  choices: CardUpgradeChoice[];
+  pending: boolean;
+  history: CardUpgradeHistoryEntry[];
 }
 
 export interface EnemyDefinition {
@@ -33,19 +173,30 @@ export interface EnemyDefinition {
 
 export interface PlayerState {
   id: EntityId;
+  // Encounter life totals. Future profile/run bonuses must derive these before combat starts.
   hp: number;
   maxHp: number;
+  // Deal-cycle resources. These reset on deal/turn boundaries and are not meta progression.
   energy: number;
   maxEnergy: number;
+  tempAuthorizationMP: number;
+  authorizationRestriction: 'payoff-only' | null;
+  lastAuthorizationReason: string | null;
+  lastAuthorizationSourceCardId: CardId | null;
+  payoffArmed: boolean;
   combo: number;
   lastPlayedCost: number | null;
   costChainMultiplier: number;
+  // Current-run progression. These are not account/profile level fields.
   xp: number;
   level: number;
+  // Current-run deck plus current deal-cycle zones. Restarting the run must rebuild them from the run start rules.
   deck: CardId[];
   hand: CardId[];
   drawPile: CardId[];
   discardPile: CardId[];
+  exhaustPile: CardId[];
+  retainedCards: CardId[];
 }
 
 export interface ChainState {
@@ -56,6 +207,7 @@ export interface ChainState {
   broken: boolean;
   breakReason: string | null;
   repairedThisTurn: boolean;
+  extendedThisTurn: boolean;
 }
 
 export interface EnemyIntent {
@@ -79,6 +231,27 @@ export interface RewardState {
   pickCount: number;
   pending: boolean;
   source: 'level-up' | null;
+}
+
+export interface RunRewardHistoryEntry {
+  runNumber: number;
+  node: number;
+  selectedCardId: CardId;
+  choices: CardId[];
+  source: RewardState['source'];
+  tick: number;
+  traceId: TraceId;
+  round: number;
+  level: number;
+}
+
+export interface RunState {
+  runNumber: number;
+  currentNode: number;
+  maxNodes: number;
+  // Current-run reward history only. Do not read this as account/meta unlock history.
+  rewardHistory: RunRewardHistoryEntry[];
+  status: RunStatus;
 }
 
 export interface EnemyState {
@@ -110,16 +283,23 @@ export interface DebugState {
 }
 
 export interface WorldState {
+  // Encounter clock/state.
   tick: number;
   round: number;
   elapsedSeconds: number;
   player: PlayerState;
+  // Deal-cycle chain state. It expires before leaving the player turn/deal cycle.
   chain: ChainState;
+  // Encounter entities and intent snapshot.
   enemies: Record<EntityId, EnemyState>;
   enemyIntents: Record<EntityId, EnemyIntent>;
   enemyIntentSummary: EnemyIntentSummary;
   fsm: FsmState;
+  // Current adventure/run state. Account/meta progression is intentionally absent from P0.
+  run: RunState;
+  route?: ShortRunRouteState;
   reward: RewardState;
+  cardUpgrades: CardUpgradeState;
   debug: DebugState;
   roundAttackEnemyIds: EntityId[];
   nextEnemySerial: number;
@@ -150,6 +330,11 @@ export type Intent =
   | {
       type: 'select-reward';
       cardId: CardId;
+      traceId: TraceId;
+    }
+  | {
+      type: 'select-route';
+      routeId: string;
       traceId: TraceId;
     }
   | {
@@ -202,6 +387,65 @@ export type GameEvent =
       cardIds: CardId[];
     }
   | {
+      type: 'CardMoved';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      from: CardZone;
+      to: CardZone;
+      fromZone: CardZone;
+      toZone: CardZone;
+      reason: string;
+    }
+  | {
+      type: 'PressurePollutionAdded';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      toZone: CardZone;
+      damageTaken: number;
+      reason: string;
+    }
+  | {
+      type: 'CardDrawn';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      drawIndex: number;
+      remainingDrawPileCount: number;
+    }
+  | {
+      type: 'CardExhausted';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      reason: string;
+      exhaustPileSize: number;
+    }
+  | {
+      type: 'CardRetained';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      reason: string;
+      retainedCardsCount: number;
+    }
+  | {
+      type: 'DiscardPileShuffledIntoDrawPile';
+      traceId: TraceId;
+      tick: number;
+      cardIds: CardId[];
+      keptCardIds: CardId[];
+      drawPileCount: number;
+      discardPileCount: number;
+    }
+  | {
+      type: 'DiscardShuffledIntoDraw';
+      traceId: TraceId;
+      tick: number;
+      cardIds: CardId[];
+    }
+  | {
       type: 'TurnEnded';
       traceId: TraceId;
       tick: number;
@@ -234,6 +478,36 @@ export type GameEvent =
       cardId: CardId;
       targetId?: EntityId;
       effectMultiplier: number;
+      effectiveCost: number;
+      printedCost: number;
+      currentEnergyPaid: number;
+      authorizationPaid: number;
+      payoffArmed: boolean;
+      chainRepaired: boolean;
+      repairedCost?: number;
+      chainExtended: boolean;
+      extendedCost?: number;
+    }
+  | {
+      type: 'AuthorizationGranted';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      tempAuthorizationMP: number;
+      authorizationRestriction: 'payoff-only';
+      reason: string;
+      payoffArmed: boolean;
+    }
+  | {
+      type: 'CardPaymentRecorded';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      printedCost: number;
+      currentEnergyPaid: number;
+      authorizationPaid: number;
+      source: 'current-energy' | 'authorization' | 'mixed';
+      payoffArmed: boolean;
     }
   | {
       type: 'ChainAdvanced';
@@ -263,6 +537,15 @@ export type GameEvent =
       multiplier: number;
     }
   | {
+      type: 'ChainExtended';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      extendedCost: number;
+      nextExpectedCost: number;
+      multiplier: number;
+    }
+  | {
       type: 'PayoffTriggered';
       traceId: TraceId;
       tick: number;
@@ -270,6 +553,35 @@ export type GameEvent =
       chainLength: number;
       multiplier: number;
       enhanced: boolean;
+    }
+  | {
+      type: 'PayoffResolved';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      payoffArmed: boolean;
+      affectedEnemyIds: EntityId[];
+      killCount: number;
+      preventedIntentDamage: number;
+      intentDamageBefore: number;
+      intentDamageAfter: number;
+    }
+  | {
+      type: 'PayoffTopdecked';
+      traceId: TraceId;
+      tick: number;
+      sourceCardId: CardId;
+      cardId: CardId;
+      fromIndex: number;
+      toIndex: 0;
+      searchedCount: number;
+    }
+  | {
+      type: 'PayoffTopdeckMissed';
+      traceId: TraceId;
+      tick: number;
+      sourceCardId: CardId;
+      searchedCount: number;
     }
   | {
       type: 'EnemyIntentDeclared';
@@ -339,11 +651,43 @@ export type GameEvent =
       cardId: CardId;
     }
   | {
+      type: 'RouteChoicesGenerated';
+      traceId: TraceId;
+      tick: number;
+      routeIds: string[];
+    }
+  | {
+      type: 'RouteChosen';
+      traceId: TraceId;
+      tick: number;
+      routeId: string;
+      fromNode: number;
+      toNode: number;
+    }
+  | {
       type: 'CardAddedToDeck';
       traceId: TraceId;
       tick: number;
       cardId: CardId;
       deckSize: number;
+    }
+  | {
+      type: 'CardUpgradeChoicesGenerated';
+      traceId: TraceId;
+      tick: number;
+      targetCardId: CardId;
+      choices: CardUpgradeChoice[];
+    }
+  | {
+      type: 'CardUpgradeApplied';
+      traceId: TraceId;
+      tick: number;
+      cardId: CardId;
+      choiceId: string;
+      choiceType: CardUpgradeChoiceType;
+      level: number;
+      gemSlots: CardGemSlot[];
+      damageBonus: number;
     }
   | {
       type: 'ClearBurstRequested';
@@ -362,6 +706,8 @@ export type Command =
       type: 'SpendEnergy';
       traceId: TraceId;
       amount: number;
+      authorizationAmount?: number;
+      payoffArmed?: boolean;
       cardId: CardId;
     }
   | {
@@ -405,6 +751,13 @@ export type Command =
       cardId: CardId;
     }
   | {
+      type: 'AddPressurePollution';
+      traceId: TraceId;
+      cardId: CardId;
+      damageTaken: number;
+      reason: string;
+    }
+  | {
       type: 'ClearRewardChoices';
       traceId: TraceId;
     }
@@ -414,6 +767,11 @@ export type Command =
       count: number;
       reason: string;
       excludeFromReshuffle?: CardId[];
+    }
+  | {
+      type: 'TopdeckPayoffFromDrawPile';
+      traceId: TraceId;
+      sourceCardId: CardId;
     }
   | {
       type: 'GainEnergy';
@@ -464,6 +822,14 @@ export type Command =
       type: 'ClearBurst';
       traceId: TraceId;
       cardId: CardId;
+    }
+  | {
+      type: 'ResolvePayoff';
+      traceId: TraceId;
+      cardId: CardId;
+      payoffArmed: boolean;
+      affectedEnemyIds: EntityId[];
+      intentDamageBefore: number;
     };
 
 export interface FailedCondition {
@@ -511,7 +877,10 @@ export interface GameSnapshot {
   enemyIntents: EnemyIntent[];
   enemyIntentSummary: EnemyIntentSummary;
   fsm: FsmState;
+  run: RunState;
+  route?: ShortRunRouteState;
   reward: RewardState;
+  cardUpgrades: CardUpgradeState;
   debug: DebugState;
   lastBurstTick: number | null;
 }

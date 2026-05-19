@@ -1,5 +1,23 @@
 import type { GameSnapshot, WorldState } from './types';
 
+function snapshotRoute(world: WorldState): GameSnapshot['route'] {
+  if (!world.route) {
+    return undefined;
+  }
+
+  return {
+    pendingNodeChoices: world.route.pendingNodeChoices.map((candidate) => ({
+      ...candidate,
+      nextBattleContext: { ...candidate.nextBattleContext }
+    })),
+    nextBattleContext: world.route.nextBattleContext ? { ...world.route.nextBattleContext } : null,
+    history: world.route.history.map((entry) => ({
+      ...entry,
+      context: { ...entry.context }
+    }))
+  };
+}
+
 export function buildSnapshot(world: WorldState): GameSnapshot {
   return {
     tick: world.tick,
@@ -9,7 +27,9 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
       ...world.player,
       hand: [...world.player.hand],
       drawPile: [...world.player.drawPile],
-      discardPile: [...world.player.discardPile]
+      discardPile: [...world.player.discardPile],
+      exhaustPile: [...world.player.exhaustPile],
+      retainedCards: [...world.player.retainedCards]
     },
     chain: {
       ...world.chain,
@@ -25,10 +45,37 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
       gameFlow: world.fsm.gameFlow,
       characters: { ...world.fsm.characters }
     },
+    run: {
+      ...world.run,
+      rewardHistory: world.run.rewardHistory.map((entry) => ({
+        ...entry,
+        choices: [...entry.choices]
+      }))
+    },
+    route: snapshotRoute(world),
     reward: {
       ...world.reward,
       candidateCardPool: [...world.reward.candidateCardPool],
       choices: [...world.reward.choices]
+    },
+    cardUpgrades: {
+      enhancements: Object.fromEntries(
+        Object.entries(world.cardUpgrades.enhancements).map(([cardId, enhancement]) => [
+          cardId,
+          enhancement
+            ? {
+                ...enhancement,
+                gemSlots: enhancement.gemSlots.map((slot) => ({ ...slot }))
+              }
+            : enhancement
+        ])
+      ),
+      choices: world.cardUpgrades.choices.map((choice) => ({ ...choice })),
+      pending: world.cardUpgrades.pending,
+      history: world.cardUpgrades.history.map((entry) => ({
+        ...entry,
+        gemSlots: entry.gemSlots.map((slot) => ({ ...slot }))
+      }))
     },
     debug: {
       events: [...world.debug.events],

@@ -1,6 +1,13 @@
 import { cards } from '../data/cards';
 import { setCharacterState } from '../fsm/stateMachine';
+import { getCardModifiedDamage } from '../sim/cardUpgrades';
+import type { CardId } from '../sim/types';
 import type { Rule } from './ruleSet';
+
+function isPayoffFinisher(cardId: CardId): boolean {
+  const card = cards[cardId];
+  return card.cost === 3 && card.targets === 'all-enemies' && card.comboNode === 'burst';
+}
 
 export const redlineRules: Rule[] = [
   {
@@ -24,7 +31,7 @@ export const redlineRules: Rule[] = [
           return [];
         }
         const card = cards[event.cardId];
-        const amount = card.damage * event.effectMultiplier;
+        const amount = getCardModifiedDamage(world, card.id) * event.effectMultiplier;
         return [
           {
             type: 'DamageEnemy',
@@ -47,7 +54,7 @@ export const redlineRules: Rule[] = [
   {
     id: 'card.clear-burst',
     event: 'CardPlayed',
-    filter: ({ event }) => event.type === 'CardPlayed' && cards[event.cardId].targets === 'all-enemies',
+    filter: ({ event }) => event.type === 'CardPlayed' && isPayoffFinisher(event.cardId),
     conditions: [],
     actions: [
       ({ world, event }) => {
@@ -55,23 +62,36 @@ export const redlineRules: Rule[] = [
           return [];
         }
         const card = cards[event.cardId];
-        const amount = card.damage * event.effectMultiplier;
+        const amount = getCardModifiedDamage(world, card.id) * event.effectMultiplier;
+        const affectedEnemyIds = Object.values(world.enemies)
+          .filter((enemy) => enemy.alive)
+          .map((enemy) => enemy.id);
+        const intentDamageBefore = affectedEnemyIds.reduce(
+          (total, enemyId) => total + (world.enemyIntents[enemyId]?.amount ?? 0),
+          0
+        );
         return [
           {
             type: 'ClearBurst',
             traceId: event.traceId,
             cardId: card.id
           },
-          ...Object.values(world.enemies)
-            .filter((enemy) => enemy.alive)
-            .map((enemy) => ({
-              type: 'DamageEnemy' as const,
-              traceId: event.traceId,
-              sourceId: 'player',
-              targetId: enemy.id,
-              amount,
-              cardId: card.id
-            })),
+          ...affectedEnemyIds.map((enemyId) => ({
+            type: 'DamageEnemy' as const,
+            traceId: event.traceId,
+            sourceId: 'player',
+            targetId: enemyId,
+            amount,
+            cardId: card.id
+          })),
+          {
+            type: 'ResolvePayoff' as const,
+            traceId: event.traceId,
+            cardId: card.id,
+            payoffArmed: event.payoffArmed,
+            affectedEnemyIds,
+            intentDamageBefore
+          },
           {
             type: 'SetCombo',
             traceId: event.traceId,
@@ -99,7 +119,7 @@ export const redlineRules: Rule[] = [
           return [];
         }
         const card = cards[event.cardId];
-        const amount = card.damage * event.effectMultiplier;
+        const amount = getCardModifiedDamage(world, card.id) * event.effectMultiplier;
         return [
           ...Object.values(world.enemies)
             .filter((enemy) => enemy.alive && enemy.slot >= 0 && enemy.slot < 5)
@@ -122,6 +142,32 @@ export const redlineRules: Rule[] = [
     ]
   },
   {
+    id: 'card.self.paper-shatter-topdeck-payoff',
+    event: 'CardPlayed',
+    filter: ({ event }) => {
+      if (event.type !== 'CardPlayed' || event.cardId !== 'paper_shatter') {
+        return false;
+      }
+      const card = cards[event.cardId];
+      return Boolean(card.preDrawTopdeckPayoff && card.targets === 'self' && card.drawCards && card.utilities?.includes('reorder'));
+    },
+    conditions: [],
+    actions: [
+      ({ event }) => {
+        if (event.type !== 'CardPlayed') {
+          return [];
+        }
+        return [
+          {
+            type: 'TopdeckPayoffFromDrawPile' as const,
+            traceId: event.traceId,
+            sourceCardId: event.cardId
+          }
+        ];
+      }
+    ]
+  },
+  {
     id: 'card.self.resource',
     event: 'CardPlayed',
     filter: ({ event }) => event.type === 'CardPlayed' && cards[event.cardId].targets === 'self',
@@ -133,6 +179,9 @@ export const redlineRules: Rule[] = [
         }
         const card = cards[event.cardId];
         const multiplier = event.effectMultiplier;
+        const shouldGainEnergy =
+          Boolean(card.energyGain) &&
+          (card.energyGainCondition !== 'chain-repaired' || event.chainRepaired);
         return [
           ...(card.drawCards
             ? [
@@ -144,12 +193,12 @@ export const redlineRules: Rule[] = [
                 }
               ]
             : []),
-          ...(card.energyGain
+          ...(shouldGainEnergy
             ? [
                 {
                   type: 'GainEnergy' as const,
                   traceId: event.traceId,
-                  amount: card.energyGain,
+                  amount: card.energyGain ?? 0,
                   reason: `played ${card.id}`
                 }
               ]

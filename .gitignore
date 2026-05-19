@@ -31,3 +31,4 @@ pnpm-debug.log*
 test-results/
 **/test-results/
 outputs/browser-qa/
+**/outputs/browser-qa/

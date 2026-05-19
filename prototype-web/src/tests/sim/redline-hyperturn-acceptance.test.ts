@@ -57,13 +57,27 @@ function playedCard(world: WorldState, traceId: string): Extract<GameEvent, { ty
   );
 }
 
+function payoffTriggered(world: WorldState, traceId: string): Extract<GameEvent, { type: 'PayoffTriggered' }> | undefined {
+  return world.debug.events.find(
+    (event): event is Extract<GameEvent, { type: 'PayoffTriggered' }> =>
+      event.type === 'PayoffTriggered' && event.traceId === traceId
+  );
+}
+
+function payoffResolved(world: WorldState, traceId: string): Extract<GameEvent, { type: 'PayoffResolved' }> | undefined {
+  return world.debug.events.find(
+    (event): event is Extract<GameEvent, { type: 'PayoffResolved' }> =>
+      event.type === 'PayoffResolved' && event.traceId === traceId
+  );
+}
+
 function handCosts(world: WorldState): number[] {
   return world.player.hand.map((cardId) => cards[cardId].cost);
 }
 
-function hasOpeningRoute(costs: number[]): boolean {
+function hasOpeningChainSegment(costs: number[]): boolean {
   const hasCost = (cost: number) => costs.includes(cost);
-  return (hasCost(0) && hasCost(1) && hasCost(2)) || (hasCost(0) && hasCost(1) && costs.some((cost) => cost >= 2));
+  return hasCost(0) && hasCost(1) && hasCost(2);
 }
 
 function currentIntentDamagePreview(world: WorldState): number {
@@ -75,14 +89,14 @@ function currentIntentDamagePreview(world: WorldState): number {
 }
 
 describe('Redline Hyper-Turn acceptance contract', () => {
-  it('deals an opening hand that can express a 0 -> 1 -> 2 or 0 -> 1 -> payoff route', () => {
+  it('deals an opening hand that can express a 0 -> 1 -> 2 route segment', () => {
     const world = createInitialWorld();
 
     dealOpeningHand(world);
 
     expect(world.fsm.gameFlow).toBe('PlayerTurn');
     expect(world.debug.events.some((event) => event.type === 'HandDealt')).toBe(true);
-    expect(hasOpeningRoute(handCosts(world))).toBe(true);
+    expect(hasOpeningChainSegment(handCosts(world))).toBe(true);
   });
 
   it('makes correctly ordered chain play materially stronger than scrambled play', () => {
@@ -141,7 +155,7 @@ describe('Redline Hyper-Turn acceptance contract', () => {
     expect(resolvedDamage).toBe(previewDamage);
   });
 
-  it('lets a broken chain still play cards, but at reduced payoff', () => {
+  it('lets a broken chain still play cards, but at reduced chain multiplier', () => {
     const ordered = createInitialWorld();
     dealOpeningHand(ordered);
     ordered.player.hand = ['debt_hook', 'redline_cut', 'row_cleave'];
@@ -170,7 +184,7 @@ describe('Redline Hyper-Turn acceptance contract', () => {
     expect(totalDamageForTrace(broken, ['broken-2'])).toBeLessThan(totalDamageForTrace(ordered, ['break-control-2']));
   });
 
-  it('uses draw repair to bridge one missing chain segment and continue into payoff', () => {
+  it('uses draw repair to bridge one missing chain segment and continue into the 2 MP route segment', () => {
     const world = createInitialWorld();
     dealOpeningHand(world);
     world.player.hand = ['debt_hook', 'pulse_draw'];
@@ -193,7 +207,7 @@ describe('Redline Hyper-Turn acceptance contract', () => {
     expect(playedCard(world, 'repair-2')).toMatchObject({ effectMultiplier: 3 });
   });
 
-  it('produces one chain-backed payoff rescue within turns 3-5', () => {
+  it('uses the 2 MP route segment to arm a 3 MP all-enemies payoff rescue within turns 3-5', () => {
     const world = createInitialWorld();
     dealOpeningHand(world);
 
@@ -204,11 +218,11 @@ describe('Redline Hyper-Turn acceptance contract', () => {
     expect(world.round).toBe(4);
     expect(world.player.hp).toBeLessThanOrEqual(15);
 
-    world.player.hand = ['debt_hook', 'redline_cut', 'clearance_order'];
+    world.player.hand = ['debt_hook', 'redline_cut', 'clearance_order', 'severance_burst'];
     world.player.energy = 3;
-    frontRowEnemies(world).forEach((enemy) => {
-      enemy.hp = 21;
-      enemy.maxHp = Math.max(enemy.maxHp, 21);
+    Object.values(world.enemies).forEach((enemy) => {
+      enemy.hp = 70;
+      enemy.maxHp = Math.max(enemy.maxHp, 70);
     });
 
     const intentBeforePayoff = currentIntentDamagePreview(world);
@@ -216,16 +230,42 @@ describe('Redline Hyper-Turn acceptance contract', () => {
 
     playCard(world, 'debt_hook', 'rescue-0', 'enemy-1');
     playCard(world, 'redline_cut', 'rescue-1', 'enemy-2');
-    playCard(world, 'clearance_order', 'rescue-payoff');
+    playCard(world, 'clearance_order', 'rescue-route-2');
+
+    expect(playedCard(world, 'rescue-route-2')).toMatchObject({
+      cardId: 'clearance_order',
+      effectMultiplier: 3,
+      payoffArmed: false
+    });
+    expect(payoffTriggered(world, 'rescue-route-2')).toBeUndefined();
+    expect(payoffResolved(world, 'rescue-route-2')).toBeUndefined();
+
+    playCard(world, 'severance_burst', 'rescue-payoff-3');
 
     const payoffKills = world.debug.events.filter(
-      (event) => event.type === 'EnemyKilled' && event.traceId === 'rescue-payoff' && event.cardId === 'clearance_order'
+      (event) => event.type === 'EnemyKilled' && event.traceId === 'rescue-payoff-3' && event.cardId === 'severance_burst'
     );
+    const resolvedPayoff = payoffResolved(world, 'rescue-payoff-3');
 
     endTurn(world, 'rescue-end-turn');
 
     expect(intentBeforePayoff).toBeGreaterThan(0);
-    expect(playedCard(world, 'rescue-payoff')).toMatchObject({ effectMultiplier: 3 });
+    expect(playedCard(world, 'rescue-payoff-3')).toMatchObject({
+      cardId: 'severance_burst',
+      effectMultiplier: 4,
+      authorizationPaid: 3,
+      payoffArmed: true
+    });
+    expect(payoffTriggered(world, 'rescue-payoff-3')).toMatchObject({
+      cardId: 'severance_burst',
+      enhanced: true
+    });
+    expect(resolvedPayoff).toMatchObject({
+      cardId: 'severance_burst',
+      payoffArmed: true
+    });
+    expect(resolvedPayoff?.affectedEnemyIds.length).toBeGreaterThan(payoffKills.length);
+    expect(resolvedPayoff?.preventedIntentDamage).toBe(intentBeforePayoff);
     expect(payoffKills).toHaveLength(5);
     expect(world.player.hp).toBe(hpBeforePayoffTurnEnd);
   });

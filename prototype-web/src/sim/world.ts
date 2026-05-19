@@ -1,6 +1,9 @@
 import { enemies as enemyDefinitions } from '../data/enemies';
 import { rewardCardPool, startingHand } from '../data/cards';
-import type { ChainState, EnemyIntentSummary, EnemyState, WorldState } from './types';
+import { createInitialCardUpgradeState } from './cardUpgrades';
+import { INITIAL_REWARD_XP_THRESHOLD } from './rewardProgression';
+import { createInitialShortRunRouteState } from './runRoute';
+import type { ChainState, EnemyIntentSummary, EnemyState, RunState, WorldState } from './types';
 
 export const ENEMY_COLUMNS = 5;
 export const ENEMY_ROWS = 3;
@@ -43,7 +46,8 @@ export function createInitialChainState(): ChainState {
     multiplier: 1,
     broken: false,
     breakReason: null,
-    repairedThisTurn: false
+    repairedThisTurn: false,
+    extendedThisTurn: false
   };
 }
 
@@ -54,7 +58,17 @@ export function createEmptyEnemyIntentSummary(): EnemyIntentSummary {
   };
 }
 
-export function createInitialWorld(): WorldState {
+export function createInitialRunState(runNumber = 1): RunState {
+  return {
+    runNumber,
+    currentNode: 1,
+    maxNodes: 3,
+    rewardHistory: [],
+    status: 'in-progress'
+  };
+}
+
+export function createInitialWorld(runNumber = 1): WorldState {
   const enemyList = Array.from({ length: MAX_ENEMY_FORMATION_SLOTS }, (_, slot) => createEnemy(slot + 1, slot));
 
   return {
@@ -67,6 +81,11 @@ export function createInitialWorld(): WorldState {
       maxHp: 60,
       energy: 3,
       maxEnergy: 3,
+      tempAuthorizationMP: 0,
+      authorizationRestriction: null,
+      lastAuthorizationReason: null,
+      lastAuthorizationSourceCardId: null,
+      payoffArmed: false,
       combo: 0,
       lastPlayedCost: null,
       costChainMultiplier: 1,
@@ -75,7 +94,9 @@ export function createInitialWorld(): WorldState {
       deck: [...startingHand],
       hand: [],
       drawPile: [...startingHand],
-      discardPile: []
+      discardPile: [],
+      exhaustPile: [],
+      retainedCards: []
     },
     chain: createInitialChainState(),
     enemies: Object.fromEntries(enemyList.map((enemy) => [enemy.id, enemy])),
@@ -88,14 +109,17 @@ export function createInitialWorld(): WorldState {
         ...Object.fromEntries(enemyList.map((enemy) => [enemy.id, 'Move' as const]))
       }
     },
+    run: createInitialRunState(runNumber),
+    route: createInitialShortRunRouteState(),
     reward: {
-      xpThreshold: 45,
+      xpThreshold: INITIAL_REWARD_XP_THRESHOLD,
       candidateCardPool: [...rewardCardPool],
       choices: [],
       pickCount: 3,
       pending: false,
       source: null
     },
+    cardUpgrades: createInitialCardUpgradeState(),
     debug: {
       events: [],
       commands: [],
