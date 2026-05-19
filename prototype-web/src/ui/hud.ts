@@ -29,12 +29,21 @@ export type HudAuthorizationState = {
 export type HudRunLayerState = {
   title: string;
   nodeLabel: string;
+  pressureLabel: string;
   rewardLabel: string;
   routeLabel: string;
+  buildProblemLabel: string;
   nextTitle: string;
   nextState: string;
   nextDetail: string;
   routeChoices: HudRouteChoiceRead[];
+};
+
+export type HudPressureTimelineState = {
+  previousPressureLabel: string;
+  buildProblemLabel: string;
+  nextRouteConsequenceLabel: string;
+  active: boolean;
 };
 
 export type HudRouteChoiceRead = {
@@ -153,6 +162,7 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
   const fallbackRound = typeof snapshot.round === 'number' && Number.isFinite(snapshot.round) ? snapshot.round : 1;
   const deckCount = Array.isArray(snapshot.player?.deck) ? snapshot.player.deck.length : null;
   const routeChoices = hudRouteChoicesState(snapshot);
+  const pressureTimeline = hudPressureTimelineState(snapshot);
 
   return {
     title: '本次清算',
@@ -162,6 +172,7 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
         : currentNode !== null
           ? `节点 ${currentNode}/?`
           : `节点? R${fallbackRound}`,
+    pressureLabel: pressureTimeline.previousPressureLabel,
     rewardLabel:
       pendingChoices.length > 0
         ? `奖励候选 ${rewardCandidateTokens(pendingChoices).join('/')}`
@@ -176,7 +187,8 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
         : recentReward
           ? `路线记录 ${rewardCount}`
           : '路线候选 待奖励',
-    nextTitle: '下一战',
+    buildProblemLabel: pressureTimeline.buildProblemLabel,
+    nextTitle: '下一战后果',
     nextState:
       routeChoices.length > 0
         ? '选路线'
@@ -187,12 +199,92 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
           : '继承当前牌组',
     nextDetail:
       routeChoices.length > 0
-        ? `${routeChoices[0].modifierToken}/${routeChoices[0].rewardToken}`
+        ? pressureTimeline.nextRouteConsequenceLabel
         : deckCount === null
           ? '仅本run'
           : `牌组${deckCount} · 仅本run`,
     routeChoices
   };
+}
+
+export function hudPressureTimelineState(snapshot: GameSnapshot): HudPressureTimelineState {
+  const source = snapshot as HudRunSnapshot;
+  const run = toRunRecord(source.run);
+  const route = toRunRecord(firstValue(source.route, source.shortRunRoute, run?.route, run?.shortRunRoute, run));
+  const routeChoices = hudRouteChoicesState(snapshot);
+  const lastHistory = lastItem(firstArray(route?.history));
+  const context = toRunRecord(route?.nextBattleContext) ?? toRunRecord(toRunRecord(lastHistory)?.context);
+  const selectedConsequence =
+    context && firstString(context.modifierId, context.rewardBranchHint)
+      ? `${routeModifierToken(firstString(context.modifierId))}/${routeRewardToken(firstString(context.rewardBranchHint))}`
+      : null;
+  const buildPlan = hudBuildPlanState(snapshot);
+
+  return {
+    previousPressureLabel: compactHudText(previousNodePressureLabel(snapshot), 18),
+    buildProblemLabel: compactHudText(`构筑 ${buildPlan.token === '常规' ? '稳定' : buildPlan.token}`, 18),
+    nextRouteConsequenceLabel:
+      routeChoices.length > 0
+        ? `${routeChoices[0].modifierToken}/${routeChoices[0].rewardToken}`
+        : selectedConsequence ?? '沿用当前牌组',
+    active: buildPlan.active || routeChoices.length > 0 || Boolean(selectedConsequence)
+  };
+}
+
+function previousNodePressureLabel(snapshot: GameSnapshot): string {
+  const source = snapshot as HudRunSnapshot;
+  const run = toRunRecord(source.run);
+  const route = toRunRecord(firstValue(source.route, source.shortRunRoute, run?.route, run?.shortRunRoute, run));
+  const explicitPressure = toRunRecord(
+    firstValue(
+      run?.previousNodePressure,
+      run?.lastNodePressure,
+      run?.latestPressure,
+      lastItem(firstArray(run?.pressureTimeline, run?.nodePressures, route?.pressureTimeline, route?.nodePressures))
+    )
+  );
+  const explicitLabel = explicitPressure ? pressureRecordLabel(explicitPressure) : null;
+  if (explicitLabel) {
+    return explicitLabel.startsWith('上压') ? explicitLabel : `上压 ${explicitLabel}`;
+  }
+
+  const historyCount = firstArray(run?.rewardHistory, run?.rewards, run?.rewardLog).length;
+  const currentNode =
+    run
+      ? nodeNumber(run.currentNode, run.node, run.encounter, run.currentEncounter) ??
+        indexedNumber(run.currentNodeIndex, run.nodeIndex, run.encounterIndex, run.currentEncounterIndex)
+      : null;
+  if ((currentNode ?? 1) <= 1 && historyCount === 0) {
+    return '上压 首战';
+  }
+
+  const hp = firstNumber(snapshot.player?.hp);
+  const maxHp = firstNumber(snapshot.player?.maxHp);
+  if (hp !== null && maxHp !== null) {
+    const missingHp = Math.max(0, Math.round(maxHp - hp));
+    return missingHp > 0 ? `上压 损${missingHp}` : '上压 无损';
+  }
+
+  return '上压 已清算';
+}
+
+function pressureRecordLabel(record: RunRecord): string | null {
+  const direct = firstString(record.label, record.pressureLabel, record.summary, record.state);
+  if (direct) {
+    return direct;
+  }
+
+  const damage = firstNumber(record.damageTaken, record.hpLost, record.healthLost, record.loss);
+  if (damage !== null && damage > 0) {
+    return `损${Math.round(damage)}`;
+  }
+
+  const pressure = firstNumber(record.pressure, record.score, record.threat, record.intentDamage);
+  if (pressure !== null) {
+    return pressure > 0 ? `压${Math.round(pressure)}` : '无损';
+  }
+
+  return null;
 }
 
 export function hudRouteChoicesState(snapshot: GameSnapshot): HudRouteChoiceRead[] {
@@ -420,6 +512,15 @@ function nodeNumber(...values: unknown[]): number | null {
 
 function firstArray(...values: unknown[]): unknown[] {
   return values.find((candidate): candidate is unknown[] => Array.isArray(candidate)) ?? [];
+}
+
+function lastItem(values: unknown[]): unknown {
+  return values.length > 0 ? values[values.length - 1] : undefined;
+}
+
+function compactHudText(value: string, maxLength: number): string {
+  const cleaned = value.replace(/\s+/g, ' ').trim();
+  return cleaned.length <= maxLength ? cleaned : `${cleaned.slice(0, Math.max(1, maxLength - 1))}…`;
 }
 
 function readableRewardLabel(value: unknown): string | null {
@@ -1248,8 +1349,8 @@ export class Hud {
         <div class="run-layer-main">
           <span>${runLayer.title}</span>
           <strong>${runLayer.nodeLabel}</strong>
-          <em>${runLayer.rewardLabel}</em>
-          <small>${runLayer.routeLabel}</small>
+          <em>${runLayer.pressureLabel}</em>
+          <small>${runLayer.buildProblemLabel}</small>
         </div>
         <div class="run-layer-meta" aria-label="next encounter carryover">
           <span>${runLayer.nextTitle}</span>

@@ -8,12 +8,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
-const qaRound = process.env.QA_ROUND ?? 'round-12';
+const qaRound = process.env.QA_ROUND ?? 'round-18-07';
 const outputDir = path.resolve(projectRoot, `outputs/browser-qa/${qaRound}`);
 const outputFile = path.join(outputDir, 'qa-similarity-result.json');
 const preferredPort = Number(process.env.QA_PORT ?? 5174);
 const baseUrlOverride = process.env.QA_BASE_URL;
 const pressureRoundCount = Number(process.env.QA_PRESSURE_ROUNDS ?? 3);
+const journeyNodeCount = Number(process.env.QA_JOURNEY_NODES ?? 3);
 
 const viewports = [
   { name: 'desktop', width: 1366, height: 768 },
@@ -82,6 +83,7 @@ const report = {
   startedAt: new Date().toISOString(),
   config: {
     pressureRoundCount,
+    journeyNodeCount,
     viewports,
     preferredPort,
     baseUrlOverride: baseUrlOverride ?? null
@@ -98,6 +100,9 @@ const report = {
 try {
   if (pressureRoundCount < 3 || pressureRoundCount > 5) {
     throw new Error(`QA_PRESSURE_ROUNDS must be between 3 and 5, got ${pressureRoundCount}`);
+  }
+  if (journeyNodeCount < 3 || journeyNodeCount > 5) {
+    throw new Error(`QA_JOURNEY_NODES must be between 3 and 5, got ${journeyNodeCount}`);
   }
 
   const server = baseUrlOverride
@@ -150,7 +155,7 @@ try {
     await page.waitForTimeout(100);
     const paperInspection = await inspectPage(page, 'paper-topdeck-sample');
 
-    const routeFlow = await exerciseRewardRouteButtons(page);
+    const routeFlow = await exerciseRewardRouteButtons(page, journeyNodeCount);
     await page.waitForTimeout(100);
     const routeFlowInspection = await inspectPage(page, 'reward-route-button-flow');
 
@@ -213,10 +218,26 @@ try {
         routeFlow.fsmAfter === 'PlayerTurn' &&
         routeFlow.routeRecordVisibleAfter === true &&
         routeFlow.nextStateVisibleAfter === true,
+      journeyNodeCountInRange:
+        routeFlow.journey?.requestedNodeCount >= 3 && routeFlow.journey?.requestedNodeCount <= 5,
+      journeyRewardRouteNextBattleLooped:
+        routeFlow.journey?.cyclesCompleted === routeFlow.journey?.cyclesExpected &&
+        routeFlow.journey?.cyclesCompleted >= 2 &&
+        routeFlow.journey?.cycles?.every((cycle) => cycle.rewardSelected && cycle.routeSelected && cycle.nextBattleVisible) === true,
+      journeyRouteHistoryCaptured:
+        routeFlow.routeHistory?.length === routeFlow.journey?.cyclesExpected &&
+        routeFlow.routeHistory?.every((entry, index) => entry.fromNode === index + 1 && entry.toNode === index + 2) === true,
+      journeyBuildPlanTokensVisible:
+        routeFlow.journey?.cycles?.every(
+          (cycle) => cycle.buildPlan.rewardPre.visible && cycle.buildPlan.routePost.visible && cycle.buildPlan.nextBattle.visible
+        ) === true,
+      journeyRouteHistoryReadable:
+        routeFlow.journey?.cycles?.every((cycle) => cycle.routeHistoryCount === cycle.cycle && cycle.routeCarryoverReadable) === true,
       buildPlanRewardPreTokenVisible: routeFlow.buildPlan?.rewardPre?.visible === true,
       buildPlanRoutePostTokenVisible: routeFlow.buildPlan?.routePost?.visible === true,
       buildPlanNextBattleTokenVisible: routeFlow.buildPlan?.nextBattle?.visible === true,
       buildPlanNoOverflow: routeFlow.buildPlanLayoutFailures.length === 0,
+      pressureReadable: pressureReadable(pressure),
       noHorizontalOverflow: !horizontalOverflowDetected && !layoutFailures.some((failure) => failure.axis === 'x'),
       noTextOverflow: !layoutFailures.some((failure) => failure.category.includes('text')),
       noConsoleErrors: consoleErrors.length === 0
@@ -237,6 +258,7 @@ try {
         hpAfter: pressure.hpAfter,
         hpLost: pressure.hpBefore !== null && pressure.hpAfter !== null ? pressure.hpBefore - pressure.hpAfter : null,
         rounds: pressure.rounds,
+        readability: buildPressureReadability(pressure),
         feedText: pressure.feedText
       },
       wild: {
@@ -261,6 +283,10 @@ try {
         drawPile: paper.drawPile
       },
       routeFlow,
+      journey: routeFlow.journey,
+      routeHistory: routeFlow.routeHistory,
+      buildPlanTokens: routeFlow.buildPlanTokens,
+      uiOverflow: summarizeUiOverflow(inspections, routeFlow.buildPlanLayoutFailures),
       samples: inspections.flatMap((item) => item.samples).slice(0, 24)
     });
   }
@@ -598,8 +624,8 @@ async function buildPaperTopdeckHud(page) {
   });
 }
 
-async function exerciseRewardRouteButtons(page) {
-  return await page.evaluate(async () => {
+async function exerciseRewardRouteButtons(page, requestedNodeCount) {
+  return await page.evaluate(async ({ requestedNodeCount }) => {
     const [{ createInitialWorld }, { tickWorld }, { buildSnapshot }, { Hud }] = await Promise.all([
       import('/src/sim/world.ts'),
       import('/src/sim/runtime.ts'),
@@ -617,122 +643,242 @@ async function exerciseRewardRouteButtons(page) {
       hud.render(buildSnapshot(world));
     });
 
-    world.fsm.gameFlow = 'Reward';
-    world.player.level = 2;
-    world.player.xp = world.reward.xpThreshold;
-    world.reward.pending = true;
-    world.reward.source = 'level-up';
-    world.reward.choices = ['pulse_draw', 'severance_burst', 'signal_relay'];
+    const nodeCount = Math.min(5, Math.max(3, Number(requestedNodeCount) || 3));
+    const cyclesExpected = nodeCount - 1;
+    const rewardSequences = [
+      ['pulse_draw', 'severance_burst', 'signal_relay'],
+      ['wild_gap_key', 'spark_tap', 'blood_tithe'],
+      ['signal_relay', 'clearance_order', 'severance_burst'],
+      ['spark_tap', 'wild_gap_key', 'pulse_draw']
+    ];
+    const cycles = [];
+    const buildPlanLayoutFailures = [];
+
+    world.run.maxNodes = nodeCount;
     world.player.hand = [];
     world.player.drawPile = [];
     world.player.discardPile = [];
 
-    hud.render(buildSnapshot(world));
+    for (let cycleIndex = 0; cycleIndex < cyclesExpected; cycleIndex += 1) {
+      const rewardChoices = rewardSequences[cycleIndex % rewardSequences.length].filter((cardId) =>
+        world.reward.candidateCardPool.includes(cardId)
+      );
+      if (rewardChoices.length === 0) {
+        rewardChoices.push('severance_burst');
+      }
+      const selectedCardId = rewardChoices[0];
 
-    const selectedCardId = 'pulse_draw';
-    const routeButton = document.querySelector(`[data-reward-card-id="${selectedCardId}"]`);
-    const routeRewardButtons = Array.from(document.querySelectorAll('[data-reward-card-id]')).filter((button) =>
-      ['pulse_draw', 'signal_relay'].includes(button.getAttribute('data-reward-card-id') ?? '')
-    );
-    const textBefore = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-    const routeButtonRect = routeButton?.getBoundingClientRect();
-    const routeRewardButtonVisible = Boolean(
-      routeButton instanceof HTMLButtonElement &&
-        routeButtonRect &&
-        routeButtonRect.width > 0 &&
-        routeButtonRect.height > 0 &&
-        routeButtonRect.left >= -1 &&
-        routeButtonRect.right <= window.innerWidth + 1 &&
-        !routeButton.disabled
-    );
-    const routeCandidateLabelVisible = textBefore.includes('路线候选') && textBefore.includes('Pulse Draw');
-    const rewardPreBuildPlan = buildPlanStage('reward-pre', textBefore, [
-      '奖励候选',
-      '路线候选',
-      'Pulse Draw',
-      '选1入组'
-    ]);
-    const rewardPreLayout = inspectBuildPlanLayout('reward-pre');
+      forceRewardState(rewardChoices);
+      hud.render(buildSnapshot(world));
 
-    if (routeButton instanceof HTMLButtonElement) {
-      routeButton.click();
+      const textBefore = pageText();
+      const rewardPreBuildPlan = buildPlanStage(`cycle-${cycleIndex + 1}-reward-pre`, textBefore, [
+        '奖励候选',
+        '路线候选',
+        labelForCard(selectedCardId),
+        '选1入组'
+      ]);
+      const rewardPreLayout = inspectBuildPlanLayout(`cycle-${cycleIndex + 1}-reward-pre`);
+      buildPlanLayoutFailures.push(...rewardPreLayout);
+      const routeRewardButtons = Array.from(document.querySelectorAll('[data-reward-card-id]'));
+      const routeButton = document.querySelector(`[data-reward-card-id="${selectedCardId}"]`);
+      const routeRewardButtonVisible = isUsableButton(routeButton);
+
+      if (routeButton instanceof HTMLButtonElement) {
+        routeButton.click();
+      }
+
+      const selectedIntent = lastIntentOfType('select-reward');
+      const rewardChosen =
+        world.debug.events.find((event) => event.traceId === selectedIntent?.traceId && event.type === 'RewardChosen') ?? null;
+      const textAfterReward = pageText();
+      const selectedRouteId = selectRouteIdForCycle(cycleIndex);
+      const routeChoiceButton = selectedRouteId
+        ? document.querySelector(`[data-route-choice-id="${selectedRouteId}"]`)
+        : document.querySelector('[data-route-choice-id]');
+      const routeChoiceButtonVisible = isUsableButton(routeChoiceButton);
+      const routePostBuildPlan = buildPlanStage(`cycle-${cycleIndex + 1}-route-post`, textAfterReward, [
+        '选择下一战路线',
+        '路线候选',
+        'MP+1',
+        '修补牌',
+        '偏修补',
+        '偏终结',
+        '偏路线'
+      ]);
+      const routePostLayout = inspectBuildPlanLayout(`cycle-${cycleIndex + 1}-route-post`);
+      buildPlanLayoutFailures.push(...routePostLayout);
+
+      if (routeChoiceButton instanceof HTMLButtonElement) {
+        routeChoiceButton.click();
+      }
+
+      const selectedRouteIntent = lastIntentOfType('select-route');
+      const routeChosen =
+        world.debug.events.find((event) => event.traceId === selectedRouteIntent?.traceId && event.type === 'RouteChosen') ?? null;
+      const textAfterRoute = pageText();
+      const routeHistoryCount = world.route?.history?.length ?? 0;
+      const nextBattleBuildPlan = buildPlanStage(`cycle-${cycleIndex + 1}-next-battle`, textAfterRoute, [
+        `已拿 ${labelForCard(selectedCardId)}`,
+        `路线记录 ${routeHistoryCount}`,
+        `带入 ${labelForCard(selectedCardId)}`,
+        '牌组'
+      ]);
+      const nextBattleLayout = inspectBuildPlanLayout(`cycle-${cycleIndex + 1}-next-battle`);
+      buildPlanLayoutFailures.push(...nextBattleLayout);
+
+      cycles.push({
+        cycle: cycleIndex + 1,
+        selectedCardId,
+        selectedRouteId,
+        selectedIntent,
+        selectedRouteIntent,
+        rewardChosen,
+        routeChosen,
+        rewardButtonCount: routeRewardButtons.length,
+        rewardButtonVisible: routeRewardButtonVisible,
+        routeChoiceButtonVisible,
+        rewardSelected: Boolean(selectedIntent && rewardChosen),
+        routeSelected: Boolean(selectedRouteIntent && routeChosen),
+        runCurrentNodeAfter: world.run.currentNode,
+        fsmAfter: world.fsm.gameFlow,
+        rewardPendingAfter: world.reward.pending,
+        deckIncludesSelected: world.player.deck.includes(selectedCardId),
+        routeHistoryCount,
+        routeHistoryReadable: textAfterRoute.includes(`路线记录 ${routeHistoryCount}`),
+        routeCarryoverReadable: textAfterRoute.includes(`带入 ${labelForCard(selectedCardId)}`),
+        nextBattleVisible: world.fsm.gameFlow === 'PlayerTurn' && textAfterRoute.includes('下一战'),
+        buildPlan: {
+          rewardPre: rewardPreBuildPlan,
+          routePost: routePostBuildPlan,
+          nextBattle: nextBattleBuildPlan
+        },
+        textBefore,
+        textAfterReward,
+        textAfterRoute
+      });
     }
 
-    const textAfterReward = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-    const selectedIntent = intents.find((intent) => intent.type === 'select-reward') ?? null;
-    const rewardChosen =
-      world.debug.events.find((event) => event.traceId === selectedIntent?.traceId && event.type === 'RewardChosen') ?? null;
-    const selectedRouteId = world.route?.pendingNodeChoices?.[0]?.id ?? null;
-    const routeChoiceButton = selectedRouteId
-      ? document.querySelector(`[data-route-choice-id="${selectedRouteId}"]`)
-      : document.querySelector('[data-route-choice-id]');
-    const routeChoiceButtonRect = routeChoiceButton?.getBoundingClientRect();
-    const routeChoiceButtonVisible = Boolean(
-      routeChoiceButton instanceof HTMLButtonElement &&
-        routeChoiceButtonRect &&
-        routeChoiceButtonRect.width > 0 &&
-        routeChoiceButtonRect.height > 0 &&
-        routeChoiceButtonRect.left >= -1 &&
-        routeChoiceButtonRect.right <= window.innerWidth + 1 &&
-        !routeChoiceButton.disabled
-    );
-    const routePostBuildPlan = buildPlanStage('route-post', textAfterReward, [
-      '选择下一战路线',
-      '路线候选',
-      'MP+1',
-      '修补牌',
-      '偏修补',
-      '偏终结',
-      '偏路线'
-    ]);
-    const routePostLayout = inspectBuildPlanLayout('route-post');
-
-    if (routeChoiceButton instanceof HTMLButtonElement) {
-      routeChoiceButton.click();
-    }
-
-    const textAfterRoute = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-    const selectedRouteIntent = intents.find((intent) => intent.type === 'select-route') ?? null;
-    const routeChosen =
-      world.debug.events.find((event) => event.traceId === selectedRouteIntent?.traceId && event.type === 'RouteChosen') ?? null;
-    const nextBattleBuildPlan = buildPlanStage('next-battle', textAfterRoute, [
-      '已拿 Pulse Draw',
-      '路线记录 1',
-      '带入 Pulse Draw',
-      '牌组'
-    ]);
-    const nextBattleLayout = inspectBuildPlanLayout('next-battle');
-    const buildPlanLayoutFailures = [...rewardPreLayout, ...routePostLayout, ...nextBattleLayout];
+    const firstCycle = cycles[0] ?? {};
+    const finalCycle = cycles[cycles.length - 1] ?? {};
+    const routeHistory = (world.route?.history ?? []).map((entry) => ({
+      fromNode: entry.fromNode,
+      toNode: entry.toNode,
+      selectedRouteId: entry.selectedRouteId,
+      label: entry.context?.label ?? null,
+      modifierId: entry.context?.modifierId ?? null,
+      rewardBranchHint: entry.context?.rewardBranchHint ?? null,
+      rewardPickBonus: entry.context?.rewardPickBonus ?? null
+    }));
 
     return {
-      selectedCardId,
-      selectedRouteId,
-      routeRewardButtonCount: routeRewardButtons.length,
-      routeRewardButtonVisible,
-      routeCandidateLabelVisible,
-      routeRewardButtonClickable: Boolean(selectedIntent),
-      routeChoiceButtonVisible,
-      routeChoiceButtonClickable: Boolean(selectedRouteIntent),
-      selectedIntent,
-      selectedRouteIntent,
-      rewardChosen,
-      routeChosen,
-      runCurrentNodeAfter: world.run.currentNode,
-      rewardPendingAfter: world.reward.pending,
-      fsmAfter: world.fsm.gameFlow,
-      deckIncludesSelected: world.player.deck.includes(selectedCardId),
-      routeRecordVisibleAfter: textAfterRoute.includes('路线记录 1') || textAfterReward.includes('路线记录 1'),
-      nextStateVisibleAfter: textAfterRoute.includes('带入 Pulse Draw') || textAfterReward.includes('带入 Pulse Draw'),
-      buildPlan: {
-        rewardPre: rewardPreBuildPlan,
-        routePost: routePostBuildPlan,
-        nextBattle: nextBattleBuildPlan
-      },
+      selectedCardId: firstCycle.selectedCardId ?? null,
+      selectedRouteId: firstCycle.selectedRouteId ?? null,
+      routeRewardButtonCount: firstCycle.rewardButtonCount ?? 0,
+      routeRewardButtonVisible: firstCycle.rewardButtonVisible === true,
+      routeCandidateLabelVisible:
+        firstCycle.textBefore?.includes('路线候选') === true &&
+        firstCycle.textBefore?.includes(labelForCard(firstCycle.selectedCardId)) === true,
+      routeRewardButtonClickable: Boolean(firstCycle.selectedIntent),
+      routeChoiceButtonVisible: firstCycle.routeChoiceButtonVisible === true,
+      routeChoiceButtonClickable: Boolean(firstCycle.selectedRouteIntent),
+      selectedIntent: firstCycle.selectedIntent ?? null,
+      selectedRouteIntent: firstCycle.selectedRouteIntent ?? null,
+      rewardChosen: firstCycle.rewardChosen ?? null,
+      routeChosen: firstCycle.routeChosen ?? null,
+      runCurrentNodeAfter: firstCycle.runCurrentNodeAfter ?? null,
+      finalRunCurrentNodeAfter: world.run.currentNode,
+      rewardPendingAfter: firstCycle.rewardPendingAfter ?? null,
+      fsmAfter: firstCycle.fsmAfter ?? null,
+      finalFsmAfter: world.fsm.gameFlow,
+      deckIncludesSelected: firstCycle.deckIncludesSelected === true,
+      routeRecordVisibleAfter: firstCycle.routeHistoryReadable === true || routeHistory.length >= 1,
+      nextStateVisibleAfter: firstCycle.routeCarryoverReadable === true,
+      buildPlan: firstCycle.buildPlan ?? { rewardPre: null, routePost: null, nextBattle: null },
+      buildPlanTokens: cycles.map((cycle) => ({
+        cycle: cycle.cycle,
+        rewardPre: cycle.buildPlan.rewardPre.matchedTokens,
+        routePost: cycle.buildPlan.routePost.matchedTokens,
+        nextBattle: cycle.buildPlan.nextBattle.matchedTokens
+      })),
       buildPlanLayoutFailures,
-      textBefore,
-      textAfterReward,
-      textAfterRoute
+      routeHistory,
+      journey: {
+        requestedNodeCount: nodeCount,
+        cyclesExpected,
+        cyclesCompleted: cycles.filter((cycle) => cycle.rewardSelected && cycle.routeSelected && cycle.nextBattleVisible).length,
+        finalRunCurrentNode: world.run.currentNode,
+        finalGameFlow: world.fsm.gameFlow,
+        cycles
+      },
+      textBefore: firstCycle.textBefore ?? '',
+      textAfterReward: firstCycle.textAfterReward ?? '',
+      textAfterRoute: finalCycle.textAfterRoute ?? ''
     };
+
+    function forceRewardState(choices) {
+      world.fsm.gameFlow = 'Reward';
+      world.player.level += 1;
+      world.player.xp = world.reward.xpThreshold;
+      world.reward.pending = true;
+      world.reward.source = 'level-up';
+      world.reward.choices = [...choices];
+      world.player.hand = [];
+      world.player.drawPile = [];
+      world.player.discardPile = [];
+      world.player.energy = world.player.maxEnergy;
+    }
+
+    function lastIntentOfType(type) {
+      for (let index = intents.length - 1; index >= 0; index -= 1) {
+        if (intents[index].type === type) {
+          return intents[index];
+        }
+      }
+      return null;
+    }
+
+    function selectRouteIdForCycle(cycleIndex) {
+      const choices = world.route?.pendingNodeChoices ?? [];
+      if (choices.length === 0) {
+        return null;
+      }
+      const preferredKind = cycleIndex % 2 === 0 ? 'repair-cache' : 'elite-pressure';
+      return choices.find((choice) => choice.kind === preferredKind)?.id ?? choices[0].id;
+    }
+
+    function pageText() {
+      return document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    }
+
+    function isUsableButton(button) {
+      if (!(button instanceof HTMLButtonElement) || button.disabled) {
+        return false;
+      }
+      const rect = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.left >= -1 &&
+        rect.right <= window.innerWidth + 1
+      );
+    }
+
+    function labelForCard(cardId) {
+      const labels = {
+        pulse_draw: 'Pulse Draw',
+        severance_burst: 'Severance Burst',
+        signal_relay: 'Signal Relay',
+        wild_gap_key: 'Wild Gap Key',
+        spark_tap: 'Spark Tap',
+        blood_tithe: 'Blood Tithe',
+        clearance_order: 'Clearance Order'
+      };
+      return labels[cardId] ?? cardId ?? '';
+    }
 
     function buildPlanStage(phase, text, tokens) {
       const matchedTokens = tokens.filter((token) => text.includes(token));
@@ -828,7 +974,7 @@ async function exerciseRewardRouteButtons(page) {
 
       return failures;
     }
-  });
+  }, { requestedNodeCount });
 }
 
 async function inspectPage(page, phase) {
@@ -1030,6 +1176,56 @@ async function inspectPage(page, phase) {
     },
     { phase, selectors }
   );
+}
+
+function buildPressureReadability(pressure) {
+  const hpLost =
+    pressure.hpBefore !== null && pressure.hpAfter !== null ? Math.max(0, pressure.hpBefore - pressure.hpAfter) : null;
+  const readableRounds = pressure.rounds.filter(
+    (round) => round.beforeClickUsable && round.afterClickUsable && /结束-\d+/.test(round.buttonLabel)
+  ).length;
+  const attackFeedRounds = pressure.rounds.filter((round) => round.attackFeedVisible).length;
+
+  return {
+    hpBefore: pressure.hpBefore,
+    hpAfter: pressure.hpAfter,
+    hpLost,
+    roundCount: pressure.rounds.length,
+    readableRounds,
+    attackFeedRounds,
+    endTurnStillUsable: pressure.endTurnStillUsable,
+    pass:
+      pressure.hpBefore !== null &&
+      pressure.hpAfter !== null &&
+      hpLost > 0 &&
+      readableRounds === pressure.rounds.length &&
+      pressure.endTurnStillUsable === true
+  };
+}
+
+function pressureReadable(pressure) {
+  return buildPressureReadability(pressure).pass;
+}
+
+function summarizeUiOverflow(inspections, buildPlanLayoutFailures) {
+  const pageOverflowPhases = inspections
+    .filter((inspection) => inspection.pageOverflow.horizontal)
+    .map((inspection) => inspection.phase);
+  const layoutFailures = inspections.flatMap((inspection) => inspection.failures);
+  const horizontalFailures = layoutFailures.filter((failure) => failure.axis === 'x');
+  const textFailures = layoutFailures.filter((failure) => failure.category.includes('text'));
+
+  return {
+    pageOverflowPhases,
+    horizontalFailureCount: horizontalFailures.length,
+    textFailureCount: textFailures.length,
+    buildPlanFailureCount: buildPlanLayoutFailures.length,
+    pass:
+      pageOverflowPhases.length === 0 &&
+      horizontalFailures.length === 0 &&
+      textFailures.length === 0 &&
+      buildPlanLayoutFailures.length === 0
+  };
 }
 
 async function closeAll() {
@@ -1257,6 +1453,18 @@ function buildGates(currentReport) {
       )
         ? 'pass'
         : 'fail',
+    journeyGate:
+      everyResult(
+        (result) =>
+          result.assertions.journeyNodeCountInRange &&
+          result.assertions.journeyRewardRouteNextBattleLooped &&
+          result.assertions.journeyRouteHistoryCaptured &&
+          result.assertions.journeyBuildPlanTokensVisible &&
+          result.assertions.journeyRouteHistoryReadable &&
+          result.assertions.pressureReadable
+      )
+        ? 'pass'
+        : 'fail',
     buildPlanVisibility:
       everyResult(
         (result) =>
@@ -1303,6 +1511,17 @@ function buildGateScore(currentReport) {
       )
         ? 3
         : 0,
+    journeyGate:
+      everyResult(
+        (result) =>
+          result.assertions.journeyNodeCountInRange &&
+          result.assertions.journeyRewardRouteNextBattleLooped &&
+          result.assertions.journeyRouteHistoryCaptured &&
+          result.assertions.journeyBuildPlanTokensVisible &&
+          result.assertions.journeyRouteHistoryReadable
+      )
+        ? 4
+        : 0,
     buildPlanVisibility:
       everyResult(
         (result) =>
@@ -1333,7 +1552,7 @@ function buildGateScore(currentReport) {
   if (currentReport.notAFullClone !== true) {
     caps.push({ reason: 'notAFullClone boundary missing', maxTotal: 23 });
   }
-  return { scale: 'qa-similarity-gate-28', max: 28, total, breakdown, caps };
+  return { scale: 'qa-similarity-gate-32', max: 32, total, breakdown, caps };
 }
 
 function serializeError(error) {

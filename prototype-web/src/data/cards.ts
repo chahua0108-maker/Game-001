@@ -286,6 +286,83 @@ export const cards: Record<string, CardDefinition> = {
       onPlay: 'exhaust'
     }
   },
+  ash_filter: {
+    id: 'ash_filter',
+    name: 'Ash Filter',
+    cost: 0,
+    verb: '滤灰',
+    damage: 0,
+    comboNode: 'reclaim',
+    targets: 'self',
+    cardType: 'repair',
+    chainRole: 'repair',
+    cycleRole: 'draw-fixer',
+    buildRole: 'draw-fixer',
+    availability: 'reward',
+    rewardBranches: ['repair-resource'],
+    drawCards: 1,
+    utilities: ['draw'],
+    rulesText: '抽1。净化并消耗。',
+    mobileEffect: '净化抽1',
+    keywords: ['净化', '污染', '抽牌', '消耗'],
+    mechanicTags: ['repair', 'pollution', 'draw', 'exhaust', 'self', 'reward-rarity'],
+    rewardRarity: 'common',
+    detail: '清污染密度牌。只缓解本次发牌挤手，打出后消耗。',
+    description: '0 MP 清污染修补。抽 1 张并消耗，服务当前 run 的污染解堵，不提供永久成长。',
+    lifecycle: {
+      onPlay: 'exhaust'
+    }
+  },
+  toll_shunt: {
+    id: 'toll_shunt',
+    name: 'Toll Shunt',
+    cost: 1,
+    verb: '改道',
+    damage: 3,
+    comboNode: 'hook',
+    targets: 'front-enemy',
+    cardType: 'repair',
+    chainRole: 'repair',
+    cycleRole: 'wild-fixer',
+    buildRole: 'wild-fixer',
+    availability: 'reward',
+    rewardBranches: ['repair-resource', 'route-bridge'],
+    utilities: ['wild'],
+    rulesText: '造成3。修补费用缺口。',
+    mobileEffect: '修补3',
+    keywords: ['修补', '接链'],
+    mechanicTags: ['repair', 'chain', 'front-enemy', 'reward-rarity'],
+    rewardRarity: 'common',
+    detail: '低伤害修补桥。补缺失1或2费节点，不给最大MP。',
+    description: '1 MP 改道修补桥。低伤害补费用缺口，帮助 3-5 节点里把坏手接回 0->1->2。'
+  },
+  last_light_cache: {
+    id: 'last_light_cache',
+    name: 'Last Light Cache',
+    cost: 1,
+    verb: '藏光',
+    damage: 0,
+    comboNode: 'mark',
+    targets: 'self',
+    cardType: 'skill',
+    chainRole: 'bridge',
+    cycleRole: 'draw-fixer',
+    buildRole: 'draw-fixer',
+    availability: 'reward',
+    rewardBranches: ['repair-resource'],
+    drawCards: 1,
+    utilities: ['draw'],
+    rulesText: '抽1。未打出则保留。',
+    mobileEffect: '抽1保留',
+    keywords: ['抽牌', '保留', '护栏', '接链'],
+    mechanicTags: ['skill', 'retain', 'draw', 'self', 'reward-rarity'],
+    rewardRarity: 'uncommon',
+    detail: '失败救场牌。坏手可保留到下次发牌，不改变局外成长。',
+    description: '1 MP 救场缓存。抽 1；若本回合没有打出则保留到下次发牌，只影响当前 run。',
+    lifecycle: {
+      onTurnEnd: 'retain'
+    }
+  },
   fuse_needle: {
     id: 'fuse_needle',
     name: 'Fuse Needle',
@@ -658,5 +735,8 @@ export const rewardCardPool: string[] = [
   'crimson_receipt',
   'clearance_order',
   'lantern_captain',
-  'wild_mana_stitch'
+  'wild_mana_stitch',
+  'ash_filter',
+  'toll_shunt',
+  'last_light_cache'
 ];

@@ -316,7 +316,7 @@ describe('Redline progression/card system QA contract', () => {
       .map((card) => card.id)
       .sort();
 
-    expect(wildIds).toEqual(['wild_gap_key', 'wild_mana_stitch']);
+    expect(wildIds).toEqual(['toll_shunt', 'wild_gap_key', 'wild_mana_stitch']);
     expect(wildIds.every((cardId) => cards[cardId].description.includes('修补'))).toBe(true);
     expect(frontRowEnemies(createInitialWorld())).toHaveLength(5);
   });

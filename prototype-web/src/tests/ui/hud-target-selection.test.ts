@@ -15,6 +15,7 @@ import {
   hudCardVisibleRoleLabel,
   hudBuildPlanState,
   hudEventFeedbackLabel,
+  hudPressureTimelineState,
   Hud,
   hudRouteChoicesState,
   hudRunLayerState,
@@ -445,7 +446,9 @@ describe('HUD run and meta layer labels', () => {
     expect(runState.nodeLabel).toBe('节点 2/7');
     expect(runState.rewardLabel).toBe('已拿 Severance Burst');
     expect(runState.routeLabel).toBe('路线记录 1');
-    expect(runState.nextTitle).toBe('下一战');
+    expect(runState.pressureLabel).toBe('上压 已清算');
+    expect(runState.buildProblemLabel).toBe('构筑 稳定');
+    expect(runState.nextTitle).toBe('下一战后果');
     expect(runState.nextState).toBe('带入 Severance Burst');
     expect(runState.nextDetail).toBe('仅本run');
     expect(visibleCopy).not.toContain('最大 MP +3');
@@ -474,6 +477,8 @@ describe('HUD run and meta layer labels', () => {
     expect(runState.nodeLabel).toBe('节点 2/7');
     expect(runState.rewardLabel).toBe('奖励候选 修补/终结/路线');
     expect(runState.routeLabel).toBe('路线候选 Spark Tap');
+    expect(runState.pressureLabel).toBe('上压 已清算');
+    expect(runState.buildProblemLabel).toBe('构筑 稳定');
     expect(runState.nextState).toBe('选1入组');
     expect(runState.nextDetail).toBe('牌组3 · 仅本run');
   });
@@ -489,6 +494,7 @@ describe('HUD run and meta layer labels', () => {
     expect(runState.nodeLabel).toBe('节点? R4');
     expect(runState.rewardLabel).toBe('已拿 Wild Gap Key');
     expect(runState.routeLabel).toBe('路线记录 1');
+    expect(runState.pressureLabel).toBe('上压 首战');
     expect(runState.nextDetail).toBe('仅本run');
   });
 
@@ -550,8 +556,130 @@ describe('HUD run and meta layer labels', () => {
 
     const runState = hudRunLayerState(snapshot);
     expect(runState.routeLabel).toBe('路线候选 2');
+    expect(runState.pressureLabel).toBe('上压 首战');
     expect(runState.nextState).toBe('选路线');
     expect(runState.nextDetail).toBe('复核+1/偏修补');
+  });
+
+  it('keeps long pressure, build, and route consequence copy in compact HUD lanes', () => {
+    const veryLongLabel =
+      '连续节点压力报告-上一节点因污染和高额债务叠加导致玩家必须改变构筑方向否则会在移动端撑破显示区域';
+    const veryLongReason =
+      '当前构筑问题说明非常非常长，需要在状态芯片和run layer里保持可截断，不能把右侧面板或移动端底部信息条撑出视口。';
+    const veryLongPreview =
+      '下一战路线后果说明非常非常长，并且包含多个状态：奖励更偏修补、临时复核、敌人压力更高、仍然只作用于本run。';
+    const snapshot = {
+      tick: 1,
+      round: 4,
+      elapsedSeconds: 0,
+      player: {
+        hp: 21,
+        maxHp: 30,
+        energy: 0,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 12,
+        level: 2,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'Reward', characters: {} },
+      run: {
+        currentNode: 3,
+        maxNodes: 5,
+        rewardHistory: [{ cardId: 'spark_tap' }],
+        previousNodePressure: {
+          label: veryLongLabel
+        },
+        route: {
+          pendingNodeChoices: [
+            {
+              id: 'long-route-repair',
+              fromNode: 3,
+              toNode: 4,
+              label: `${veryLongLabel}-route`,
+              preview: veryLongPreview,
+              nextBattleContext: {
+                modifierId: 'rewardRerollPlusOne',
+                rewardBranchHint: 'repair-resource'
+              }
+            },
+            {
+              id: 'long-route-payoff',
+              fromNode: 3,
+              toNode: 4,
+              label: `${veryLongLabel}-payoff`,
+              preview: veryLongPreview,
+              nextBattleContext: {
+                modifierId: 'maxEnergyThisRunPlusOne',
+                rewardBranchHint: 'payoff'
+              }
+            }
+          ]
+        }
+      },
+      reward: {
+        pending: true,
+        choices: ['blood_tithe', 'severance_burst', 'spark_tap'],
+        xpThreshold: 12
+      },
+      buildPlan: {
+        summary: '缺桥 / 缺终结 / 清污染 / 补资源',
+        issues: [
+          {
+            id: 'missing-bridge',
+            label: '缺桥',
+            reason: veryLongReason,
+            nextStep: veryLongReason,
+            priority: 20,
+            evidence: [veryLongReason],
+            recommendedCardIds: [],
+            recommendedUpgradeChoiceIds: []
+          }
+        ]
+      },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null
+    } as unknown as GameSnapshot;
+
+    const pressure = hudPressureTimelineState(snapshot);
+    expect(pressure.previousPressureLabel).toMatch(/^上压 .+…$/);
+    expect(pressure.previousPressureLabel.length).toBeLessThanOrEqual(18);
+    expect(pressure.buildProblemLabel).toBe('构筑 缺桥');
+    expect(pressure.nextRouteConsequenceLabel).toBe('复核+1/偏修补');
+
+    const root = {
+      innerHTML: '',
+      addEventListener: () => undefined
+    } as unknown as HTMLElement;
+    const hud = new Hud(root, () => undefined);
+    hud.render(snapshot);
+
+    expect(root.innerHTML).toContain('run-layer-main');
+    expect(root.innerHTML).toContain('run-layer-meta');
+    expect(root.innerHTML.match(/class="route-choice"/g)).toHaveLength(2);
+    expect(root.innerHTML).toContain('复核+1 · 偏修补');
+    expect(root.innerHTML).toContain('MP+1 · 偏终结');
   });
 
   it('renders route controls after reward choices and emits a select-route intent when clicked', () => {

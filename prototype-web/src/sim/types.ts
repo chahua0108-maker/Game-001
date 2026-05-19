@@ -268,6 +268,49 @@ export interface RunRewardHistoryEntry {
   level: number;
 }
 
+export type RunRouteRiskLevel = 'none' | 'low' | 'high';
+
+export type RuntimeRouteKind = 'repair-cache' | 'elite-pressure';
+
+export interface RunNodePressureRecord {
+  node: number;
+  tick: number;
+  traceId: TraceId;
+  incomingRouteId: string | null;
+  incomingRouteKind: RuntimeRouteKind | null;
+  incomingRouteRisk: RunRouteRiskLevel;
+  selectedRouteId: string | null;
+  selectedRouteKind: RuntimeRouteKind | null;
+  selectedRouteRisk: RunRouteRiskLevel | null;
+  damageTaken: number;
+  pollutionAdded: number;
+  pollutionCardsActive: number;
+  hpAfter: number;
+  maxEnergyAfter: number;
+  buildPlanSummary: string;
+  buildPlanIssueIds: BuildPlanIssueId[];
+  failureBoundary: boolean;
+}
+
+export interface PendingRoutePressure {
+  routeId: string;
+  routeKind: RuntimeRouteKind;
+  riskLevel: RunRouteRiskLevel;
+  targetNode: number;
+  damageOnEntry: number;
+  pollutionCardId: CardId | null;
+}
+
+export interface RunPressureState {
+  records: RunNodePressureRecord[];
+  lastRecordedEventIndex: number;
+  totalDamageTaken: number;
+  totalPollutionAdded: number;
+  activePollutionCards: number;
+  failureBoundaryNode: number | null;
+  pendingRoutePressure: PendingRoutePressure | null;
+}
+
 export interface RunState {
   runNumber: number;
   currentNode: number;
@@ -275,6 +318,8 @@ export interface RunState {
   // Current-run reward history only. Do not read this as account/meta unlock history.
   rewardHistory: RunRewardHistoryEntry[];
   status: RunStatus;
+  // Current-run runtime pressure only. Restarting a run creates a fresh RunState and drops this history.
+  pressure?: RunPressureState;
 }
 
 export interface EnemyState {
@@ -686,6 +731,18 @@ export type GameEvent =
       routeId: string;
       fromNode: number;
       toNode: number;
+    }
+  | {
+      type: 'RoutePressureApplied';
+      traceId: TraceId;
+      tick: number;
+      routeId: string;
+      routeKind: RuntimeRouteKind;
+      riskLevel: RunRouteRiskLevel;
+      targetNode: number;
+      amount: number;
+      remainingHp: number;
+      pollutionCardId: CardId | null;
     }
   | {
       type: 'CardAddedToDeck';

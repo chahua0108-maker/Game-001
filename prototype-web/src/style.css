@@ -666,6 +666,16 @@ button {
   overflow: hidden;
 }
 
+.run-layer-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.run-layer-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .run-layer-main span,
 .run-layer-main strong,
 .run-layer-main em,
@@ -1684,18 +1694,39 @@ button:focus-visible {
   }
 
   .run-layer-meta {
-    display: none;
+    display: grid;
   }
 
   .run-layer-main {
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-columns: minmax(58px, 0.72fr) minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
     column-gap: 8px;
   }
 
+  .run-layer-main span {
+    display: none;
+  }
+
   .run-layer-main strong,
-  .run-layer-main em {
+  .run-layer-main em,
+  .run-layer-main small {
+    margin-top: 0;
+  }
+
+  .run-layer-meta {
+    display: grid;
+    grid-template-columns: minmax(58px, 0.72fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+  }
+
+  .run-layer-meta span {
+    display: none;
+  }
+
+  .run-layer-meta strong,
+  .run-layer-meta em {
     margin-top: 0;
   }
 

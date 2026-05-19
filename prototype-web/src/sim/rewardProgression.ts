@@ -4,6 +4,7 @@ export const LEVEL_XP_THRESHOLDS = [0, 12, 24, 42, 72, 110] as const;
 export const INITIAL_REWARD_XP_THRESHOLD = LEVEL_XP_THRESHOLDS[1];
 
 export type RewardResponseProblem = 'polluted' | 'missing-payoff' | 'missing-bridge' | 'missing-resource';
+export type RewardResponsePressure = 'pollution' | 'payoff' | 'bridge' | 'resource';
 export type RewardResponseRole =
   | 'cleanse-pollution'
   | 'retain'
@@ -51,6 +52,29 @@ const RESPONSE_ROLES_BY_ROUTE_BRANCH: Record<RewardBranch, RewardResponseRole[]>
   'repair-resource': ['draw-resource', 'wild-bridge'],
   payoff: ['payoff', 'authorization'],
   'route-bridge': ['low-cost-bridge', 'wild-bridge']
+};
+
+const RESPONSE_PRESSURE_BY_PROBLEM: Record<RewardResponseProblem, RewardResponsePressure> = {
+  polluted: 'pollution',
+  'missing-payoff': 'payoff',
+  'missing-bridge': 'bridge',
+  'missing-resource': 'resource'
+};
+
+const RESPONSE_PRESSURE_BY_ROLE: Record<RewardResponseRole, RewardResponsePressure> = {
+  'cleanse-pollution': 'pollution',
+  retain: 'pollution',
+  payoff: 'payoff',
+  'wild-bridge': 'bridge',
+  'low-cost-bridge': 'bridge',
+  authorization: 'resource',
+  'draw-resource': 'resource'
+};
+
+const RESPONSE_PRESSURE_BY_ROUTE_BRANCH: Record<RewardBranch, RewardResponsePressure> = {
+  'repair-resource': 'resource',
+  payoff: 'payoff',
+  'route-bridge': 'bridge'
 };
 
 export function nextLevelXp(level: number): number {
@@ -101,6 +125,58 @@ export function rewardResponseRolesForProblems(profile?: RewardResponseProfile):
   }
 
   return roles;
+}
+
+export function rewardResponsePressureSignals(profile?: RewardResponseProfile): RewardResponsePressure[] {
+  if (!profile) {
+    return [];
+  }
+
+  const signals: RewardResponsePressure[] = [];
+  const addRoles = (roles: readonly RewardResponseRole[] | undefined): void => {
+    for (const role of roles ?? []) {
+      signals.push(RESPONSE_PRESSURE_BY_ROLE[role]);
+    }
+  };
+  const addBranches = (branches: readonly RewardBranch[] | undefined): void => {
+    for (const branch of branches ?? []) {
+      signals.push(RESPONSE_PRESSURE_BY_ROUTE_BRANCH[branch]);
+    }
+  };
+
+  addRoles(profile.buildPlan?.responseRoles);
+
+  for (const problem of profile.buildPlan?.problems ?? []) {
+    signals.push(RESPONSE_PRESSURE_BY_PROBLEM[problem]);
+  }
+
+  for (const problem of profile.problems) {
+    signals.push(RESPONSE_PRESSURE_BY_PROBLEM[problem]);
+  }
+
+  addRoles(profile.routeContext?.preferences?.responseRoles);
+  addBranches(profile.buildPlan?.rewardBranchHints);
+  addBranches(profile.routeContext?.preferences?.rewardBranchHints);
+
+  if (profile.routeContext?.rewardBranchHint) {
+    signals.push(RESPONSE_PRESSURE_BY_ROUTE_BRANCH[profile.routeContext.rewardBranchHint]);
+  }
+
+  return signals;
+}
+
+export function rewardResponsePressuresForProfile(profile?: RewardResponseProfile): RewardResponsePressure[] {
+  const pressures: RewardResponsePressure[] = [];
+  const seen = new Set<RewardResponsePressure>();
+
+  for (const pressure of rewardResponsePressureSignals(profile)) {
+    if (!seen.has(pressure)) {
+      pressures.push(pressure);
+      seen.add(pressure);
+    }
+  }
+
+  return pressures;
 }
 
 export function rewardResponsePickCount(basePickCount: number, profile?: RewardResponseProfile): number {

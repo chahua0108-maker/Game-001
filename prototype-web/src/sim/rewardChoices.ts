@@ -1,8 +1,11 @@
 import type { CardDefinition, CardId, RewardBranch } from './types';
 import {
   rewardResponsePickCount,
+  rewardResponsePressuresForProfile,
+  rewardResponsePressureSignals,
   rewardResponsePreferredCardIds,
   rewardResponseRolesForProblems,
+  type RewardResponsePressure,
   type RewardResponseProfile,
   type RewardResponseRole
 } from './rewardProgression';
@@ -22,6 +25,18 @@ type CardWithRewardMetadata = CardDefinition & {
 };
 
 const BRANCH_PRIORITY: RewardBranch[] = ['repair-resource', 'payoff', 'route-bridge'];
+const BALANCED_FALLBACK_PRESSURE_PRIORITY: RewardResponsePressure[] = ['payoff', 'resource', 'bridge', 'pollution'];
+const RESPONSE_ROLES_BY_PRESSURE: Record<RewardResponsePressure, RewardResponseRole[]> = {
+  pollution: ['cleanse-pollution', 'retain'],
+  payoff: ['payoff'],
+  bridge: ['wild-bridge', 'low-cost-bridge'],
+  resource: ['authorization', 'draw-resource']
+};
+const BRANCH_BY_PRESSURE: Partial<Record<RewardResponsePressure, RewardBranch>> = {
+  payoff: 'payoff',
+  bridge: 'route-bridge',
+  resource: 'repair-resource'
+};
 const BRANCH_ALIASES: Record<string, RewardBranch> = {
   'repair-resource': 'repair-resource',
   repair: 'repair-resource',
@@ -201,6 +216,156 @@ function matchesPreferredCardId(candidateCardId: CardId, preferredCardId: CardId
   );
 }
 
+type RewardCandidate = {
+  id: CardId;
+  card: CardDefinition | undefined;
+};
+
+function shouldUseBalancedPressureChoices(responseProfile?: RewardResponseProfile): boolean {
+  const pressureSignals = rewardResponsePressureSignals(responseProfile);
+  const pressures = rewardResponsePressuresForProfile(responseProfile);
+  return pressures.length > 1 || pressureSignals.length > pressures.length;
+}
+
+function cardMatchesPressure(card: CardDefinition, pressure: RewardResponsePressure): boolean {
+  const roles = rewardResponseRolesForCard(card);
+  if (RESPONSE_ROLES_BY_PRESSURE[pressure].some((role) => roles.has(role))) {
+    return true;
+  }
+
+  const branch = BRANCH_BY_PRESSURE[pressure];
+  return Boolean(branch && rewardBranchesForCard(card).has(branch));
+}
+
+function primaryFallbackPressure(card: CardDefinition): RewardResponsePressure | null {
+  const branches = rewardBranchesForCard(card);
+  const roles = rewardResponseRolesForCard(card);
+
+  if (branches.has('payoff') || roles.has('payoff')) {
+    return 'payoff';
+  }
+  if (branches.has('repair-resource')) {
+    return 'resource';
+  }
+  if (branches.has('route-bridge')) {
+    return 'bridge';
+  }
+  if (roles.has('authorization') || roles.has('draw-resource')) {
+    return 'resource';
+  }
+  if (roles.has('wild-bridge') || roles.has('low-cost-bridge')) {
+    return 'bridge';
+  }
+  if (roles.has('cleanse-pollution') || roles.has('retain')) {
+    return 'pollution';
+  }
+  return null;
+}
+
+function findExplicitPressureCandidate(
+  candidates: RewardCandidate[],
+  chosen: Set<CardId>,
+  pressure: RewardResponsePressure
+): RewardCandidate | undefined {
+  for (const role of RESPONSE_ROLES_BY_PRESSURE[pressure]) {
+    const candidate = candidates.find(
+      ({ card, id }) => card && !chosen.has(id) && rewardResponseRolesForCard(card).has(role)
+    );
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  const branch = BRANCH_BY_PRESSURE[pressure];
+  if (!branch) {
+    return undefined;
+  }
+
+  return candidates.find(({ card, id }) => card && !chosen.has(id) && rewardBranchesForCard(card).has(branch));
+}
+
+function findFallbackPressureCandidate(
+  candidates: RewardCandidate[],
+  chosen: Set<CardId>,
+  pressure: RewardResponsePressure
+): RewardCandidate | undefined {
+  const branch = BRANCH_BY_PRESSURE[pressure];
+  const branchCandidate =
+    branch &&
+    candidates.find(
+      ({ card, id }) =>
+        card && !chosen.has(id) && primaryFallbackPressure(card) === pressure && rewardBranchesForCard(card).has(branch)
+    );
+  if (branchCandidate) {
+    return branchCandidate;
+  }
+
+  const primaryCandidate = candidates.find(
+    ({ card, id }) => card && !chosen.has(id) && primaryFallbackPressure(card) === pressure
+  );
+  if (primaryCandidate) {
+    return primaryCandidate;
+  }
+
+  return candidates.find(({ card, id }) => card && !chosen.has(id) && cardMatchesPressure(card, pressure));
+}
+
+function fallbackPressuresByNeed(pressureCounts: Map<RewardResponsePressure, number>): RewardResponsePressure[] {
+  return [...BALANCED_FALLBACK_PRESSURE_PRIORITY].sort(
+    (left, right) =>
+      (pressureCounts.get(left) ?? 0) - (pressureCounts.get(right) ?? 0) ||
+      BALANCED_FALLBACK_PRESSURE_PRIORITY.indexOf(left) - BALANCED_FALLBACK_PRESSURE_PRIORITY.indexOf(right)
+  );
+}
+
+function appendBalancedPressureChoices(
+  candidates: RewardCandidate[],
+  choices: CardId[],
+  chosen: Set<CardId>,
+  effectivePickCount: number,
+  responseProfile?: RewardResponseProfile
+): void {
+  const pressures = rewardResponsePressuresForProfile(responseProfile);
+  const pressureCounts = new Map<RewardResponsePressure, number>();
+  const hasResourceAndBridgePressure = pressures.includes('resource') && pressures.includes('bridge');
+
+  const appendCandidate = (candidate: RewardCandidate, pressure: RewardResponsePressure): void => {
+    choices.push(candidate.id);
+    chosen.add(candidate.id);
+    pressureCounts.set(pressure, (pressureCounts.get(pressure) ?? 0) + 1);
+  };
+
+  for (const pressure of pressures) {
+    if (choices.length >= effectivePickCount) {
+      return;
+    }
+
+    const candidate =
+      hasResourceAndBridgePressure && pressure === 'bridge'
+        ? findFallbackPressureCandidate(candidates, chosen, pressure) ?? findExplicitPressureCandidate(candidates, chosen, pressure)
+        : findExplicitPressureCandidate(candidates, chosen, pressure);
+    if (candidate) {
+      appendCandidate(candidate, pressure);
+    }
+  }
+
+  while (choices.length < effectivePickCount) {
+    let appended = false;
+    for (const pressure of fallbackPressuresByNeed(pressureCounts)) {
+      const candidate = findFallbackPressureCandidate(candidates, chosen, pressure);
+      if (candidate) {
+        appendCandidate(candidate, pressure);
+        appended = true;
+        break;
+      }
+    }
+
+    if (!appended) {
+      break;
+    }
+  }
+}
+
 export function buildRewardChoices(
   candidateCardPool: CardId[],
   pickCount: number,
@@ -233,17 +398,21 @@ export function buildRewardChoices(
     }
   }
 
-  for (const responseRole of rewardResponseRolesForProblems(responseProfile)) {
-    if (choices.length >= effectivePickCount) {
-      break;
-    }
+  if (shouldUseBalancedPressureChoices(responseProfile)) {
+    appendBalancedPressureChoices(candidates, choices, chosen, effectivePickCount, responseProfile);
+  } else {
+    for (const responseRole of rewardResponseRolesForProblems(responseProfile)) {
+      if (choices.length >= effectivePickCount) {
+        break;
+      }
 
-    const candidate = candidates.find(
-      ({ card, id }) => card && !chosen.has(id) && rewardResponseRolesForCard(card).has(responseRole)
-    );
-    if (candidate) {
-      choices.push(candidate.id);
-      chosen.add(candidate.id);
+      const candidate = candidates.find(
+        ({ card, id }) => card && !chosen.has(id) && rewardResponseRolesForCard(card).has(responseRole)
+      );
+      if (candidate) {
+        choices.push(candidate.id);
+        chosen.add(candidate.id);
+      }
     }
   }
 

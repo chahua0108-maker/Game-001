@@ -18,12 +18,31 @@ import {
   selectShortRunRouteNode
 } from './runRoute';
 import { ENEMY_COLUMNS, ENEMY_ROWS, createEnemy, createInitialChainState, createInitialWorld, slotToLane, slotToZ } from './world';
-import type { BuildPlanIssueId, CardDefinition, CardId, CardZone, Command, EntityId, GameEvent, Intent, RewardBranch, TraceEntry, TraceId, WorldState } from './types';
+import type { ShortRunNodeCandidate } from './runRoute';
+import type {
+  BuildPlanIssueId,
+  CardDefinition,
+  CardId,
+  CardZone,
+  Command,
+  EntityId,
+  GameEvent,
+  Intent,
+  PendingRoutePressure,
+  RewardBranch,
+  RunPressureState,
+  RunRouteRiskLevel,
+  RuntimeRouteKind,
+  TraceEntry,
+  TraceId,
+  WorldState
+} from './types';
 
 const DEBUG_LIMIT = 2000;
 const HAND_SIZE = 4;
 const ENEMY_PRESSURE_Z = -3.2;
 const PRESSURE_POLLUTION_CARD_ID: CardId = 'static_overload';
+const ELITE_ROUTE_ENTRY_DAMAGE = 6;
 
 function pushTrace(world: WorldState, entry: TraceEntry): void {
   world.debug.trace.push(entry);
@@ -561,6 +580,197 @@ function shouldAddPressurePollution(world: WorldState, damageTaken: number): boo
     world.player.drawPile.length === 0 &&
     world.player.discardPile.length >= HAND_SIZE - 1
   );
+}
+
+function ensureRunPressureState(world: WorldState): RunPressureState {
+  if (!world.run.pressure) {
+    world.run.pressure = {
+      records: [],
+      lastRecordedEventIndex: 0,
+      totalDamageTaken: 0,
+      totalPollutionAdded: 0,
+      activePollutionCards: 0,
+      failureBoundaryNode: null,
+      pendingRoutePressure: null
+    };
+  }
+
+  return world.run.pressure;
+}
+
+function runtimeRouteKind(kind: ShortRunNodeCandidate['kind']): RuntimeRouteKind | null {
+  return kind === 'repair-cache' || kind === 'elite-pressure' ? kind : null;
+}
+
+function riskLevelForRouteKind(kind: RuntimeRouteKind): RunRouteRiskLevel {
+  return kind === 'elite-pressure' ? 'high' : 'low';
+}
+
+function createPendingRoutePressure(candidate: ShortRunNodeCandidate): PendingRoutePressure | null {
+  const routeKind = runtimeRouteKind(candidate.kind);
+  if (!routeKind) {
+    return null;
+  }
+
+  return {
+    routeId: candidate.id,
+    routeKind,
+    riskLevel: riskLevelForRouteKind(routeKind),
+    targetNode: candidate.toNode,
+    damageOnEntry: routeKind === 'elite-pressure' ? ELITE_ROUTE_ENTRY_DAMAGE : 0,
+    pollutionCardId: routeKind === 'elite-pressure' ? PRESSURE_POLLUTION_CARD_ID : null
+  };
+}
+
+function playerCardZones(world: WorldState): CardId[] {
+  return [
+    ...world.player.deck,
+    ...world.player.hand,
+    ...world.player.drawPile,
+    ...world.player.discardPile,
+    ...world.player.exhaustPile,
+    ...world.player.retainedCards
+  ];
+}
+
+function activePressurePollutionCount(world: WorldState): number {
+  return playerCardZones(world).filter((cardId) => {
+    const card = cards[cardId];
+    return Boolean(card && card.cardType === 'status' && card.mechanicTags?.includes('pollution'));
+  }).length;
+}
+
+function pressureTotalsFromRecords(records: RunPressureState['records']): Pick<RunPressureState, 'totalDamageTaken' | 'totalPollutionAdded'> {
+  return {
+    totalDamageTaken: records.reduce((total, record) => total + record.damageTaken, 0),
+    totalPollutionAdded: records.reduce((total, record) => total + record.pollutionAdded, 0)
+  };
+}
+
+function recordNodePressure(world: WorldState, traceId: TraceId): void {
+  const pressure = ensureRunPressureState(world);
+  const eventsSinceLastRecord = world.debug.events.slice(pressure.lastRecordedEventIndex);
+  const incomingRoute =
+    pressure.pendingRoutePressure?.targetNode === world.run.currentNode ? pressure.pendingRoutePressure : null;
+  const buildPlan = createBuildPlan(world);
+  const damageTaken = eventsSinceLastRecord.reduce((total, event) => {
+    if (event.type === 'EnemyAttacked') {
+      return total + event.amount;
+    }
+    if (event.type === 'RoutePressureApplied') {
+      return total + event.amount;
+    }
+    return total;
+  }, 0);
+  const pollutionAdded = eventsSinceLastRecord.filter((event) => event.type === 'PressurePollutionAdded').length;
+  const failureBoundary = world.run.status === 'failure' || world.player.hp <= 0;
+
+  pressure.records.push({
+    node: world.run.currentNode,
+    tick: world.tick,
+    traceId,
+    incomingRouteId: incomingRoute?.routeId ?? null,
+    incomingRouteKind: incomingRoute?.routeKind ?? null,
+    incomingRouteRisk: incomingRoute?.riskLevel ?? 'none',
+    selectedRouteId: null,
+    selectedRouteKind: null,
+    selectedRouteRisk: null,
+    damageTaken,
+    pollutionAdded,
+    pollutionCardsActive: activePressurePollutionCount(world),
+    hpAfter: world.player.hp,
+    maxEnergyAfter: world.player.maxEnergy,
+    buildPlanSummary: buildPlan.summary,
+    buildPlanIssueIds: buildPlan.issues.map((issue) => issue.id),
+    failureBoundary
+  });
+
+  pressure.lastRecordedEventIndex = world.debug.events.length;
+  const totals = pressureTotalsFromRecords(pressure.records);
+  pressure.totalDamageTaken = totals.totalDamageTaken;
+  pressure.totalPollutionAdded = totals.totalPollutionAdded;
+  pressure.activePollutionCards = activePressurePollutionCount(world);
+  if (failureBoundary && pressure.failureBoundaryNode === null) {
+    pressure.failureBoundaryNode = world.run.currentNode;
+  }
+}
+
+function annotateLastNodePressureRoute(world: WorldState, selectedRoute: ShortRunNodeCandidate): void {
+  const pressure = ensureRunPressureState(world);
+  const routeKind = runtimeRouteKind(selectedRoute.kind);
+  if (!routeKind) {
+    return;
+  }
+
+  for (let index = pressure.records.length - 1; index >= 0; index -= 1) {
+    const record = pressure.records[index];
+    if (record.node === selectedRoute.fromNode) {
+      pressure.records[index] = {
+        ...record,
+        selectedRouteId: selectedRoute.id,
+        selectedRouteKind: routeKind,
+        selectedRouteRisk: riskLevelForRouteKind(routeKind)
+      };
+      return;
+    }
+  }
+}
+
+function applyRoutePressureOnEntry(
+  world: WorldState,
+  selectedRoute: ShortRunNodeCandidate,
+  traceId: TraceId
+): { events: GameEvent[]; failed: boolean } {
+  const pressure = ensureRunPressureState(world);
+  const pendingPressure = createPendingRoutePressure(selectedRoute);
+  pressure.pendingRoutePressure = pendingPressure;
+
+  if (!pendingPressure || pendingPressure.damageOnEntry <= 0) {
+    pressure.activePollutionCards = activePressurePollutionCount(world);
+    return { events: [], failed: false };
+  }
+
+  world.player.hp = Math.max(0, world.player.hp - pendingPressure.damageOnEntry);
+  const events: GameEvent[] = [
+    {
+      type: 'RoutePressureApplied',
+      tick: world.tick,
+      traceId,
+      routeId: pendingPressure.routeId,
+      routeKind: pendingPressure.routeKind,
+      riskLevel: pendingPressure.riskLevel,
+      targetNode: pendingPressure.targetNode,
+      amount: pendingPressure.damageOnEntry,
+      remainingHp: world.player.hp,
+      pollutionCardId: pendingPressure.pollutionCardId
+    }
+  ];
+
+  if (world.player.hp <= 0) {
+    markRunFailed(world);
+    pressure.failureBoundaryNode = pendingPressure.targetNode;
+    events.push(
+      ...setGameFlowState(world, 'Settlement', 'route pressure exceeded player HP', traceId).flatMap((command) =>
+        applyCommand(world, command)
+      )
+    );
+    return { events, failed: true };
+  }
+
+  if (pendingPressure.pollutionCardId) {
+    events.push(
+      ...applyCommand(world, {
+        type: 'AddPressurePollution',
+        traceId,
+        cardId: pendingPressure.pollutionCardId,
+        damageTaken: pendingPressure.damageOnEntry,
+        reason: 'elite route pressure contaminated next node'
+      })
+    );
+  }
+
+  pressure.activePollutionCards = activePressurePollutionCount(world);
+  return { events, failed: false };
 }
 
 const REWARD_PROBLEM_BY_BUILD_PLAN_ISSUE: Partial<Record<BuildPlanIssueId, RewardResponseProblem>> = {
@@ -1395,6 +1605,7 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
           continue;
         }
 
+        recordNodePressure(world, intent.traceId);
         recordRunReward(world, intent.cardId, intent.traceId);
         const runCompleted = planRouteAfterReward(world);
         queue.push({
@@ -1454,10 +1665,12 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
             reason: `${intent.routeId} is not a pending route choice`
           });
         } else {
+          annotateLastNodePressureRoute(world, selectedRoute);
           const selected = selectShortRunRouteNode(world.run, route, intent.routeId);
           world.run = selected.run;
           world.route = selected.route;
           applyNextBattleContext(world);
+          const routePressure = applyRoutePressureOnEntry(world, selectedRoute, intent.traceId);
           queue.push({
             type: 'RouteChosen',
             tick: world.tick,
@@ -1466,10 +1679,13 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
             fromNode: selectedRoute.fromNode,
             toNode: selectedRoute.toNode
           });
-          queue.push(...applyCommand(world, { type: 'CompactEnemySlots', traceId: intent.traceId }));
-          queue.push(...applyCommand(world, { type: 'FillEnemySlots', traceId: intent.traceId }));
-          queue.push(...applyCommand(world, { type: 'AdvanceRound', traceId: intent.traceId }));
-          queue.push(...dealIntoPlayerTurn(world, intent.traceId, 'route selected'));
+          queue.push(...routePressure.events);
+          if (!routePressure.failed) {
+            queue.push(...applyCommand(world, { type: 'CompactEnemySlots', traceId: intent.traceId }));
+            queue.push(...applyCommand(world, { type: 'FillEnemySlots', traceId: intent.traceId }));
+            queue.push(...applyCommand(world, { type: 'AdvanceRound', traceId: intent.traceId }));
+            queue.push(...dealIntoPlayerTurn(world, intent.traceId, 'route selected'));
+          }
         }
       }
     }
