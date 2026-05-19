@@ -28,6 +28,13 @@ export type CardAvailability = 'starting' | 'reward' | 'starting-and-reward' | '
 export type CardPlayLifecycle = 'discard' | 'exhaust';
 export type CardTurnEndLifecycle = 'discard' | 'retain';
 export type RewardBranch = 'repair-resource' | 'payoff' | 'route-bridge';
+export type BuildPlanIssueId =
+  | 'missing-bridge'
+  | 'missing-finisher'
+  | 'clear-pollution'
+  | 'need-resource'
+  | 'upgrade-key-card';
+export type BuildPlanIssueLabel = '缺桥' | '缺终结' | '清污染' | '补资源' | '强化关键牌';
 export type CardRewardRarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'status' | 'test';
 export type CardMechanicTag =
   | 'attack'
@@ -158,6 +165,22 @@ export interface CardUpgradeState {
   choices: CardUpgradeChoice[];
   pending: boolean;
   history: CardUpgradeHistoryEntry[];
+}
+
+export interface BuildPlanIssue {
+  id: BuildPlanIssueId;
+  label: BuildPlanIssueLabel;
+  reason: string;
+  nextStep: string;
+  priority: number;
+  evidence: string[];
+  recommendedCardIds: CardId[];
+  recommendedUpgradeChoiceIds: string[];
+}
+
+export interface BuildPlan {
+  summary: string;
+  issues: BuildPlanIssue[];
 }
 
 export interface EnemyDefinition {
@@ -879,6 +902,7 @@ export interface GameSnapshot {
   fsm: FsmState;
   run: RunState;
   route?: ShortRunRouteState;
+  buildPlan: BuildPlan;
   reward: RewardState;
   cardUpgrades: CardUpgradeState;
   debug: DebugState;

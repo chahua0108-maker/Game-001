@@ -13,6 +13,7 @@ import {
   hudCardPlayDestinationLabel,
   hudCardTurnEndDestinationLabel,
   hudCardVisibleRoleLabel,
+  hudBuildPlanState,
   hudEventFeedbackLabel,
   Hud,
   hudRouteChoicesState,
@@ -346,6 +347,88 @@ describe('HUD chain extension reads', () => {
 });
 
 describe('HUD run and meta layer labels', () => {
+  it('reads optional build plan tokens and reasons defensively', () => {
+    expect(hudBuildPlanState({} as unknown as GameSnapshot)).toEqual({
+      token: '常规',
+      reason: '无构筑预览',
+      active: false
+    });
+
+    const planState = hudBuildPlanState({
+      buildPlan: {
+        selectedModifiers: [{ id: 'maxEnergyThisRunPlusOne', label: '信用额度' }],
+        derived: {
+          maxEnergyDeltaThisRun: 1
+        },
+        explanations: ['Max MP preview becomes 4 for this run only.']
+      }
+    } as unknown as GameSnapshot);
+
+    expect(planState).toEqual({
+      token: 'MP+1',
+      reason: 'Max MP preview becomes 4 for this run only.',
+      active: true
+    });
+  });
+
+  it('renders build plan token and reason without requiring runtime snapshot support', () => {
+    const root = {
+      innerHTML: '',
+      addEventListener: () => undefined
+    } as unknown as HTMLElement;
+    const hud = new Hud(root, () => undefined);
+
+    hud.render({
+      tick: 1,
+      round: 1,
+      elapsedSeconds: 0,
+      player: {
+        hp: 30,
+        maxHp: 30,
+        energy: 3,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 0,
+        level: 1,
+        deck: ['debt_hook'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'Deal', characters: {} },
+      reward: { pending: false, choices: [], xpThreshold: 12 },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null,
+      buildPlan: {
+        selectedModifiers: [{ id: 'rewardRerollPlusOne', label: '复核机会' }],
+        derived: { rewardRerollDelta: 1 },
+        explanations: ['Reward reroll preview gains 1 reroll for this run only.']
+      }
+    } as unknown as GameSnapshot);
+
+    expect(root.innerHTML).toContain('build-plan-chip active');
+    expect(root.innerHTML).toContain('复核+1');
+    expect(root.innerHTML).toContain('Reward reroll preview gains 1 reroll for this run only.');
+  });
+
   it('reads current run progress and recent reward without presenting meta growth as a permanent upgrade', () => {
     const runState = hudRunLayerState({
       round: 3,

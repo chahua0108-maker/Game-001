@@ -9,15 +9,16 @@ import {
   decodeCardUpgradeRewardChoiceId,
   isCardUpgradeRewardChoiceId
 } from './cardUpgrades';
+import { createBuildPlan } from './buildPlan';
 import { buildRewardChoices } from './rewardChoices';
-import { nextLevelXp } from './rewardProgression';
+import { nextLevelXp, type RewardBuildPlanPreference, type RewardResponseProblem } from './rewardProgression';
 import {
   completeCombatRouteNode,
   createInitialShortRunRouteState,
   selectShortRunRouteNode
 } from './runRoute';
 import { ENEMY_COLUMNS, ENEMY_ROWS, createEnemy, createInitialChainState, createInitialWorld, slotToLane, slotToZ } from './world';
-import type { CardDefinition, CardId, CardZone, Command, EntityId, GameEvent, Intent, TraceEntry, TraceId, WorldState } from './types';
+import type { BuildPlanIssueId, CardDefinition, CardId, CardZone, Command, EntityId, GameEvent, Intent, RewardBranch, TraceEntry, TraceId, WorldState } from './types';
 
 const DEBUG_LIMIT = 2000;
 const HAND_SIZE = 4;
@@ -562,10 +563,65 @@ function shouldAddPressurePollution(world: WorldState, damageTaken: number): boo
   );
 }
 
+const REWARD_PROBLEM_BY_BUILD_PLAN_ISSUE: Partial<Record<BuildPlanIssueId, RewardResponseProblem>> = {
+  'clear-pollution': 'polluted',
+  'missing-bridge': 'missing-bridge',
+  'missing-finisher': 'missing-payoff',
+  'need-resource': 'missing-resource'
+};
+
+const REWARD_BRANCH_BY_BUILD_PLAN_ISSUE: Partial<Record<BuildPlanIssueId, RewardBranch>> = {
+  'clear-pollution': 'repair-resource',
+  'missing-bridge': 'route-bridge',
+  'missing-finisher': 'payoff',
+  'need-resource': 'repair-resource'
+};
+
+function rewardBuildPlanPreference(world: WorldState): RewardBuildPlanPreference | null {
+  const plan = createBuildPlan(world);
+  if (plan.issues.length === 0) {
+    return null;
+  }
+
+  const problems = new Set<RewardResponseProblem>();
+  const rewardBranchHints = new Set<RewardBranch>();
+  const preferredCardIds = new Set<CardId>();
+  const upgradeTargetCardIds = new Set<CardId>();
+
+  for (const issue of plan.issues) {
+    const problem = REWARD_PROBLEM_BY_BUILD_PLAN_ISSUE[issue.id];
+    if (problem) {
+      problems.add(problem);
+    }
+
+    const branch = REWARD_BRANCH_BY_BUILD_PLAN_ISSUE[issue.id];
+    if (branch) {
+      rewardBranchHints.add(branch);
+    }
+
+    issue.recommendedCardIds.forEach((cardId) => preferredCardIds.add(cardId));
+    issue.recommendedUpgradeChoiceIds.forEach((choiceId) => {
+      const [, targetCardId] = choiceId.split(':');
+      if (targetCardId) {
+        upgradeTargetCardIds.add(targetCardId);
+      }
+    });
+  }
+
+  return {
+    label: plan.summary,
+    problems: [...problems],
+    rewardBranchHints: [...rewardBranchHints],
+    preferredCardIds: [...preferredCardIds],
+    upgradeTargetCardIds: [...upgradeTargetCardIds]
+  };
+}
+
 function generateRewardChoices(world: WorldState, traceId: TraceId): CardId[] {
   const cardRewardPickCount = world.run.currentNode > 1 ? Math.max(0, world.reward.pickCount - 1) : world.reward.pickCount;
   const routeContext = world.route?.nextBattleContext ?? null;
-  const responseProfile = routeContext ? { problems: [], routeContext } : undefined;
+  const buildPlan = rewardBuildPlanPreference(world);
+  const responseProfile = routeContext || buildPlan ? { problems: [], routeContext, buildPlan } : undefined;
   const cardChoices = buildRewardChoices(world.reward.candidateCardPool, cardRewardPickCount, cards, responseProfile);
   if (world.run.currentNode <= 1 || cardChoices.length >= world.reward.pickCount) {
     clearCardUpgradeChoices(world);

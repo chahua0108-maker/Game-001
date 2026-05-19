@@ -24,6 +24,12 @@ const gemDamageBonus: Record<CardGemId, number> = {
   ledger_seal: 0
 };
 
+type VisibleCardUpgradeChoice = CardUpgradeChoice & {
+  preview: string;
+  reason: string;
+  buildPlanReason: string;
+};
+
 export function createInitialCardUpgradeState(): CardUpgradeState {
   return {
     enhancements: {},
@@ -81,6 +87,41 @@ function choiceId(traceId: TraceId, cardId: CardId, type: CardUpgradeChoiceType,
   return `${traceId}:${cardId}:${type}:${suffix}`;
 }
 
+function damagePreviewText(currentDamage: number, nextDamage: number): string {
+  return `${currentDamage} -> ${nextDamage} damage this run`;
+}
+
+function buildVisibleUpgradeChoice(
+  choice: CardUpgradeChoice,
+  currentDamage: number,
+  nextDamage: number
+): VisibleCardUpgradeChoice {
+  if (choice.type === 'raise-level') {
+    return {
+      ...choice,
+      preview: damagePreviewText(currentDamage, nextDamage),
+      reason: `upgrade ${choice.targetCardId} because it is already in deck and gains +${choice.damageBonusPreview} repeatable damage`,
+      buildPlanReason: `Make ${choice.targetCardId} a stronger repeatable front-target damage card for the current run.`
+    };
+  }
+
+  if (choice.type === 'add-gem-slot') {
+    return {
+      ...choice,
+      preview: `opens ${choice.gemColor ?? 'red'} gem slot; damage unchanged until socketed`,
+      reason: `prepare ${choice.targetCardId} for a ${choice.gemColor ?? 'red'} damage gem because it has no empty slot yet`,
+      buildPlanReason: `Prepare ${choice.targetCardId} for a later socketed gem instead of taking immediate damage.`
+    };
+  }
+
+  return {
+    ...choice,
+    preview: damagePreviewText(currentDamage, nextDamage),
+    reason: `socket ${choice.gemId ?? 'gem'} into ${choice.targetCardId} because an empty ${choice.gemColor ?? 'red'} slot is available for +${choice.damageBonusPreview} damage`,
+    buildPlanReason: `Turn ${choice.targetCardId} into the current run damage carry by using the prepared ${choice.gemColor ?? 'red'} slot.`
+  };
+}
+
 export function isCardUpgradeRewardChoiceId(cardId: CardId): boolean {
   return cardId.startsWith(CARD_UPGRADE_REWARD_PREFIX);
 }
@@ -120,43 +161,62 @@ function createCardUpgradeChoices(world: WorldState, targetCardId: CardId, trace
 
   const enhancement = readEnhancement(world.cardUpgrades, targetCardId);
   const config = upgradeConfig(targetCardId);
+  const currentDamage = Math.max(0, (card.damage ?? 0) + getCardDamageBonus(world.cardUpgrades, targetCardId));
 
   if (enhancement.level < config.maxLevel) {
-    choices.push({
-      id: choiceId(traceId, targetCardId, 'raise-level'),
-      type: 'raise-level',
-      targetCardId,
-      label: `${card.name} +1`,
-      description: `本次冒险内基础伤害 +${config.damagePerLevel}。`,
-      damageBonusPreview: config.damagePerLevel
-    });
+    choices.push(
+      buildVisibleUpgradeChoice(
+        {
+          id: choiceId(traceId, targetCardId, 'raise-level'),
+          type: 'raise-level',
+          targetCardId,
+          label: `${card.name} +1`,
+          description: `本次冒险内基础伤害 +${config.damagePerLevel}。`,
+          damageBonusPreview: config.damagePerLevel
+        },
+        currentDamage,
+        currentDamage + config.damagePerLevel
+      )
+    );
   }
 
   if (enhancement.gemSlots.length < config.maxGemSlots) {
     const gemColor = config.allowedGemColors[0] ?? 'red';
-    choices.push({
-      id: choiceId(traceId, targetCardId, 'add-gem-slot', String(enhancement.gemSlots.length)),
-      type: 'add-gem-slot',
-      targetCardId,
-      label: `${card.name} 开槽`,
-      description: '新增 1 个本局宝石槽。',
-      gemColor,
-      damageBonusPreview: 0
-    });
+    choices.push(
+      buildVisibleUpgradeChoice(
+        {
+          id: choiceId(traceId, targetCardId, 'add-gem-slot', String(enhancement.gemSlots.length)),
+          type: 'add-gem-slot',
+          targetCardId,
+          label: `${card.name} 开槽`,
+          description: '新增 1 个本局宝石槽。',
+          gemColor,
+          damageBonusPreview: 0
+        },
+        currentDamage,
+        currentDamage
+      )
+    );
   }
 
   const emptySlotIndex = enhancement.gemSlots.findIndex((slot) => slot.gemId === null && slot.color === 'red');
   if (emptySlotIndex >= 0) {
-    choices.push({
-      id: choiceId(traceId, targetCardId, 'socket-gem', String(emptySlotIndex)),
-      type: 'socket-gem',
-      targetCardId,
-      label: `${card.name} 镶嵌赤片`,
-      description: `红槽镶嵌 Crimson Chip，本次冒险内基础伤害 +${gemDamageBonus.crimson_chip}。`,
-      gemColor: 'red',
-      gemId: 'crimson_chip',
-      damageBonusPreview: gemDamageBonus.crimson_chip
-    });
+    choices.push(
+      buildVisibleUpgradeChoice(
+        {
+          id: choiceId(traceId, targetCardId, 'socket-gem', String(emptySlotIndex)),
+          type: 'socket-gem',
+          targetCardId,
+          label: `${card.name} 镶嵌赤片`,
+          description: `红槽镶嵌 Crimson Chip，本次冒险内基础伤害 +${gemDamageBonus.crimson_chip}。`,
+          gemColor: 'red',
+          gemId: 'crimson_chip',
+          damageBonusPreview: gemDamageBonus.crimson_chip
+        },
+        currentDamage,
+        currentDamage + gemDamageBonus.crimson_chip
+      )
+    );
   }
 
   return choices;

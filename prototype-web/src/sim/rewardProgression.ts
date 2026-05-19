@@ -1,4 +1,4 @@
-import type { RewardBranch } from './types';
+import type { CardId, RewardBranch } from './types';
 
 export const LEVEL_XP_THRESHOLDS = [0, 12, 24, 42, 72, 110] as const;
 export const INITIAL_REWARD_XP_THRESHOLD = LEVEL_XP_THRESHOLDS[1];
@@ -13,17 +13,31 @@ export type RewardResponseRole =
   | 'authorization'
   | 'draw-resource';
 
+export interface RewardPreferenceInput {
+  responseRoles?: RewardResponseRole[];
+  rewardBranchHints?: RewardBranch[];
+  preferredCardIds?: CardId[];
+  upgradeTargetCardIds?: CardId[];
+}
+
 export interface RewardRouteContext {
   selectedRouteId?: string;
   modifierId?: string;
   rewardBranchHint?: RewardBranch;
   rewardPickBonus?: number;
   label?: string;
+  preferences?: RewardPreferenceInput;
+}
+
+export interface RewardBuildPlanPreference extends RewardPreferenceInput {
+  problems?: RewardResponseProblem[];
+  label?: string;
 }
 
 export interface RewardResponseProfile {
   problems: RewardResponseProblem[];
   routeContext?: RewardRouteContext | null;
+  buildPlan?: RewardBuildPlanPreference | null;
 }
 
 const RESPONSE_ROLES_BY_PROBLEM: Record<RewardResponseProblem, RewardResponseRole[]> = {
@@ -47,7 +61,7 @@ export function nextLevelXp(level: number): number {
 }
 
 export function rewardResponseRolesForProblems(profile?: RewardResponseProfile): RewardResponseRole[] {
-  if (!profile || (profile.problems.length === 0 && !profile.routeContext)) {
+  if (!profile || (profile.problems.length === 0 && !profile.routeContext && !profile.buildPlan)) {
     return [];
   }
 
@@ -62,8 +76,24 @@ export function rewardResponseRolesForProblems(profile?: RewardResponseProfile):
     }
   };
 
+  addRoles(profile.buildPlan?.responseRoles ?? []);
+
+  for (const problem of profile.buildPlan?.problems ?? []) {
+    addRoles(RESPONSE_ROLES_BY_PROBLEM[problem]);
+  }
+
   for (const problem of profile.problems) {
     addRoles(RESPONSE_ROLES_BY_PROBLEM[problem]);
+  }
+
+  addRoles(profile.routeContext?.preferences?.responseRoles ?? []);
+
+  for (const branchHint of profile.buildPlan?.rewardBranchHints ?? []) {
+    addRoles(RESPONSE_ROLES_BY_ROUTE_BRANCH[branchHint]);
+  }
+
+  for (const branchHint of profile.routeContext?.preferences?.rewardBranchHints ?? []) {
+    addRoles(RESPONSE_ROLES_BY_ROUTE_BRANCH[branchHint]);
   }
 
   if (profile.routeContext?.rewardBranchHint) {
@@ -75,4 +105,28 @@ export function rewardResponseRolesForProblems(profile?: RewardResponseProfile):
 
 export function rewardResponsePickCount(basePickCount: number, profile?: RewardResponseProfile): number {
   return Math.max(0, basePickCount + Math.max(0, profile?.routeContext?.rewardPickBonus ?? 0));
+}
+
+export function rewardResponsePreferredCardIds(profile?: RewardResponseProfile): CardId[] {
+  if (!profile) {
+    return [];
+  }
+
+  const preferredCardIds: CardId[] = [];
+  const seen = new Set<CardId>();
+  const addCardIds = (cardIds: readonly CardId[] | undefined): void => {
+    for (const cardId of cardIds ?? []) {
+      if (!seen.has(cardId)) {
+        preferredCardIds.push(cardId);
+        seen.add(cardId);
+      }
+    }
+  };
+
+  addCardIds(profile.buildPlan?.preferredCardIds);
+  addCardIds(profile.buildPlan?.upgradeTargetCardIds);
+  addCardIds(profile.routeContext?.preferences?.preferredCardIds);
+  addCardIds(profile.routeContext?.preferences?.upgradeTargetCardIds);
+
+  return preferredCardIds;
 }

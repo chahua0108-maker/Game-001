@@ -204,7 +204,7 @@ describe('redline similarity journey sim', () => {
       preventedIntentDamage: intentBeforePayoff
     });
     expect(eventOf(world, 'similarity-payoff-continues', 'RewardChoicesGenerated')).toMatchObject({
-      choices: ['wild_gap_key', 'severance_burst', 'spark_tap']
+      choices: ['severance_burst', 'wild_gap_key', 'spark_tap']
     });
     expect(world.fsm.gameFlow).toBe('Reward');
 

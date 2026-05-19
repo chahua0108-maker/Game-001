@@ -1,6 +1,7 @@
 import type { CardDefinition, CardId, RewardBranch } from './types';
 import {
   rewardResponsePickCount,
+  rewardResponsePreferredCardIds,
   rewardResponseRolesForProblems,
   type RewardResponseProfile,
   type RewardResponseRole
@@ -46,6 +47,7 @@ const ROUTE_BRIDGE_CARD_IDS = new Set<CardId>([
   'lantern_captain'
 ]);
 const CLEANSE_CARD_IDS = new Set<CardId>(['burn_after_reading']);
+const CARD_UPGRADE_REWARD_PREFIX = 'card-upgrade-choice:';
 
 function addBranch(branches: Set<RewardBranch>, branch: unknown): void {
   if (typeof branch !== 'string') {
@@ -188,6 +190,17 @@ export function rewardResponseRolesForCard(card: CardDefinition): Set<RewardResp
   return roles;
 }
 
+function matchesPreferredCardId(candidateCardId: CardId, preferredCardId: CardId): boolean {
+  if (candidateCardId === preferredCardId) {
+    return true;
+  }
+
+  return (
+    candidateCardId.startsWith(CARD_UPGRADE_REWARD_PREFIX) &&
+    candidateCardId.includes(`:${preferredCardId}:`)
+  );
+}
+
 export function buildRewardChoices(
   candidateCardPool: CardId[],
   pickCount: number,
@@ -199,11 +212,26 @@ export function buildRewardChoices(
     return [];
   }
 
-  const candidates = candidateCardPool
-    .map((cardId) => catalog[cardId])
-    .filter((card): card is CardDefinition => Boolean(card));
+  const candidates = candidateCardPool.map((cardId) => ({
+    id: cardId,
+    card: catalog[cardId]
+  }));
   const choices: CardId[] = [];
   const chosen = new Set<CardId>();
+
+  for (const preferredCardId of rewardResponsePreferredCardIds(responseProfile)) {
+    if (choices.length >= effectivePickCount) {
+      break;
+    }
+
+    const candidate = candidates.find(
+      (nextCandidate) => !chosen.has(nextCandidate.id) && matchesPreferredCardId(nextCandidate.id, preferredCardId)
+    );
+    if (candidate) {
+      choices.push(candidate.id);
+      chosen.add(candidate.id);
+    }
+  }
 
   for (const responseRole of rewardResponseRolesForProblems(responseProfile)) {
     if (choices.length >= effectivePickCount) {
@@ -211,7 +239,7 @@ export function buildRewardChoices(
     }
 
     const candidate = candidates.find(
-      (card) => !chosen.has(card.id) && rewardResponseRolesForCard(card).has(responseRole)
+      ({ card, id }) => card && !chosen.has(id) && rewardResponseRolesForCard(card).has(responseRole)
     );
     if (candidate) {
       choices.push(candidate.id);
@@ -224,20 +252,22 @@ export function buildRewardChoices(
       break;
     }
 
-    const candidate = candidates.find((card) => !chosen.has(card.id) && rewardBranchesForCard(card).has(branch));
+    const candidate = candidates.find(
+      ({ card, id }) => card && !chosen.has(id) && rewardBranchesForCard(card).has(branch)
+    );
     if (candidate) {
       choices.push(candidate.id);
       chosen.add(candidate.id);
     }
   }
 
-  for (const candidate of candidates) {
+  for (const { card, id } of candidates) {
     if (choices.length >= effectivePickCount) {
       break;
     }
-    if (!chosen.has(candidate.id)) {
-      choices.push(candidate.id);
-      chosen.add(candidate.id);
+    if (card && !chosen.has(id)) {
+      choices.push(id);
+      chosen.add(id);
     }
   }
 

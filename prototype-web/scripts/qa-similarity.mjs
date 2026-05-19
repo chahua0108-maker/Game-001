@@ -57,6 +57,11 @@ const selectors = [
   '.reward-card strong',
   '.reward-card small',
   '.reward-card em',
+  '.route-choices',
+  '.route-choice',
+  '.route-choice strong',
+  '.route-choice small',
+  '.route-choice em',
   '.combat-feed',
   '.combat-feed li'
 ];
@@ -208,6 +213,10 @@ try {
         routeFlow.fsmAfter === 'PlayerTurn' &&
         routeFlow.routeRecordVisibleAfter === true &&
         routeFlow.nextStateVisibleAfter === true,
+      buildPlanRewardPreTokenVisible: routeFlow.buildPlan?.rewardPre?.visible === true,
+      buildPlanRoutePostTokenVisible: routeFlow.buildPlan?.routePost?.visible === true,
+      buildPlanNextBattleTokenVisible: routeFlow.buildPlan?.nextBattle?.visible === true,
+      buildPlanNoOverflow: routeFlow.buildPlanLayoutFailures.length === 0,
       noHorizontalOverflow: !horizontalOverflowDetected && !layoutFailures.some((failure) => failure.axis === 'x'),
       noTextOverflow: !layoutFailures.some((failure) => failure.category.includes('text')),
       noConsoleErrors: consoleErrors.length === 0
@@ -637,6 +646,13 @@ async function exerciseRewardRouteButtons(page) {
         !routeButton.disabled
     );
     const routeCandidateLabelVisible = textBefore.includes('路线候选') && textBefore.includes('Pulse Draw');
+    const rewardPreBuildPlan = buildPlanStage('reward-pre', textBefore, [
+      '奖励候选',
+      '路线候选',
+      'Pulse Draw',
+      '选1入组'
+    ]);
+    const rewardPreLayout = inspectBuildPlanLayout('reward-pre');
 
     if (routeButton instanceof HTMLButtonElement) {
       routeButton.click();
@@ -660,6 +676,16 @@ async function exerciseRewardRouteButtons(page) {
         routeChoiceButtonRect.right <= window.innerWidth + 1 &&
         !routeChoiceButton.disabled
     );
+    const routePostBuildPlan = buildPlanStage('route-post', textAfterReward, [
+      '选择下一战路线',
+      '路线候选',
+      'MP+1',
+      '修补牌',
+      '偏修补',
+      '偏终结',
+      '偏路线'
+    ]);
+    const routePostLayout = inspectBuildPlanLayout('route-post');
 
     if (routeChoiceButton instanceof HTMLButtonElement) {
       routeChoiceButton.click();
@@ -669,6 +695,14 @@ async function exerciseRewardRouteButtons(page) {
     const selectedRouteIntent = intents.find((intent) => intent.type === 'select-route') ?? null;
     const routeChosen =
       world.debug.events.find((event) => event.traceId === selectedRouteIntent?.traceId && event.type === 'RouteChosen') ?? null;
+    const nextBattleBuildPlan = buildPlanStage('next-battle', textAfterRoute, [
+      '已拿 Pulse Draw',
+      '路线记录 1',
+      '带入 Pulse Draw',
+      '牌组'
+    ]);
+    const nextBattleLayout = inspectBuildPlanLayout('next-battle');
+    const buildPlanLayoutFailures = [...rewardPreLayout, ...routePostLayout, ...nextBattleLayout];
 
     return {
       selectedCardId,
@@ -689,10 +723,111 @@ async function exerciseRewardRouteButtons(page) {
       deckIncludesSelected: world.player.deck.includes(selectedCardId),
       routeRecordVisibleAfter: textAfterRoute.includes('路线记录 1') || textAfterReward.includes('路线记录 1'),
       nextStateVisibleAfter: textAfterRoute.includes('带入 Pulse Draw') || textAfterReward.includes('带入 Pulse Draw'),
+      buildPlan: {
+        rewardPre: rewardPreBuildPlan,
+        routePost: routePostBuildPlan,
+        nextBattle: nextBattleBuildPlan
+      },
+      buildPlanLayoutFailures,
       textBefore,
       textAfterReward,
       textAfterRoute
     };
+
+    function buildPlanStage(phase, text, tokens) {
+      const matchedTokens = tokens.filter((token) => text.includes(token));
+      return {
+        phase,
+        visible: matchedTokens.length > 0,
+        matchedTokens,
+        requiredTokens: tokens,
+        textSample: text.slice(0, 280)
+      };
+    }
+
+    function inspectBuildPlanLayout(phase) {
+      const failures = [];
+      const selectors = [
+        '.run-layer-panel',
+        '.run-layer-main',
+        '.run-layer-meta',
+        '.reward-panel',
+        '.reward-panel header small',
+        '.route-choices',
+        '.route-choice',
+        '.route-choice strong',
+        '.route-choice small',
+        '.route-choice em'
+      ];
+
+      for (const selector of selectors) {
+        for (const [index, el] of Array.from(document.querySelectorAll(selector)).entries()) {
+          const rect = el.getBoundingClientRect();
+          const style = getComputedStyle(el);
+          const visible =
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            rect.width > 0 &&
+            rect.height > 0 &&
+            rect.bottom >= 0 &&
+            rect.top <= window.innerHeight;
+          if (!visible) {
+            continue;
+          }
+
+          const clippedByDesign = style.overflow === 'hidden' && style.textOverflow === 'ellipsis';
+          const scrollPanel = selector === '.reward-panel' && ['auto', 'scroll'].includes(style.overflowY);
+          const outsideX = rect.left < -1 || rect.right > window.innerWidth + 1;
+          const overflowX = el.scrollWidth - el.clientWidth > 1;
+          const metrics = {
+            rect: {
+              x: Math.round(rect.x),
+              y: Math.round(rect.y),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height)
+            },
+            clientWidth: el.clientWidth,
+            scrollWidth: el.scrollWidth,
+            overflow: style.overflow,
+            overflowX: style.overflowX,
+            overflowY: style.overflowY,
+            textOverflow: style.textOverflow
+          };
+
+          if (outsideX) {
+            failures.push({
+              phase,
+              category: 'fail-build-plan-viewport-overflow',
+              severity: 'blocker',
+              ruleId: 'BUILD_PLAN_ELEMENT_OUTSIDE_VIEWPORT_X',
+              axis: 'x',
+              selector,
+              index,
+              text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+              reason: 'build plan surface extends outside viewport horizontally',
+              metrics
+            });
+          }
+
+          if (overflowX && !clippedByDesign && !scrollPanel) {
+            failures.push({
+              phase,
+              category: 'fail-build-plan-text-overflow',
+              severity: 'blocker',
+              ruleId: 'BUILD_PLAN_TEXT_HORIZONTAL_OVERFLOW',
+              axis: 'x',
+              selector,
+              index,
+              text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+              reason: 'build plan token/text overflows horizontally',
+              metrics
+            });
+          }
+        }
+      }
+
+      return failures;
+    }
   });
 }
 
@@ -1096,7 +1231,7 @@ function classifyStatus(currentReport) {
 
 function buildGates(currentReport) {
   const results = currentReport.results;
-  const everyResult = (predicate) => results.length > 0 && results.every(predicate);
+  const everyResult = (predicate) => results.length === viewports.length && results.every(predicate);
   return {
     commandExit: currentReport.errors.length === 0 ? 'pass' : 'fail',
     browserCleanup: currentReport.cleanup?.status === 'pass' ? 'pass' : 'fail',
@@ -1121,13 +1256,23 @@ function buildGates(currentReport) {
           result.assertions.routeFlowContinuesRun
       )
         ? 'pass'
+        : 'fail',
+    buildPlanVisibility:
+      everyResult(
+        (result) =>
+          result.assertions.buildPlanRewardPreTokenVisible &&
+          result.assertions.buildPlanRoutePostTokenVisible &&
+          result.assertions.buildPlanNextBattleTokenVisible &&
+          result.assertions.buildPlanNoOverflow
+      )
+        ? 'pass'
         : 'fail'
   };
 }
 
 function buildGateScore(currentReport) {
   const results = currentReport.results;
-  const everyResult = (predicate) => results.length > 0 && results.every(predicate);
+  const everyResult = (predicate) => results.length === viewports.length && results.every(predicate);
   const breakdown = {
     allViewportsPass: everyResult((result) => result.status === 'pass') ? 3 : 0,
     pressureJourney:
@@ -1158,6 +1303,16 @@ function buildGateScore(currentReport) {
       )
         ? 3
         : 0,
+    buildPlanVisibility:
+      everyResult(
+        (result) =>
+          result.assertions.buildPlanRewardPreTokenVisible &&
+          result.assertions.buildPlanRoutePostTokenVisible &&
+          result.assertions.buildPlanNextBattleTokenVisible &&
+          result.assertions.buildPlanNoOverflow
+      )
+        ? 3
+        : 0,
     failurePressureReadable:
       everyResult(
         (result) =>
@@ -1178,7 +1333,7 @@ function buildGateScore(currentReport) {
   if (currentReport.notAFullClone !== true) {
     caps.push({ reason: 'notAFullClone boundary missing', maxTotal: 23 });
   }
-  return { scale: 'qa-similarity-gate-25', max: 25, total, breakdown, caps };
+  return { scale: 'qa-similarity-gate-28', max: 28, total, breakdown, caps };
 }
 
 function serializeError(error) {

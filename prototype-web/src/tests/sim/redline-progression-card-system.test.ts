@@ -169,7 +169,7 @@ describe('Redline progression/card system QA contract', () => {
 
     expect(world.fsm.gameFlow).toBe('Reward');
     expect(world.player.level).toBe(2);
-    expect(world.reward.choices).toEqual(['wild_mana_stitch', 'severance_burst', 'wild_gap_key']);
+    expect(world.reward.choices).toEqual(['severance_burst', 'wild_mana_stitch', 'wild_gap_key']);
     expect(world.player.maxEnergy).toBe(3);
 
     selectReward(world, 'severance_burst', 'reward-select-payoff');

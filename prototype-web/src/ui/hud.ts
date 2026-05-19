@@ -66,6 +66,12 @@ export type HudCardChainRead = {
   className: string;
 };
 
+export type HudBuildPlanState = {
+  token: string;
+  reason: string;
+  active: boolean;
+};
+
 type AuthorizationSnapshot = GameSnapshot & {
   tempAuthorizationMP?: number;
   authorization?: { tempAuthorizationMP?: number };
@@ -87,6 +93,9 @@ type HudRunSnapshot = GameSnapshot & {
   run?: unknown;
   route?: unknown;
   shortRunRoute?: unknown;
+  buildPlan?: unknown;
+  runModifierPlan?: unknown;
+  modifierPlan?: unknown;
 };
 
 type RunRecord = Record<string, unknown>;
@@ -202,6 +211,102 @@ export function hudRouteChoicesState(snapshot: GameSnapshot): HudRouteChoiceRead
     .map((candidate) => routeChoiceRead(candidate))
     .filter((choice): choice is HudRouteChoiceRead => Boolean(choice))
     .slice(0, 2);
+}
+
+export function hudBuildPlanState(snapshot: GameSnapshot): HudBuildPlanState {
+  const source = snapshot as HudRunSnapshot;
+  const run = toRunRecord(source.run);
+  const plan = toRunRecord(
+    firstValue(source.buildPlan, source.runModifierPlan, source.modifierPlan, run?.buildPlan, run?.runModifierPlan, run?.modifierPlan)
+  );
+
+  if (!plan) {
+    return {
+      token: '常规',
+      reason: '无构筑预览',
+      active: false
+    };
+  }
+
+  const derived = toRunRecord(plan.derived) ?? plan;
+  const issues = firstArray(plan.issues, plan.problems, plan.gaps)
+    .map((issue) => toRunRecord(issue))
+    .filter((issue): issue is RunRecord => Boolean(issue));
+  const primaryIssue = issues[0];
+  const issueToken = primaryIssue
+    ? firstString(primaryIssue.label, primaryIssue.token, primaryIssue.id)
+    : null;
+  const selectedModifiers = firstArray(plan.selectedModifiers, plan.modifiers, plan.selected, plan.drafts);
+  const selectedToken = selectedModifiers.map((modifier) => buildModifierToken(modifier)).find((token) => token !== null);
+  const maxEnergyDelta = firstNumber(derived.maxEnergyDeltaThisRun, derived.maxEnergyDelta, derived.maxEnergyThisRunDelta);
+  const rewardRerollDelta = firstNumber(derived.rewardRerollDelta, derived.rewardRerollsDelta, derived.rerollDelta);
+  const startingDeckAdditions = firstArray(derived.startingDeckAdditions, derived.deckAdditions, plan.startingDeckAdditions);
+  const token =
+    issueToken ??
+    selectedToken ??
+    (maxEnergyDelta && maxEnergyDelta > 0
+      ? `MP+${maxEnergyDelta}`
+      : rewardRerollDelta && rewardRerollDelta > 0
+        ? `复核+${rewardRerollDelta}`
+        : startingDeckAdditions.length > 0
+          ? '修补牌'
+          : '常规');
+  const explanations = firstArray(plan.explanations, plan.reasons, plan.reasonLog);
+  const reason =
+    firstString(
+      primaryIssue?.reason,
+      primaryIssue?.nextStep,
+      plan.reason,
+      plan.summary,
+      explanations[0],
+      selectedModifiers.map((modifier) => buildModifierReason(modifier)).find(Boolean)
+    ) ??
+    (token === '常规' ? '无构筑预览' : '本run构筑预览');
+
+  return {
+    token,
+    reason,
+    active: token !== '常规' || issues.length > 0
+  };
+}
+
+function buildModifierToken(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return modifierIdToken(value);
+  }
+
+  const record = toRunRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const id = firstString(record.id, record.modifierId);
+  return modifierIdToken(id) ?? firstString(record.token, record.shortToken, record.label);
+}
+
+function buildModifierReason(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return null;
+  }
+
+  const record = toRunRecord(value);
+  return record ? firstString(record.reason, record.summary, record.description, record.label) : null;
+}
+
+function modifierIdToken(id: string | null): string | null {
+  if (id === 'maxEnergyThisRunPlusOne') {
+    return 'MP+1';
+  }
+
+  if (id === 'rewardRerollPlusOne') {
+    return '复核+1';
+  }
+
+  if (id === 'startingRepairCard') {
+    return '修补牌';
+  }
+
+  return null;
 }
 
 function routeChoiceRead(value: unknown): HudRouteChoiceRead | null {
@@ -943,6 +1048,7 @@ export class Hud {
     const energyText = Number.isInteger(snapshot.player.energy) ? snapshot.player.energy.toFixed(0) : snapshot.player.energy.toFixed(1);
     const authorization = hudAuthorizationState(snapshot);
     const runLayer = hudRunLayerState(snapshot);
+    const buildPlan = hudBuildPlanState(snapshot);
     const routeChoiceMarkup = this.renderRouteChoices(runLayer.routeChoices);
     const chainStarted = snapshot.player.lastPlayedCost !== null;
     const nextChainCost = chainStarted ? snapshot.player.lastPlayedCost! + 1 : 0;
@@ -1062,6 +1168,11 @@ export class Hud {
           <strong>CHAIN</strong>
           <span>${chainRouteLabel}</span>
           <em>${chainHint}</em>
+        </div>
+        <div class="status-chip build-plan-chip ${buildPlan.active ? 'active' : ''}" title="${buildPlan.reason}">
+          <strong>构筑</strong>
+          <span>${buildPlan.token}</span>
+          <em>${buildPlan.reason}</em>
         </div>
         <div class="status-chip intent-chip ${enemyIntent.totalDamage > 0 ? 'danger' : ''}">
           <strong>意图</strong>

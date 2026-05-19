@@ -51,7 +51,10 @@ describe('run-local card upgrade and gem slot sim slice', () => {
     const pendingUpgradeChoice = world.cardUpgrades.choices.find((choice) => choice.id === decodeCardUpgradeRewardChoiceId(upgradeRewardId!));
     expect(pendingUpgradeChoice).toMatchObject({
       type: 'raise-level',
-      targetCardId: 'debt_hook'
+      targetCardId: 'debt_hook',
+      preview: '4 -> 6 damage this run',
+      reason: 'upgrade debt_hook because it is already in deck and gains +2 repeatable damage',
+      buildPlanReason: 'Make debt_hook a stronger repeatable front-target damage card for the current run.'
     });
 
     tickWorld(world, [{ type: 'select-reward', cardId: upgradeRewardId!, traceId: 'upgrade-gems-select-reward' }]);
@@ -91,6 +94,16 @@ describe('run-local card upgrade and gem slot sim slice', () => {
     const firstChoices = buildCardUpgradeChoices(world, 'debt_hook', 'upgrade-gems-offer-1');
 
     expect(firstChoices.map((choice) => choice.type)).toEqual(['raise-level', 'add-gem-slot']);
+    expect(firstChoices[0]).toMatchObject({
+      preview: '4 -> 6 damage this run',
+      reason: 'upgrade debt_hook because it is already in deck and gains +2 repeatable damage',
+      buildPlanReason: 'Make debt_hook a stronger repeatable front-target damage card for the current run.'
+    });
+    expect(firstChoices[1]).toMatchObject({
+      preview: 'opens red gem slot; damage unchanged until socketed',
+      reason: 'prepare debt_hook for a red damage gem because it has no empty slot yet',
+      buildPlanReason: 'Prepare debt_hook for a later socketed gem instead of taking immediate damage.'
+    });
 
     applyCardUpgradeChoice(world, firstChoices[0].id, 'upgrade-gems-level');
     const secondChoices = buildCardUpgradeChoices(world, 'debt_hook', 'upgrade-gems-offer-2');
@@ -103,6 +116,11 @@ describe('run-local card upgrade and gem slot sim slice', () => {
     const socketRuby = thirdChoices.find((choice) => choice.type === 'socket-gem' && choice.gemId === 'crimson_chip');
 
     expect(socketRuby).toBeDefined();
+    expect(socketRuby).toMatchObject({
+      preview: '6 -> 9 damage this run',
+      reason: 'socket crimson_chip into debt_hook because an empty red slot is available for +3 damage',
+      buildPlanReason: 'Turn debt_hook into the current run damage carry by using the prepared red slot.'
+    });
     applyCardUpgradeChoice(world, socketRuby!.id, 'upgrade-gems-socket');
 
     expect(world.cardUpgrades.enhancements.debt_hook).toMatchObject({

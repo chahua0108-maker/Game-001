@@ -1,3 +1,4 @@
+import { createBuildPlan } from './buildPlan';
 import type { GameSnapshot, WorldState } from './types';
 
 function snapshotRoute(world: WorldState): GameSnapshot['route'] {
@@ -53,6 +54,7 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
       }))
     },
     route: snapshotRoute(world),
+    buildPlan: createBuildPlan(world),
     reward: {
       ...world.reward,
       candidateCardPool: [...world.reward.candidateCardPool],
