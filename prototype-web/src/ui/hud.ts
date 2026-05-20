@@ -222,7 +222,7 @@ function activityLevelHudLabel(levelId: string | null): string | null {
     return 'D1 试营业清算';
   }
   if (levelId === 'd2') {
-    return 'D2 低压追账';
+    return 'D2 低压过渡';
   }
   if (levelId === 'd3') {
     return 'D3 中级入口';
@@ -235,11 +235,11 @@ function activityLevelHudLabel(levelId: string | null): string | null {
 
 function settlementProgressionDetail(currentLevelId: string | null, nextLevelLabel: string | null): string | null {
   if (currentLevelId === 'd1' && nextLevelLabel === 'D2') {
-    return '下一局仍是低压清算，开始注意路线代价';
+    return '下一局进入4节点低压过渡，开始注意路线代价';
   }
 
   if (currentLevelId === 'd2' && nextLevelLabel === 'D3') {
-    return '下一局进入6节点长局，优先保守路线';
+    return '下一局进入6节点长局，D2 已完成路线代价练习';
   }
 
   if (currentLevelId === 'd3') {

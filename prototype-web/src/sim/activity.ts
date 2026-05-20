@@ -25,13 +25,13 @@ export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
   {
     id: 'd2',
     label: 'D2',
-    title: '低压追账',
+    title: '低压过渡',
     difficultyTier: 2,
     band: 'beginner',
-    nodeCount: 3,
-    playerMaxHp: 66,
-    enemyHpMultiplier: 0.9,
-    enemyDamageMultiplier: 0.7,
+    nodeCount: 4,
+    playerMaxHp: 68,
+    enemyHpMultiplier: 0.86,
+    enemyDamageMultiplier: 0.58,
     rewardPickCount: 4,
     eliteRouteEntryDamage: 3,
     eliteRouteAddsPollution: false

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cards, startingHand } from '../../data/cards';
-import { createInitialActivityState, currentActivityLevel } from '../../sim/activity';
+import { createInitialActivityState, currentActivityLevel, resolveActivityLevelDefinition } from '../../sim/activity';
 import { tickWorld } from '../../sim/runtime';
 import { createInitialWorld } from '../../sim/world';
 import type { CardId, Intent, WorldState } from '../../sim/types';
@@ -382,7 +382,7 @@ describe('redline activity difficulty ladder', () => {
     world = continueActivity(world, 'activity-continue-d2');
     expect(currentActivityLevel(world.activity!).id).toBe('d2');
     expect(world.activity?.completedLevelIds).toEqual(['d1']);
-    expect(world.run.maxNodes).toBe(3);
+    expect(world.run.maxNodes).toBe(4);
     expect(world.player.deck).toEqual(startingHand);
     expect(world.player.deck).not.toContain('severance_burst');
 
@@ -441,12 +441,16 @@ describe('redline activity difficulty ladder', () => {
   it('keeps activity progression scoped without adding carryover deck growth or new playable tiers', () => {
     let world = createInitialWorld(1, createInitialActivityState());
     expect(world.activity?.playableLevelIds).toEqual(['d1', 'd2', 'd3', 'd4']);
+    expect(world.activity).not.toHaveProperty('carryoverToken');
+    expect(world.activity).not.toHaveProperty('routeCarryover');
 
     winCurrentLevel(world, 'activity-scope-win-d1');
     world = continueActivity(world, 'activity-scope-continue-d2');
     expect(currentActivityLevel(world.activity!).id).toBe('d2');
     expect(world.player.deck).toEqual(startingHand);
     expect(world.player.deck).not.toContain('severance_burst');
+    expect(world.activity).not.toHaveProperty('carryoverToken');
+    expect(world.activity).not.toHaveProperty('routeCarryover');
 
     winCurrentLevel(world, 'activity-scope-win-d2');
     world = continueActivity(world, 'activity-scope-continue-d3');
@@ -455,6 +459,27 @@ describe('redline activity difficulty ladder', () => {
     expect(world.player.deck).not.toContain('severance_burst');
     expect(world.activity?.playableLevelIds).not.toContain('d5');
     expect(world.activity?.playableLevelIds).not.toContain('d10');
+  });
+
+  it('defines D2 as a four-node low-pressure bridge without changing D4 or adding new tiers', () => {
+    const d2Level = resolveActivityLevelDefinition('d2');
+    expect(d2Level.title).toBe('低压过渡');
+    expect(d2Level.nodeCount).toBe(4);
+    expect(d2Level.playerMaxHp).toBe(68);
+    expect(d2Level.enemyHpMultiplier).toBe(0.86);
+    expect(d2Level.enemyDamageMultiplier).toBe(0.58);
+    expect(d2Level.rewardPickCount).toBe(4);
+    expect(d2Level.eliteRouteEntryDamage).toBe(3);
+    expect(d2Level.eliteRouteAddsPollution).toBe(false);
+
+    const d4Level = resolveActivityLevelDefinition('d4');
+    expect(d4Level.nodeCount).toBe(6);
+    expect(d4Level.playerMaxHp).toBe(60);
+    expect(d4Level.enemyHpMultiplier).toBe(0.95);
+    expect(d4Level.enemyDamageMultiplier).toBe(0.9);
+    expect(d4Level.rewardPickCount).toBe(3);
+    expect(d4Level.eliteRouteEntryDamage).toBe(5);
+    expect(d4Level.eliteRouteAddsPollution).toBe(true);
   });
 
   it('lets a conservative player naturally clear D1 without forced rewards or forced settlement', () => {
@@ -475,17 +500,22 @@ describe('redline activity difficulty ladder', () => {
     world = playConservativeRun(world, 'd1-before-d2-natural');
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
+    const d1ClearHp = world.player.hp;
 
     world = continueActivity(world, 'd1-natural-continue-d2');
-    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+    const d2Level = currentActivityLevel(world.activity!);
+    expect(d2Level.id).toBe('d2');
+    expect(d2Level.nodeCount).toBe(4);
+    expect(d2Level.rewardPickCount).toBe(4);
 
     world = playConservativeRun(world, 'd2-natural');
 
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
-    expect(world.run.currentNode).toBe(3);
-    expect(world.player.hp).toBeGreaterThan(24);
-    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3]);
+    expect(world.run.currentNode).toBe(4);
+    expect(world.player.hp).toBeGreaterThan(35);
+    expect(world.player.hp).toBeLessThan(d1ClearHp);
+    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3, 4]);
   });
 
   it('lets a conservative player naturally clear D1 then D2 then first-clear D3', () => {
@@ -501,6 +531,8 @@ describe('redline activity difficulty ladder', () => {
     world = playConservativeRun(world, 'd2-before-d3-natural');
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
+    expect(world.run.currentNode).toBe(4);
+    expect(world.player.hp).toBeGreaterThan(35);
     const d2ClearHp = world.player.hp;
 
     world = continueActivity(world, 'd2-natural-continue-d3');

@@ -1203,9 +1203,10 @@ describe('HUD run and meta layer labels', () => {
     expect(
       hudRunLayerState({
         ...baseSnapshot,
+        run: { ...baseSnapshot.run, maxNodes: 4 },
         activity: { ...baseSnapshot.activity, currentLevelId: 'd2', completedLevelIds: ['d1'] }
       } as unknown as GameSnapshot).title
-    ).toBe('D2 低压追账');
+    ).toBe('D2 低压过渡');
     expect(
       hudRunLayerState({
         ...baseSnapshot,
@@ -1431,7 +1432,7 @@ describe('HUD run and meta layer labels', () => {
       }
     } as unknown as GameSnapshot);
     expect(root.innerHTML).toContain('进入 D2');
-    expect(root.innerHTML).toContain('下一局仍是低压清算，开始注意路线代价');
+    expect(root.innerHTML).toContain('下一局进入4节点低压过渡，开始注意路线代价');
 
     hud.render({
       ...baseSettlement,
@@ -1447,7 +1448,7 @@ describe('HUD run and meta layer labels', () => {
       activitySettlementPreview: {
         currentLevelId: 'd2',
         currentLevelLabel: 'D2',
-        currentLevelTitle: '低压追账',
+        currentLevelTitle: '低压过渡',
         completed: true,
         nextLevelId: 'd3',
         nextLevelLabel: 'D3',
@@ -1455,7 +1456,7 @@ describe('HUD run and meta layer labels', () => {
       }
     } as unknown as GameSnapshot);
     expect(root.innerHTML).toContain('进入 D3');
-    expect(root.innerHTML).toContain('下一局进入6节点长局，优先保守路线');
+    expect(root.innerHTML).toContain('下一局进入6节点长局，D2 已完成路线代价练习');
 
     hud.render({
       ...baseSettlement,
