@@ -542,6 +542,10 @@ describe('HUD run and meta layer labels', () => {
         nodeLabel: '1->2',
         modifierToken: '复核+1',
         rewardToken: '偏修补',
+        riskToken: '推荐/安全',
+        costToken: '无HP代价',
+        pollutionToken: '无污染',
+        tone: 'safe',
         preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。'
       },
       {
@@ -550,6 +554,10 @@ describe('HUD run and meta layer labels', () => {
         nodeLabel: '1->2',
         modifierToken: 'MP+1',
         rewardToken: '偏终结',
+        riskToken: '高风险/贪心',
+        costToken: 'HP代价',
+        pollutionToken: '污染风险低',
+        tone: 'risk',
         preview: '下一战临时信用额度 +1，更容易打出终结牌。'
       }
     ]);
@@ -558,7 +566,7 @@ describe('HUD run and meta layer labels', () => {
     expect(runState.routeLabel).toBe('路线候选 2');
     expect(runState.pressureLabel).toBe('上压 首战');
     expect(runState.nextState).toBe('选路线');
-    expect(runState.nextDetail).toBe('复核+1/偏修补');
+    expect(runState.nextDetail).toBe('安全复核+1/偏修补 | 高风险MP+1/偏终结');
   });
 
   it('keeps long pressure, build, and route consequence copy in compact HUD lanes', () => {
@@ -666,7 +674,7 @@ describe('HUD run and meta layer labels', () => {
     expect(pressure.previousPressureLabel).toMatch(/^上压 .+…$/);
     expect(pressure.previousPressureLabel.length).toBeLessThanOrEqual(18);
     expect(pressure.buildProblemLabel).toBe('构筑 缺桥');
-    expect(pressure.nextRouteConsequenceLabel).toBe('复核+1/偏修补');
+    expect(pressure.nextRouteConsequenceLabel).toBe('安全复核+1/偏修补 | 高风险MP+1/偏终结');
 
     const root = {
       innerHTML: '',
@@ -794,6 +802,103 @@ describe('HUD run and meta layer labels', () => {
         routeId: routeChoiceId
       })
     ]);
+  });
+
+  it('labels safe and greedy route choices and compares both routes in the top summary', () => {
+    const root = {
+      innerHTML: '',
+      addEventListener: () => undefined
+    } as unknown as HTMLElement;
+    const hud = new Hud(root, () => undefined);
+
+    hud.render({
+      tick: 1,
+      round: 3,
+      elapsedSeconds: 0,
+      player: {
+        hp: 30,
+        maxHp: 30,
+        energy: 0,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 12,
+        level: 2,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'RouteSelect', characters: {} },
+      run: {
+        currentNode: 1,
+        maxNodes: 3,
+        rewardHistory: [],
+        route: {
+          pendingNodeChoices: [
+            {
+              id: 'run-1-node-1-to-2-repair-cache',
+              fromNode: 1,
+              toNode: 2,
+              label: '维修补给岔路',
+              preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。 · 无污染',
+              nextBattleContext: {
+                modifierId: 'rewardRerollPlusOne',
+                rewardBranchHint: 'repair-resource'
+              }
+            },
+            {
+              id: 'run-1-node-1-to-2-elite-pressure',
+              fromNode: 1,
+              toNode: 2,
+              label: '高压债务岔路',
+              preview: '下一战临时信用额度 +1，更容易打出终结牌。 · -2 HP / 污染',
+              nextBattleContext: {
+                modifierId: 'maxEnergyThisRunPlusOne',
+                rewardBranchHint: 'payoff'
+              }
+            }
+          ]
+        }
+      },
+      reward: {
+        pending: false,
+        choices: [],
+        xpThreshold: 12
+      },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null
+    } as unknown as GameSnapshot);
+
+    const repairButton = root.innerHTML.match(
+      /<button[^>]+data-route-choice-id="run-1-node-1-to-2-repair-cache"[\s\S]*?<\/button>/
+    )?.[0];
+    const eliteButton = root.innerHTML.match(
+      /<button[^>]+data-route-choice-id="run-1-node-1-to-2-elite-pressure"[\s\S]*?<\/button>/
+    )?.[0];
+    const routeSummary = root.innerHTML.match(/<section class="run-layer-panel"[\s\S]*?<\/section>/)?.[0];
+
+    expect.soft(repairButton).toMatch(/安全|推荐/);
+    expect.soft(eliteButton).toMatch(/风险|贪心/);
+    expect.soft(eliteButton).toContain('-2 HP / 污染');
+    expect.soft(routeSummary).toMatch(/复核\+1\/偏修补[\s\S]*(MP\+1\/偏终结|MP\+1 · 偏终结)/);
   });
 
   it('shows activity difficulty and route pressure cost in the run layer', () => {

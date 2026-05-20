@@ -52,6 +52,10 @@ export type HudRouteChoiceRead = {
   nodeLabel: string;
   modifierToken: string;
   rewardToken: string;
+  riskToken: string;
+  costToken: string;
+  pollutionToken: string;
+  tone: 'safe' | 'risk' | 'neutral';
   preview: string;
 };
 
@@ -241,9 +245,7 @@ export function hudPressureTimelineState(snapshot: GameSnapshot): HudPressureTim
     previousPressureLabel: compactHudText(previousNodePressureLabel(snapshot), 18),
     buildProblemLabel: compactHudText(`构筑 ${buildPlan.token === '常规' ? '稳定' : buildPlan.token}`, 18),
     nextRouteConsequenceLabel:
-      routeChoices.length > 0
-        ? `${routeChoices[0].modifierToken}/${routeChoices[0].rewardToken}`
-        : selectedConsequence ?? '沿用当前牌组',
+      routeChoices.length > 0 ? routeChoicesSummary(routeChoices) : selectedConsequence ?? '沿用当前牌组',
     active: buildPlan.active || routeChoices.length > 0 || Boolean(selectedConsequence)
   };
 }
@@ -436,6 +438,10 @@ function routeChoiceRead(value: unknown): HudRouteChoiceRead | null {
   const modifierId = firstString(record.modifierId, context?.modifierId);
   const rewardBranch = firstString(record.rewardBranchHint, context?.rewardBranchHint);
   const preview = firstString(record.preview, context?.preview, record.description) ?? `${label} · 下一战`;
+  const kind = routeChoiceKind(record, context, id, label);
+  const routePressure = toRunRecord(firstValue(record.routePressure, context?.routePressure, record.pressure, context?.pressure));
+  const entryDamage = firstNumber(routePressure?.entryDamage, routePressure?.hpCost, routePressure?.damage);
+  const addsPollution = firstBoolean(routePressure?.addsPollution, routePressure?.pollution, routePressure?.addsStaticOverload);
 
   return {
     id,
@@ -443,8 +449,121 @@ function routeChoiceRead(value: unknown): HudRouteChoiceRead | null {
     nodeLabel: fromNode !== null && toNode !== null ? `${fromNode}->${toNode}` : '下一节点',
     modifierToken: routeModifierToken(modifierId),
     rewardToken: routeRewardToken(rewardBranch),
-    preview,
+    riskToken: routeRiskToken(kind),
+    costToken: routeCostToken(kind, preview, entryDamage),
+    pollutionToken: routePollutionToken(kind, preview, addsPollution),
+    tone: routeTone(kind),
+    preview
   };
+}
+
+function routeChoicesSummary(routeChoices: HudRouteChoiceRead[]): string {
+  return routeChoices
+    .slice(0, 2)
+    .map((choice) => `${routeSummaryRiskToken(choice)}${choice.modifierToken}/${choice.rewardToken}`)
+    .join(' | ');
+}
+
+function routeSummaryRiskToken(choice: HudRouteChoiceRead): string {
+  if (choice.tone === 'safe') {
+    return '安全';
+  }
+
+  if (choice.tone === 'risk') {
+    return '高风险';
+  }
+
+  return '路线';
+}
+
+function routeChoiceKind(record: RunRecord, context: RunRecord | null, id: string, label: string): string {
+  const explicit = firstString(record.kind, context?.kind);
+  if (explicit) {
+    return explicit;
+  }
+
+  const modifierId = firstString(record.modifierId, context?.modifierId);
+  const rewardBranch = firstString(record.rewardBranchHint, context?.rewardBranchHint);
+  if (modifierId === 'rewardRerollPlusOne' || rewardBranch === 'repair-resource') {
+    return 'repair-cache';
+  }
+
+  if (modifierId === 'maxEnergyThisRunPlusOne' || rewardBranch === 'payoff') {
+    return 'elite-pressure';
+  }
+
+  const combined = `${id} ${label}`.toLowerCase();
+  if (combined.includes('repair-cache') || combined.includes('维修')) {
+    return 'repair-cache';
+  }
+
+  if (combined.includes('elite-pressure') || combined.includes('高压')) {
+    return 'elite-pressure';
+  }
+
+  return 'neutral-route';
+}
+
+function routeTone(kind: string): HudRouteChoiceRead['tone'] {
+  if (kind === 'repair-cache') {
+    return 'safe';
+  }
+
+  if (kind === 'elite-pressure') {
+    return 'risk';
+  }
+
+  return 'neutral';
+}
+
+function routeRiskToken(kind: string): string {
+  if (kind === 'repair-cache') {
+    return '推荐/安全';
+  }
+
+  if (kind === 'elite-pressure') {
+    return '高风险/贪心';
+  }
+
+  return '常规路线';
+}
+
+function routeCostToken(kind: string, preview: string, entryDamage: number | null): string {
+  if (entryDamage !== null && entryDamage > 0) {
+    return `-${Math.round(entryDamage)} HP`;
+  }
+
+  const hpCost = preview.match(/-\d+\s*HP/);
+  if (hpCost) {
+    return hpCost[0].replace(/\s+/, ' ');
+  }
+
+  if (kind === 'elite-pressure') {
+    return 'HP代价';
+  }
+
+  return '无HP代价';
+}
+
+function routePollutionToken(kind: string, preview: string, addsPollution: boolean | null): string {
+  if (addsPollution === true) {
+    return '+污染';
+  }
+
+  if (addsPollution === false || preview.includes('无污染') || kind === 'repair-cache') {
+    return '无污染';
+  }
+
+  if (preview.includes('污染')) {
+    return '+污染';
+  }
+
+  return '污染风险低';
+}
+
+function firstBoolean(...values: unknown[]): boolean | null {
+  const value = values.find((candidate): candidate is boolean => typeof candidate === 'boolean');
+  return value ?? null;
 }
 
 function firstString(...values: unknown[]): string | null {
@@ -1618,12 +1737,14 @@ export class Hud {
             (choice) => `
               <button
                 class="route-choice"
+                data-route-tone="${choice.tone}"
                 type="button"
                 data-route-choice-id="${choice.id}"
-                title="${choice.label} · ${choice.nodeLabel} · ${choice.modifierToken} · ${choice.rewardToken}。${choice.preview}"
+                title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}。${choice.preview}"
               >
                 <span>${choice.nodeLabel}</span>
                 <strong>${choice.label}</strong>
+                <small>${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}</small>
                 <small>${choice.modifierToken} · ${choice.rewardToken}</small>
                 <em>${choice.preview}</em>
               </button>
