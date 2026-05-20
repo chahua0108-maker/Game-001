@@ -13,6 +13,16 @@ export interface ShortRunNextBattleContext {
   label: string;
 }
 
+export interface ShortRunRoutePressureProfile {
+  eliteRouteEntryDamage: number;
+  eliteRouteAddsPollution: boolean;
+}
+
+export interface ShortRunRoutePressurePreview {
+  entryDamage: number;
+  addsPollution: boolean;
+}
+
 export interface ShortRunNodeCandidate {
   id: string;
   fromNode: number;
@@ -20,6 +30,7 @@ export interface ShortRunNodeCandidate {
   kind: ShortRunRouteNodeKind;
   label: string;
   preview: string;
+  routePressure?: ShortRunRoutePressurePreview;
   nextBattleContext: ShortRunNextBattleContext;
 }
 
@@ -70,6 +81,7 @@ function cloneContext(context: ShortRunNextBattleContext): ShortRunNextBattleCon
 function cloneCandidate(candidate: ShortRunNodeCandidate): ShortRunNodeCandidate {
   return {
     ...candidate,
+    routePressure: candidate.routePressure ? { ...candidate.routePressure } : undefined,
     nextBattleContext: cloneContext(candidate.nextBattleContext)
   };
 }
@@ -85,6 +97,15 @@ function cloneRoute(route: ShortRunRouteState): ShortRunRouteState {
   };
 }
 
+function routePressureText(routePressure: ShortRunRoutePressurePreview | null): string {
+  if (!routePressure) {
+    return '';
+  }
+
+  const pollution = routePressure.addsPollution ? '污染' : '无污染';
+  return routePressure.entryDamage > 0 ? ` · -${routePressure.entryDamage} HP / ${pollution}` : ` · ${pollution}`;
+}
+
 function buildCandidate(
   run: RunState,
   kind: ShortRunRouteNodeKind,
@@ -92,7 +113,8 @@ function buildCandidate(
   modifierId: RunModifierId,
   rewardBranchHint: RewardBranch,
   rewardPickBonus: number,
-  preview: string
+  preview: string,
+  routePressure: ShortRunRoutePressurePreview | null = null
 ): ShortRunNodeCandidate {
   const fromNode = run.currentNode;
   const toNode = fromNode + 1;
@@ -104,7 +126,8 @@ function buildCandidate(
     toNode,
     kind,
     label,
-    preview,
+    preview: `${preview}${routePressureText(routePressure)}`,
+    routePressure: routePressure ?? undefined,
     nextBattleContext: {
       sourceNode: fromNode,
       targetNode: toNode,
@@ -117,7 +140,15 @@ function buildCandidate(
   };
 }
 
-function buildNextNodeCandidates(run: RunState): ShortRunNodeCandidate[] {
+function buildNextNodeCandidates(run: RunState, pressureProfile?: ShortRunRoutePressureProfile): ShortRunNodeCandidate[] {
+  const elitePressure =
+    pressureProfile
+      ? {
+          entryDamage: pressureProfile.eliteRouteEntryDamage,
+          addsPollution: pressureProfile.eliteRouteAddsPollution
+        }
+      : null;
+
   return [
     buildCandidate(
       run,
@@ -135,14 +166,16 @@ function buildNextNodeCandidates(run: RunState): ShortRunNodeCandidate[] {
       'maxEnergyThisRunPlusOne',
       'payoff',
       0,
-      '下一战临时信用额度 +1，更容易打出终结牌。'
+      '下一战临时信用额度 +1，更容易打出终结牌。',
+      elitePressure
     )
   ];
 }
 
 export function completeCombatRouteNode(
   run: RunState,
-  route: ShortRunRouteState = createInitialShortRunRouteState()
+  route: ShortRunRouteState = createInitialShortRunRouteState(),
+  pressureProfile?: ShortRunRoutePressureProfile
 ): ShortRunRouteResult {
   const nextRun = cloneRun(run);
   const nextRoute = cloneRoute(route);
@@ -175,7 +208,7 @@ export function completeCombatRouteNode(
     run: nextRun,
     route: {
       ...nextRoute,
-      pendingNodeChoices: buildNextNodeCandidates(nextRun),
+      pendingNodeChoices: buildNextNodeCandidates(nextRun, pressureProfile),
       nextBattleContext: null
     }
   };

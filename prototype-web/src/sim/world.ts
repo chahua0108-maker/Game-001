@@ -1,9 +1,10 @@
 import { enemies as enemyDefinitions } from '../data/enemies';
 import { rewardCardPool, startingHand } from '../data/cards';
+import { cloneActivityState, currentActivityLevel, scaleEnemyForActivityLevel } from './activity';
 import { createInitialCardUpgradeState } from './cardUpgrades';
 import { INITIAL_REWARD_XP_THRESHOLD } from './rewardProgression';
 import { createInitialShortRunRouteState } from './runRoute';
-import type { ChainState, EnemyIntentSummary, EnemyState, RunState, WorldState } from './types';
+import type { ActivityLevelDefinition, ActivityState, ChainState, EnemyIntentSummary, EnemyState, RunState, WorldState } from './types';
 
 export const ENEMY_COLUMNS = 5;
 export const ENEMY_ROWS = 3;
@@ -19,10 +20,10 @@ export function slotToLane(slot: number): number {
   return column - Math.floor(ENEMY_COLUMNS / 2);
 }
 
-export function createEnemy(serial: number, slot: number): EnemyState {
+export function createEnemy(serial: number, slot: number, activityLevel?: ActivityLevelDefinition | null): EnemyState {
   const definition = enemyDefinitions[(serial - 1) % enemyDefinitions.length];
 
-  return {
+  const enemy = {
     id: `enemy-${serial}`,
     definitionId: definition.id,
     name: definition.name,
@@ -36,6 +37,8 @@ export function createEnemy(serial: number, slot: number): EnemyState {
     xpReward: definition.xpReward,
     alive: true
   };
+
+  return activityLevel ? scaleEnemyForActivityLevel(enemy, activityLevel) : enemy;
 }
 
 export function createInitialChainState(): ChainState {
@@ -58,18 +61,23 @@ export function createEmptyEnemyIntentSummary(): EnemyIntentSummary {
   };
 }
 
-export function createInitialRunState(runNumber = 1): RunState {
+export function createInitialRunState(runNumber = 1, maxNodes = 3): RunState {
   return {
     runNumber,
     currentNode: 1,
-    maxNodes: 3,
+    maxNodes,
     rewardHistory: [],
     status: 'in-progress'
   };
 }
 
-export function createInitialWorld(runNumber = 1): WorldState {
-  const enemyList = Array.from({ length: MAX_ENEMY_FORMATION_SLOTS }, (_, slot) => createEnemy(slot + 1, slot));
+export function createInitialWorld(runNumber = 1, activity?: ActivityState): WorldState {
+  const activityLevel = activity ? currentActivityLevel(activity) : null;
+  const playerMaxHp = activityLevel?.playerMaxHp ?? 60;
+  const rewardPickCount = activityLevel?.rewardPickCount ?? 3;
+  const enemyList = Array.from({ length: MAX_ENEMY_FORMATION_SLOTS }, (_, slot) =>
+    createEnemy(slot + 1, slot, activityLevel)
+  );
 
   return {
     tick: 0,
@@ -77,8 +85,8 @@ export function createInitialWorld(runNumber = 1): WorldState {
     elapsedSeconds: 0,
     player: {
       id: 'player',
-      hp: 60,
-      maxHp: 60,
+      hp: playerMaxHp,
+      maxHp: playerMaxHp,
       energy: 3,
       maxEnergy: 3,
       tempAuthorizationMP: 0,
@@ -109,13 +117,15 @@ export function createInitialWorld(runNumber = 1): WorldState {
         ...Object.fromEntries(enemyList.map((enemy) => [enemy.id, 'Move' as const]))
       }
     },
-    run: createInitialRunState(runNumber),
+    run: createInitialRunState(runNumber, activityLevel?.nodeCount ?? 3),
+    activity: activity ? cloneActivityState(activity) : undefined,
+    activitySettlementPreview: null,
     route: createInitialShortRunRouteState(),
     reward: {
       xpThreshold: INITIAL_REWARD_XP_THRESHOLD,
       candidateCardPool: [...rewardCardPool],
       choices: [],
-      pickCount: 3,
+      pickCount: rewardPickCount,
       pending: false,
       source: null
     },

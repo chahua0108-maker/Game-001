@@ -9,6 +9,7 @@ function snapshotRoute(world: WorldState): GameSnapshot['route'] {
   return {
     pendingNodeChoices: world.route.pendingNodeChoices.map((candidate) => ({
       ...candidate,
+      routePressure: candidate.routePressure ? { ...candidate.routePressure } : undefined,
       nextBattleContext: { ...candidate.nextBattleContext }
     })),
     nextBattleContext: world.route.nextBattleContext ? { ...world.route.nextBattleContext } : null,
@@ -53,6 +54,14 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
         choices: [...entry.choices]
       }))
     },
+    activity: world.activity
+      ? {
+          ...world.activity,
+          playableLevelIds: [...world.activity.playableLevelIds],
+          completedLevelIds: [...world.activity.completedLevelIds]
+        }
+      : undefined,
+    activitySettlementPreview: world.activitySettlementPreview ? { ...world.activitySettlementPreview } : null,
     route: snapshotRoute(world),
     buildPlan: createBuildPlan(world),
     reward: {

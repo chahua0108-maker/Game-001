@@ -5,6 +5,7 @@ import { buildSnapshot } from './sim/snapshot';
 import { tickWorld } from './sim/runtime';
 import { createInitialWorld } from './sim/world';
 import { Hud } from './ui/hud';
+import { createInitialActivityState } from './sim/activity';
 import type { Intent } from './sim/types';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
@@ -14,7 +15,7 @@ if (!canvas || !hudRoot) {
   throw new Error('Missing app roots');
 }
 
-let world = createInitialWorld();
+let world = createInitialWorld(1, createInitialActivityState());
 const pendingIntents: Intent[] = [];
 const renderer = new CorridorRenderer(canvas);
 const hud = new Hud(hudRoot, (intent) => pendingIntents.push(intent));

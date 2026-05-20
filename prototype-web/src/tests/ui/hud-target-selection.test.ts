@@ -795,4 +795,170 @@ describe('HUD run and meta layer labels', () => {
       })
     ]);
   });
+
+  it('shows activity difficulty and route pressure cost in the run layer', () => {
+    const snapshot = {
+      round: 1,
+      run: {
+        currentNode: 1,
+        maxNodes: 3,
+        rewardHistory: []
+      },
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3'],
+        currentLevelId: 'd1',
+        completedLevelIds: []
+      },
+      route: {
+        pendingNodeChoices: [
+          {
+            id: 'run-1-node-1-to-2-elite-pressure',
+            fromNode: 1,
+            toNode: 2,
+            label: '高压债务岔路',
+            preview: '下一战临时信用额度 +1，更容易打出终结牌。 · -2 HP / 无污染',
+            nextBattleContext: {
+              modifierId: 'maxEnergyThisRunPlusOne',
+              rewardBranchHint: 'payoff'
+            }
+          }
+        ]
+      },
+      debug: { events: [] }
+    } as unknown as GameSnapshot;
+
+    expect(hudRunLayerState(snapshot).title).toBe('D1 试营业清算');
+    expect(hudRouteChoicesState(snapshot)[0]).toMatchObject({
+      modifierToken: 'MP+1',
+      rewardToken: '偏终结',
+      preview: expect.stringContaining('-2 HP / 无污染')
+    });
+  });
+
+  it('splits victory continue and failure retry settlement actions into distinct intents', () => {
+    const listeners: Partial<Record<string, (event: Event) => void>> = {};
+    const root = {
+      innerHTML: '',
+      addEventListener: (type: string, listener: EventListener) => {
+        listeners[type] = listener as (event: Event) => void;
+      }
+    } as unknown as HTMLElement;
+    const intents: unknown[] = [];
+    const hud = new Hud(root, (intent) => intents.push(intent));
+    const baseSettlement = {
+      tick: 1,
+      round: 4,
+      elapsedSeconds: 0,
+      player: {
+        hp: 30,
+        maxHp: 72,
+        energy: 0,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 12,
+        level: 2,
+        deck: ['debt_hook'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'Settlement', characters: {} },
+      reward: { pending: false, choices: [], xpThreshold: 12 },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null,
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3'],
+        currentLevelId: 'd1',
+        completedLevelIds: []
+      }
+    };
+
+    hud.render({
+      ...baseSettlement,
+      run: { runNumber: 1, currentNode: 3, maxNodes: 3, status: 'victory', rewardHistory: [] },
+      activitySettlementPreview: {
+        currentLevelId: 'd1',
+        currentLevelLabel: 'D1',
+        currentLevelTitle: '试营业清算',
+        completed: true,
+        nextLevelId: 'd2',
+        nextLevelLabel: 'D2',
+        canContinue: true
+      }
+    } as unknown as GameSnapshot);
+
+    expect(root.innerHTML).toContain('进入 D2');
+    listeners.pointerdown?.({
+      type: 'pointerdown',
+      target: { closest: () => ({ disabled: false, dataset: {}, matches: (selector: string) => selector === '[data-continue-activity]' }) },
+      preventDefault: () => undefined,
+      stopPropagation: () => undefined
+    } as unknown as Event);
+
+    const retryListeners: Partial<Record<string, (event: Event) => void>> = {};
+    const retryRoot = {
+      innerHTML: '',
+      addEventListener: (type: string, listener: EventListener) => {
+        retryListeners[type] = listener as (event: Event) => void;
+      }
+    } as unknown as HTMLElement;
+    const retryHud = new Hud(retryRoot, (intent) => intents.push(intent));
+
+    retryHud.render({
+      ...baseSettlement,
+      run: { runNumber: 1, currentNode: 2, maxNodes: 3, status: 'failure', rewardHistory: [] },
+      activitySettlementPreview: {
+        currentLevelId: 'd1',
+        currentLevelLabel: 'D1',
+        currentLevelTitle: '试营业清算',
+        completed: false,
+        nextLevelId: null,
+        nextLevelLabel: null,
+        canContinue: false
+      }
+    } as unknown as GameSnapshot);
+
+    expect(retryRoot.innerHTML).toContain('重试 D1');
+    retryListeners.pointerdown?.({
+      type: 'pointerdown',
+      target: {
+        closest: () => ({
+          disabled: false,
+          dataset: {},
+          matches: (selector: string) => selector.includes('data-restart-current-level')
+        })
+      },
+      preventDefault: () => undefined,
+      stopPropagation: () => undefined
+    } as unknown as Event);
+
+    expect(intents).toEqual([
+      expect.objectContaining({ type: 'continue-activity' }),
+      expect.objectContaining({ type: 'restart-current-level' })
+    ]);
+  });
 });

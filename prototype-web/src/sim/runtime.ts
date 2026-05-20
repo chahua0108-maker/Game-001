@@ -3,6 +3,11 @@ import { setCharacterState, setGameFlowState } from '../fsm/stateMachine';
 import { evaluateRules } from '../eca/ruleSet';
 import { redlineRules } from '../eca/redlineRules';
 import {
+  continueActivityAfterVictory,
+  createActivitySettlementPreview,
+  currentActivityLevel
+} from './activity';
+import {
   applyCardUpgradeChoice,
   buildCardUpgradeRewardChoiceIds,
   clearCardUpgradeChoices,
@@ -19,6 +24,7 @@ import {
 } from './runRoute';
 import { ENEMY_COLUMNS, ENEMY_ROWS, createEnemy, createInitialChainState, createInitialWorld, slotToLane, slotToZ } from './world';
 import type { ShortRunNodeCandidate } from './runRoute';
+import type { ShortRunRoutePressureProfile } from './runRoute';
 import type {
   BuildPlanIssueId,
   CardDefinition,
@@ -612,13 +618,25 @@ function createPendingRoutePressure(candidate: ShortRunNodeCandidate): PendingRo
     return null;
   }
 
+  const activityRoutePressure = candidate.routePressure;
+  const damageOnEntry =
+    routeKind === 'elite-pressure'
+      ? activityRoutePressure?.entryDamage ?? ELITE_ROUTE_ENTRY_DAMAGE
+      : activityRoutePressure?.entryDamage ?? 0;
+  const pollutionCardId =
+    routeKind === 'elite-pressure'
+      ? activityRoutePressure?.addsPollution === false
+        ? null
+        : PRESSURE_POLLUTION_CARD_ID
+      : null;
+
   return {
     routeId: candidate.id,
     routeKind,
     riskLevel: riskLevelForRouteKind(routeKind),
     targetNode: candidate.toNode,
-    damageOnEntry: routeKind === 'elite-pressure' ? ELITE_ROUTE_ENTRY_DAMAGE : 0,
-    pollutionCardId: routeKind === 'elite-pressure' ? PRESSURE_POLLUTION_CARD_ID : null
+    damageOnEntry,
+    pollutionCardId
   };
 }
 
@@ -865,10 +883,22 @@ function ensureRouteState(world: WorldState): NonNullable<WorldState['route']> {
 }
 
 function planRouteAfterReward(world: WorldState): boolean {
-  const planned = completeCombatRouteNode(world.run, ensureRouteState(world));
+  const planned = completeCombatRouteNode(world.run, ensureRouteState(world), routePressureProfileForWorld(world));
   world.run = planned.run;
   world.route = planned.route;
   return planned.run.status === 'victory';
+}
+
+function routePressureProfileForWorld(world: WorldState): ShortRunRoutePressureProfile | undefined {
+  if (!world.activity) {
+    return undefined;
+  }
+
+  const level = currentActivityLevel(world.activity);
+  return {
+    eliteRouteEntryDamage: level.eliteRouteEntryDamage,
+    eliteRouteAddsPollution: level.eliteRouteAddsPollution
+  };
 }
 
 function applyNextBattleContext(world: WorldState): void {
@@ -886,6 +916,15 @@ function markRunFailed(world: WorldState): void {
   if (world.run.status === 'in-progress') {
     world.run.status = 'failure';
   }
+}
+
+function refreshActivitySettlementPreview(world: WorldState): void {
+  if (!world.activity) {
+    world.activitySettlementPreview = null;
+    return;
+  }
+
+  world.activitySettlementPreview = createActivitySettlementPreview(world.activity, world.run.status);
 }
 
 function validatePlayCard(world: WorldState, intent: Extract<Intent, { type: 'play-card' }>): Command[] {
@@ -1276,10 +1315,11 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
       return [];
     }
     case 'FillEnemySlots': {
+      const activityLevel = world.activity ? currentActivityLevel(world.activity) : null;
       for (let column = 0; column < ENEMY_COLUMNS; column += 1) {
         const columnActive = activeAliveEnemies(world).filter((enemy) => enemyColumn(enemy) === column);
         for (let row = columnActive.length; row < ENEMY_ROWS; row += 1) {
-          const enemy = createEnemy(world.nextEnemySerial, columnSlot(column, row));
+          const enemy = createEnemy(world.nextEnemySerial, columnSlot(column, row), activityLevel);
           world.nextEnemySerial += 1;
           world.enemies[enemy.id] = enemy;
           world.fsm.characters[enemy.id] = 'Move';
@@ -1328,6 +1368,9 @@ function applyCommand(world: WorldState, command: Command): GameEvent[] {
       world.fsm.gameFlow = command.state;
       if (command.state !== 'PlayerTurn') {
         resetCostChain(world);
+      }
+      if (command.state === 'Settlement') {
+        refreshActivitySettlementPreview(world);
       }
       pushTrace(world, {
         tick: world.tick,
@@ -1458,13 +1501,25 @@ function isPlayerIntent(intent: Intent): boolean {
   return intent.type === 'deal-hand' || intent.type === 'play-card' || intent.type === 'end-turn' || intent.type === 'select-route';
 }
 
-function restartRunWorld(current: WorldState): WorldState {
-  return createInitialWorld(current.run.runNumber + 1);
+function restartCurrentLevelWorld(current: WorldState): WorldState {
+  return createInitialWorld(current.run.runNumber + 1, current.activity);
+}
+
+function continueActivityWorld(current: WorldState): WorldState {
+  if (!current.activity || current.run.status !== 'victory' || current.fsm.gameFlow !== 'Settlement') {
+    return current;
+  }
+
+  return createInitialWorld(current.run.runNumber + 1, continueActivityAfterVictory(current.activity));
 }
 
 export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
-  if (intents.some((intent) => intent.type === 'restart-run')) {
-    return restartRunWorld(current);
+  if (intents.some((intent) => intent.type === 'continue-activity')) {
+    return continueActivityWorld(current);
+  }
+
+  if (intents.some((intent) => intent.type === 'restart-run' || intent.type === 'restart-current-level')) {
+    return restartCurrentLevelWorld(current);
   }
 
   const world = current;

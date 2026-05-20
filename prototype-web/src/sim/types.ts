@@ -28,6 +28,8 @@ export type CardAvailability = 'starting' | 'reward' | 'starting-and-reward' | '
 export type CardPlayLifecycle = 'discard' | 'exhaust';
 export type CardTurnEndLifecycle = 'discard' | 'retain';
 export type RewardBranch = 'repair-resource' | 'payoff' | 'route-bridge';
+export type ActivityLevelId = 'd1' | 'd2' | 'd3';
+export type ActivityDifficultyBand = 'beginner' | 'intermediate' | 'advanced';
 export type BuildPlanIssueId =
   | 'missing-bridge'
   | 'missing-finisher'
@@ -192,6 +194,40 @@ export interface EnemyDefinition {
   xpReward: number;
   lane: number;
   z: number;
+}
+
+export interface ActivityLevelDefinition {
+  id: ActivityLevelId;
+  label: 'D1' | 'D2' | 'D3';
+  title: string;
+  difficultyTier: number;
+  band: ActivityDifficultyBand;
+  nodeCount: number;
+  playerMaxHp: number;
+  enemyHpMultiplier: number;
+  enemyDamageMultiplier: number;
+  rewardPickCount: number;
+  eliteRouteEntryDamage: number;
+  eliteRouteAddsPollution: boolean;
+}
+
+export interface ActivityState {
+  id: 'redline-core-activity-01';
+  title: string;
+  totalDifficultyTiers: 10;
+  playableLevelIds: ActivityLevelId[];
+  currentLevelId: ActivityLevelId;
+  completedLevelIds: ActivityLevelId[];
+}
+
+export interface ActivitySettlementPreview {
+  currentLevelId: ActivityLevelId;
+  currentLevelLabel: string;
+  currentLevelTitle: string;
+  completed: boolean;
+  nextLevelId: ActivityLevelId | null;
+  nextLevelLabel: string | null;
+  canContinue: boolean;
 }
 
 export interface PlayerState {
@@ -365,6 +401,9 @@ export interface WorldState {
   fsm: FsmState;
   // Current adventure/run state. Account/meta progression is intentionally absent from P0.
   run: RunState;
+  // Prototype-session activity progress only. This is not account/meta progression.
+  activity?: ActivityState;
+  activitySettlementPreview?: ActivitySettlementPreview | null;
   route?: ShortRunRouteState;
   reward: RewardState;
   cardUpgrades: CardUpgradeState;
@@ -407,6 +446,14 @@ export type Intent =
     }
   | {
       type: 'restart-run';
+      traceId: TraceId;
+    }
+  | {
+      type: 'restart-current-level';
+      traceId: TraceId;
+    }
+  | {
+      type: 'continue-activity';
       traceId: TraceId;
     };
 
@@ -959,6 +1006,8 @@ export interface GameSnapshot {
   fsm: FsmState;
   run: RunState;
   route?: ShortRunRouteState;
+  activity?: ActivityState;
+  activitySettlementPreview?: ActivitySettlementPreview | null;
   buildPlan: BuildPlan;
   reward: RewardState;
   cardUpgrades: CardUpgradeState;

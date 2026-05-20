@@ -21,8 +21,15 @@ export function bindKeyboard(getCards: () => CardId[], onIntent: (intent: Intent
 
     if (event.key.toLowerCase() === 'r') {
       onIntent({
-        type: 'restart-run',
+        type: 'restart-current-level',
         traceId: nextTraceId('restart')
+      });
+    }
+
+    if (event.key.toLowerCase() === 'c') {
+      onIntent({
+        type: 'continue-activity',
+        traceId: nextTraceId('continue')
       });
     }
 

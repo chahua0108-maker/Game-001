@@ -100,6 +100,8 @@ type HudCardMetadata = {
 
 type HudRunSnapshot = GameSnapshot & {
   run?: unknown;
+  activity?: unknown;
+  activitySettlementPreview?: unknown;
   route?: unknown;
   shortRunRoute?: unknown;
   buildPlan?: unknown;
@@ -130,6 +132,7 @@ export function hudAuthorizationState(snapshot: GameSnapshot): HudAuthorizationS
 
 export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
   const run = toRunRecord((snapshot as HudRunSnapshot).run);
+  const activity = toRunRecord((snapshot as HudRunSnapshot).activity);
   const currentNode = run
     ? nodeNumber(run.currentNode, run.node, run.encounter, run.currentEncounter) ??
       indexedNumber(run.currentNodeIndex, run.nodeIndex, run.encounterIndex, run.currentEncounterIndex)
@@ -163,9 +166,10 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
   const deckCount = Array.isArray(snapshot.player?.deck) ? snapshot.player.deck.length : null;
   const routeChoices = hudRouteChoicesState(snapshot);
   const pressureTimeline = hudPressureTimelineState(snapshot);
+  const activityLevelLabel = activityLevelHudLabel(firstString(activity?.currentLevelId));
 
   return {
-    title: '本次清算',
+    title: activityLevelLabel ?? '本次清算',
     nodeLabel:
       currentNode !== null && maxNode !== null
         ? `节点 ${currentNode}/${maxNode}`
@@ -205,6 +209,19 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
           : `牌组${deckCount} · 仅本run`,
     routeChoices
   };
+}
+
+function activityLevelHudLabel(levelId: string | null): string | null {
+  if (levelId === 'd1') {
+    return 'D1 试营业清算';
+  }
+  if (levelId === 'd2') {
+    return 'D2 低压追账';
+  }
+  if (levelId === 'd3') {
+    return 'D3 中级入口';
+  }
+  return null;
 }
 
 export function hudPressureTimelineState(snapshot: GameSnapshot): HudPressureTimelineState {
@@ -1081,10 +1098,17 @@ export class Hud {
       };
     }
 
-    if (button.matches('[data-restart]')) {
+    if (button.matches('[data-continue-activity]')) {
       return {
-        key: 'restart-run',
-        intent: { type: 'restart-run', traceId: nextTraceId('restart') }
+        key: 'continue-activity',
+        intent: { type: 'continue-activity', traceId: nextTraceId('continue') }
+      };
+    }
+
+    if (button.matches('[data-restart], [data-restart-current-level]')) {
+      return {
+        key: 'restart-current-level',
+        intent: { type: 'restart-current-level', traceId: nextTraceId('restart') }
       };
     }
 
@@ -1144,6 +1168,22 @@ export class Hud {
     const isPlayerTurn = snapshot.fsm.gameFlow === 'PlayerTurn';
     const isDeal = snapshot.fsm.gameFlow === 'Deal';
     const isSettlement = snapshot.fsm.gameFlow === 'Settlement';
+    const activity = toRunRecord((snapshot as HudRunSnapshot).activity);
+    const activityPreview = toRunRecord((snapshot as HudRunSnapshot).activitySettlementPreview);
+    const activityLevelLabel = activityLevelHudLabel(firstString(activity?.currentLevelId)) ?? '本局';
+    const nextLevelLabel = firstString(activityPreview?.nextLevelLabel);
+    const settlementWon = isSettlement && snapshot.run?.status === 'victory';
+    const settlementAction = settlementWon && nextLevelLabel
+      ? {
+          attr: 'data-continue-activity',
+          label: `进入 ${nextLevelLabel}`,
+          aria: `进入下一难度 ${nextLevelLabel}`
+        }
+      : {
+          attr: 'data-restart-current-level',
+          label: `重试 ${activityLevelLabel.split(' ')[0] ?? '本局'}`,
+          aria: `重试当前难度 ${activityLevelLabel}`
+        };
     const hpFill = Math.max(0, Math.min(100, (snapshot.player.hp / snapshot.player.maxHp) * 100));
     const energyFill = Math.max(0, Math.min(100, (snapshot.player.energy / snapshot.player.maxEnergy) * 100));
     const energyText = Number.isInteger(snapshot.player.energy) ? snapshot.player.energy.toFixed(0) : snapshot.player.energy.toFixed(1);
@@ -1233,7 +1273,9 @@ export class Hud {
     const emptyHandText = isDeal
         ? '回合开始，先发牌。'
       : isSettlement
-        ? '你已阵亡，点击重新开始。'
+        ? settlementWon
+          ? '本关完成，进入下一难度。'
+          : '你已阵亡，点击重试。'
         : snapshot.fsm.gameFlow === 'Reward'
         ? '升级奖励选择中。'
         : isPlayerTurn
@@ -1289,7 +1331,7 @@ export class Hud {
           <span>抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length} 消${snapshot.player.exhaustPile.length} 留${snapshot.player.retainedCards.length}</span>
           <em>抽/弃/消/留</em>
         </div>
-        <button type="button" data-restart>Restart</button>
+        <button type="button" data-restart-current-level>重试</button>
       </section>
 
       <section class="combat-director chain-director ${directorState}" aria-label="hyper turn chain director">
@@ -1335,7 +1377,7 @@ export class Hud {
           isDeal
             ? '<button type="button" data-deal aria-label="发牌进入玩家出牌阶段">发牌</button>'
             : isSettlement
-              ? '<button type="button" data-restart aria-label="重新开始本局">重新开始</button>'
+              ? `<button type="button" ${settlementAction.attr} aria-label="${settlementAction.aria}">${settlementAction.label}</button>`
             : `<button type="button" data-end-turn aria-label="${endTurnTitle}" title="${endTurnTitle}" ${canEndTurn ? '' : 'disabled'}>${endTurnLabel}</button>`
         }
       </section>
@@ -1395,10 +1437,10 @@ export class Hud {
       ${
         isSettlement
           ? `<section class="game-over-panel" aria-label="game over">
-              <span>Game Over</span>
-              <strong>你已阵亡</strong>
-              <small>回合 ${snapshot.round} · 敌群突破防线</small>
-              <button type="button" data-restart>重新开始</button>
+              <span>${settlementWon ? 'Clear' : 'Game Over'}</span>
+              <strong>${settlementWon ? `${activityLevelLabel} 完成` : '你已阵亡'}</strong>
+              <small>回合 ${snapshot.round} · ${settlementWon ? settlementAction.label : '敌群突破防线'}</small>
+              <button type="button" ${settlementAction.attr}>${settlementAction.label}</button>
             </section>`
           : ''
       }
