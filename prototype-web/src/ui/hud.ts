@@ -56,6 +56,8 @@ export type HudRouteChoiceRead = {
   costToken: string;
   pollutionToken: string;
   tone: 'safe' | 'risk' | 'neutral';
+  disabled: boolean;
+  disabledReason: string | null;
   preview: string;
 };
 
@@ -318,8 +320,9 @@ export function hudRouteChoicesState(snapshot: GameSnapshot): HudRouteChoiceRead
     run?.pendingNodeChoices
   );
 
+  const currentHp = firstNumber(snapshot.player?.hp);
   return candidates
-    .map((candidate) => routeChoiceRead(candidate))
+    .map((candidate) => routeChoiceRead(candidate, currentHp))
     .filter((choice): choice is HudRouteChoiceRead => Boolean(choice))
     .slice(0, 2);
 }
@@ -420,7 +423,7 @@ function modifierIdToken(id: string | null): string | null {
   return null;
 }
 
-function routeChoiceRead(value: unknown): HudRouteChoiceRead | null {
+function routeChoiceRead(value: unknown, currentHp: number | null = null): HudRouteChoiceRead | null {
   const record = toRunRecord(value);
   if (!record) {
     return null;
@@ -442,6 +445,7 @@ function routeChoiceRead(value: unknown): HudRouteChoiceRead | null {
   const routePressure = toRunRecord(firstValue(record.routePressure, context?.routePressure, record.pressure, context?.pressure));
   const entryDamage = firstNumber(routePressure?.entryDamage, routePressure?.hpCost, routePressure?.damage);
   const addsPollution = firstBoolean(routePressure?.addsPollution, routePressure?.pollution, routePressure?.addsStaticOverload);
+  const disabledReason = routeDisabledReason(kind, currentHp, entryDamage);
 
   return {
     id,
@@ -453,8 +457,18 @@ function routeChoiceRead(value: unknown): HudRouteChoiceRead | null {
     costToken: routeCostToken(kind, preview, entryDamage),
     pollutionToken: routePollutionToken(kind, preview, addsPollution),
     tone: routeTone(kind),
+    disabled: Boolean(disabledReason),
+    disabledReason,
     preview
   };
+}
+
+function routeDisabledReason(kind: string, currentHp: number | null, entryDamage: number | null): string | null {
+  if (kind !== 'elite-pressure' || currentHp === null || entryDamage === null || entryDamage <= 0) {
+    return null;
+  }
+
+  return currentHp <= entryDamage ? 'HP不足，选择会阵亡' : null;
 }
 
 function routeChoicesSummary(routeChoices: HudRouteChoiceRead[]): string {
@@ -1185,6 +1199,13 @@ export class Hud {
   private intentForButton(button: HTMLButtonElement): { key: string; intent: Intent } | null {
     const routeChoiceId = button.dataset.routeChoiceId;
     if (routeChoiceId) {
+      const routeChoice = this.snapshot
+        ? hudRouteChoicesState(this.snapshot).find((choice) => choice.id === routeChoiceId)
+        : null;
+      if (routeChoice?.disabled) {
+        return null;
+      }
+
       return {
         key: `select-route:${routeChoiceId}`,
         intent: { type: 'select-route', routeId: routeChoiceId, traceId: nextTraceId('route') } as Intent
@@ -1740,12 +1761,14 @@ export class Hud {
                 data-route-tone="${choice.tone}"
                 type="button"
                 data-route-choice-id="${choice.id}"
+                ${choice.disabled ? 'disabled' : ''}
                 title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}。${choice.preview}"
               >
                 <span>${choice.nodeLabel}</span>
                 <strong>${choice.label}</strong>
                 <small>${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}</small>
                 <small>${choice.modifierToken} · ${choice.rewardToken}</small>
+                ${choice.disabledReason ? `<small>${choice.disabledReason} · 不可选</small>` : ''}
                 <em>${choice.preview}</em>
               </button>
             `

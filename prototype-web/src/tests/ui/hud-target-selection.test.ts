@@ -546,6 +546,8 @@ describe('HUD run and meta layer labels', () => {
         costToken: '无HP代价',
         pollutionToken: '无污染',
         tone: 'safe',
+        disabled: false,
+        disabledReason: null,
         preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。'
       },
       {
@@ -558,6 +560,8 @@ describe('HUD run and meta layer labels', () => {
         costToken: 'HP代价',
         pollutionToken: '污染风险低',
         tone: 'risk',
+        disabled: false,
+        disabledReason: null,
         preview: '下一战临时信用额度 +1，更容易打出终结牌。'
       }
     ]);
@@ -800,6 +804,233 @@ describe('HUD run and meta layer labels', () => {
       expect.objectContaining({
         type: 'select-route',
         routeId: routeChoiceId
+      })
+    ]);
+  });
+
+  it('blocks lethal elite-pressure route selection while keeping repair-cache selectable', () => {
+    const listeners: Partial<Record<string, (event: Event) => void>> = {};
+    const root = {
+      innerHTML: '',
+      addEventListener: (type: string, listener: EventListener) => {
+        listeners[type] = listener as (event: Event) => void;
+      }
+    } as unknown as HTMLElement;
+    const intents: unknown[] = [];
+    const hud = new Hud(root, (intent) => intents.push(intent));
+    const repairRouteId = 'run-1-node-1-to-2-repair-cache';
+    const eliteRouteId = 'run-1-node-1-to-2-elite-pressure';
+
+    hud.render({
+      tick: 1,
+      round: 3,
+      elapsedSeconds: 0,
+      player: {
+        hp: 2,
+        maxHp: 30,
+        energy: 0,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 12,
+        level: 2,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'RouteSelect', characters: {} },
+      run: {
+        currentNode: 1,
+        maxNodes: 3,
+        rewardHistory: [],
+        route: {
+          pendingNodeChoices: [
+            {
+              id: repairRouteId,
+              fromNode: 1,
+              toNode: 2,
+              kind: 'repair-cache',
+              label: '维修补给岔路',
+              preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。',
+              routePressure: { entryDamage: 0, addsPollution: false },
+              nextBattleContext: {
+                modifierId: 'rewardRerollPlusOne',
+                rewardBranchHint: 'repair-resource'
+              }
+            },
+            {
+              id: eliteRouteId,
+              fromNode: 1,
+              toNode: 2,
+              kind: 'elite-pressure',
+              label: '高压债务岔路',
+              preview: '下一战临时信用额度 +1，更容易打出终结牌。',
+              routePressure: { entryDamage: 2, addsPollution: true },
+              nextBattleContext: {
+                modifierId: 'maxEnergyThisRunPlusOne',
+                rewardBranchHint: 'payoff'
+              }
+            }
+          ]
+        }
+      },
+      reward: {
+        pending: false,
+        choices: [],
+        xpThreshold: 12
+      },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null
+    } as unknown as GameSnapshot);
+
+    const eliteButtonMarkup = root.innerHTML.match(
+      /<button[^>]+data-route-choice-id="run-1-node-1-to-2-elite-pressure"[\s\S]*?<\/button>/
+    )?.[0];
+
+    expect.soft(eliteButtonMarkup).toMatch(/HP不足|会阵亡|不可选/);
+
+    listeners.pointerdown?.({
+      type: 'pointerdown',
+      target: { closest: () => ({ disabled: false, dataset: { routeChoiceId: eliteRouteId }, matches: () => false }) },
+      preventDefault: () => undefined,
+      stopPropagation: () => undefined
+    } as unknown as Event);
+
+    expect
+      .soft(
+        intents
+          .filter((intent): intent is { type: string; routeId: string } => {
+            return typeof intent === 'object' && intent !== null && 'type' in intent && 'routeId' in intent;
+          })
+          .map((intent) => intent.routeId)
+      )
+      .not.toContain(eliteRouteId);
+
+    listeners.pointerdown?.({
+      type: 'pointerdown',
+      target: { closest: () => ({ disabled: false, dataset: { routeChoiceId: repairRouteId }, matches: () => false }) },
+      preventDefault: () => undefined,
+      stopPropagation: () => undefined
+    } as unknown as Event);
+
+    expect(intents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'select-route',
+          routeId: repairRouteId
+        })
+      ])
+    );
+  });
+
+  it('keeps non-lethal elite-pressure route selection available', () => {
+    const listeners: Partial<Record<string, (event: Event) => void>> = {};
+    const root = {
+      innerHTML: '',
+      addEventListener: (type: string, listener: EventListener) => {
+        listeners[type] = listener as (event: Event) => void;
+      }
+    } as unknown as HTMLElement;
+    const intents: unknown[] = [];
+    const hud = new Hud(root, (intent) => intents.push(intent));
+    const eliteRouteId = 'run-1-node-1-to-2-elite-pressure';
+
+    hud.render({
+      tick: 1,
+      round: 3,
+      elapsedSeconds: 0,
+      player: {
+        hp: 10,
+        maxHp: 30,
+        energy: 0,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 12,
+        level: 2,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'RouteSelect', characters: {} },
+      run: {
+        currentNode: 1,
+        maxNodes: 3,
+        rewardHistory: [],
+        route: {
+          pendingNodeChoices: [
+            {
+              id: eliteRouteId,
+              fromNode: 1,
+              toNode: 2,
+              kind: 'elite-pressure',
+              label: '高压债务岔路',
+              preview: '下一战临时信用额度 +1，更容易打出终结牌。',
+              routePressure: { entryDamage: 2, addsPollution: true },
+              nextBattleContext: {
+                modifierId: 'maxEnergyThisRunPlusOne',
+                rewardBranchHint: 'payoff'
+              }
+            }
+          ]
+        }
+      },
+      reward: {
+        pending: false,
+        choices: [],
+        xpThreshold: 12
+      },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null
+    } as unknown as GameSnapshot);
+
+    listeners.pointerdown?.({
+      type: 'pointerdown',
+      target: { closest: () => ({ disabled: false, dataset: { routeChoiceId: eliteRouteId }, matches: () => false }) },
+      preventDefault: () => undefined,
+      stopPropagation: () => undefined
+    } as unknown as Event);
+
+    expect(intents).toEqual([
+      expect.objectContaining({
+        type: 'select-route',
+        routeId: eliteRouteId
       })
     ]);
   });
