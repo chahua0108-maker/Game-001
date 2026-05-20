@@ -1174,6 +1174,29 @@ describe('HUD run and meta layer labels', () => {
     });
   });
 
+  it('shows D4 as the pollution first-look activity level', () => {
+    const snapshot = {
+      round: 4,
+      run: {
+        currentNode: 1,
+        maxNodes: 6,
+        rewardHistory: []
+      },
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3', 'd4'],
+        currentLevelId: 'd4',
+        completedLevelIds: ['d1', 'd2', 'd3']
+      },
+      debug: { events: [] }
+    } as unknown as GameSnapshot;
+
+    expect(hudRunLayerState(snapshot).title).toBe('D4 污染首秀清算');
+    expect(hudRunLayerState(snapshot).nodeLabel).toBe('节点 1/6');
+  });
+
   it('splits victory continue and failure retry settlement actions into distinct intents', () => {
     const listeners: Partial<Record<string, (event: Event) => void>> = {};
     const root = {

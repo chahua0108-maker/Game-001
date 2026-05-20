@@ -1510,6 +1510,10 @@ function continueActivityWorld(current: WorldState): WorldState {
     return current;
   }
 
+  if (!current.activitySettlementPreview?.canContinue) {
+    return current;
+  }
+
   return createInitialWorld(current.run.runNumber + 1, continueActivityAfterVictory(current.activity));
 }
 

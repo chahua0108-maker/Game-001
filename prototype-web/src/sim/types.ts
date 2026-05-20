@@ -28,7 +28,7 @@ export type CardAvailability = 'starting' | 'reward' | 'starting-and-reward' | '
 export type CardPlayLifecycle = 'discard' | 'exhaust';
 export type CardTurnEndLifecycle = 'discard' | 'retain';
 export type RewardBranch = 'repair-resource' | 'payoff' | 'route-bridge';
-export type ActivityLevelId = 'd1' | 'd2' | 'd3';
+export type ActivityLevelId = 'd1' | 'd2' | 'd3' | 'd4';
 export type ActivityDifficultyBand = 'beginner' | 'intermediate' | 'advanced';
 export type BuildPlanIssueId =
   | 'missing-bridge'
@@ -198,7 +198,7 @@ export interface EnemyDefinition {
 
 export interface ActivityLevelDefinition {
   id: ActivityLevelId;
-  label: 'D1' | 'D2' | 'D3';
+  label: 'D1' | 'D2' | 'D3' | 'D4';
   title: string;
   difficultyTier: number;
   band: ActivityDifficultyBand;

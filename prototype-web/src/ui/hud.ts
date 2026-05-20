@@ -227,6 +227,9 @@ function activityLevelHudLabel(levelId: string | null): string | null {
   if (levelId === 'd3') {
     return 'D3 中级入口';
   }
+  if (levelId === 'd4') {
+    return 'D4 污染首秀清算';
+  }
   return null;
 }
 

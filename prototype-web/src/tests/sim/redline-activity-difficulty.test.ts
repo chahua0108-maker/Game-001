@@ -79,6 +79,16 @@ function winCurrentLevel(world: WorldState, traceId: string): void {
   expect(world.fsm.gameFlow).toBe('Settlement');
 }
 
+function continueToD4(tracePrefix: string): WorldState {
+  let world = createInitialWorld(1, createInitialActivityState());
+  winCurrentLevel(world, `${tracePrefix}-win-d1`);
+  world = continueActivity(world, `${tracePrefix}-continue-d2`);
+  winCurrentLevel(world, `${tracePrefix}-win-d2`);
+  world = continueActivity(world, `${tracePrefix}-continue-d3`);
+  winCurrentLevel(world, `${tracePrefix}-win-d3`);
+  return continueActivity(world, `${tracePrefix}-continue-d4`);
+}
+
 function enemyStats(world: WorldState): Array<{ hp: number; maxHp: number; damage: number }> {
   return Object.values(world.enemies)
     .filter((enemy) => enemy.alive)
@@ -195,7 +205,7 @@ describe('redline activity difficulty ladder', () => {
     const world = createInitialWorld(1, createInitialActivityState());
 
     expect(world.activity?.totalDifficultyTiers).toBe(10);
-    expect(world.activity?.playableLevelIds).toEqual(['d1', 'd2', 'd3']);
+    expect(world.activity?.playableLevelIds).toEqual(['d1', 'd2', 'd3', 'd4']);
     expect(currentActivityLevel(world.activity!).id).toBe('d1');
     expect(currentActivityLevel(world.activity!).difficultyTier).toBe(1);
     expect(currentActivityLevel(world.activity!).band).toBe('beginner');
@@ -243,6 +253,69 @@ describe('redline activity difficulty ladder', () => {
     expect(hpBeforeRoute - world.player.hp).toBe(4);
     expect(world.player.discardPile).not.toContain('static_overload');
     expect(world.run.pressure?.totalPollutionAdded ?? 0).toBe(0);
+  });
+
+  it('continues victory from D3 to playable D4 with six nodes, three rewards, and elite pollution pressure', () => {
+    const world = continueToD4('activity-d4-entry');
+    const d4Level = currentActivityLevel(world.activity!);
+    const initialD4Stats = sortedEnemyStats(world);
+
+    expect(d4Level.id).toBe('d4');
+    expect(d4Level.nodeCount).toBe(6);
+    expect(d4Level.playerMaxHp).toBe(60);
+    expect(d4Level.enemyHpMultiplier).toBe(0.95);
+    expect(d4Level.enemyDamageMultiplier).toBe(0.9);
+    expect(d4Level.rewardPickCount).toBe(3);
+    expect(d4Level.eliteRouteAddsPollution).toBe(true);
+    expect(d4Level.eliteRouteEntryDamage).toBeCloseTo(5);
+    expect(world.run.maxNodes).toBe(6);
+    expect(world.player.maxHp).toBe(60);
+    expect(world.reward.pickCount).toBe(3);
+    expect(initialD4Stats.filter((stats) => stats.maxHp === 10 && stats.damage === 2)).toHaveLength(5);
+    expect(initialD4Stats.filter((stats) => stats.maxHp === 15 && stats.damage === 3)).toHaveLength(5);
+    expect(initialD4Stats.filter((stats) => stats.maxHp === 21 && stats.damage === 5)).toHaveLength(5);
+
+    tickWorld(world, [{ type: 'deal-hand', traceId: 'activity-d4-refill-deal' }]);
+    world.enemies['enemy-1'].alive = false;
+    tickWorld(world, [{ type: 'end-turn', traceId: 'activity-d4-refill-end-turn' }]);
+
+    expect(sortedEnemyStats(world)).toEqual(initialD4Stats);
+  });
+
+  it('keeps D4 as the final playable level without leaking D5-D10 into runtime flow', () => {
+    const world = continueToD4('activity-d4-final');
+
+    expect(world.activity?.playableLevelIds).toEqual(['d1', 'd2', 'd3', 'd4']);
+    expect(world.activity?.playableLevelIds).not.toContain('d5');
+    expect(world.activity?.playableLevelIds).not.toContain('d10');
+
+    winCurrentLevel(world, 'activity-win-d4-final');
+    expect(world.activitySettlementPreview?.canContinue).toBe(false);
+    expect(world.activitySettlementPreview?.nextLevelId).toBeNull();
+
+    const continued = continueActivity(world, 'activity-d4-no-d5');
+    expect(continued).toBe(world);
+    expect(currentActivityLevel(continued.activity!).id).toBe('d4');
+    expect(continued.fsm.gameFlow).toBe('Settlement');
+    expect(continued.run.status).toBe('victory');
+  });
+
+  it('adds visible pollution pressure when choosing a D4 elite route', () => {
+    const world = continueToD4('activity-d4-elite-pollution');
+    forceRewardReady(world);
+    selectReward(world, 'severance_burst', 'activity-d4-elite-route-reward');
+
+    const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
+    expect(eliteRoute?.preview).toContain('-5 HP');
+    expect(eliteRoute?.preview).toContain('污染');
+
+    const staticOverloadBefore = world.player.discardPile.filter((cardId) => cardId === 'static_overload').length;
+    const pollutionBefore = world.run.pressure?.totalPollutionAdded ?? 0;
+    selectRouteByKind(world, 'elite-pressure', 'activity-d4-elite-route');
+    const staticOverloadAfter = world.player.discardPile.filter((cardId) => cardId === 'static_overload').length;
+    const pollutionAfter = world.run.pressure?.totalPollutionAdded ?? 0;
+
+    expect(staticOverloadAfter > staticOverloadBefore || pollutionAfter > pollutionBefore).toBe(true);
   });
 
   it('continues victory from D1 to D2 and then D3 while keeping run rewards non-permanent', () => {

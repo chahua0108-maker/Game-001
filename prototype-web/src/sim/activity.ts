@@ -49,6 +49,20 @@ export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
     rewardPickCount: 3,
     eliteRouteEntryDamage: 4,
     eliteRouteAddsPollution: false
+  },
+  {
+    id: 'd4',
+    label: 'D4',
+    title: '污染首秀清算',
+    difficultyTier: 4,
+    band: 'intermediate',
+    nodeCount: 6,
+    playerMaxHp: 60,
+    enemyHpMultiplier: 0.95,
+    enemyDamageMultiplier: 0.9,
+    rewardPickCount: 3,
+    eliteRouteEntryDamage: 5,
+    eliteRouteAddsPollution: true
   }
 ] as const;
 
