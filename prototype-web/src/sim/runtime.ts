@@ -1724,26 +1724,40 @@ export function tickWorld(current: WorldState, intents: Intent[]): WorldState {
             reason: `${intent.routeId} is not a pending route choice`
           });
         } else {
-          annotateLastNodePressureRoute(world, selectedRoute);
-          const selected = selectShortRunRouteNode(world.run, route, intent.routeId);
-          world.run = selected.run;
-          world.route = selected.route;
-          applyNextBattleContext(world);
-          const routePressure = applyRoutePressureOnEntry(world, selectedRoute, intent.traceId);
-          queue.push({
-            type: 'RouteChosen',
-            tick: world.tick,
-            traceId: intent.traceId,
-            routeId: intent.routeId,
-            fromNode: selectedRoute.fromNode,
-            toNode: selectedRoute.toNode
-          });
-          queue.push(...routePressure.events);
-          if (!routePressure.failed) {
-            queue.push(...applyCommand(world, { type: 'CompactEnemySlots', traceId: intent.traceId }));
-            queue.push(...applyCommand(world, { type: 'FillEnemySlots', traceId: intent.traceId }));
-            queue.push(...applyCommand(world, { type: 'AdvanceRound', traceId: intent.traceId }));
-            queue.push(...dealIntoPlayerTurn(world, intent.traceId, 'route selected'));
+          const lethalElitePressure =
+            selectedRoute.kind === 'elite-pressure' &&
+            selectedRoute.routePressure &&
+            selectedRoute.routePressure.entryDamage >= world.player.hp;
+          if (lethalElitePressure) {
+            world.debug.failedConditions.push({
+              tick: world.tick,
+              traceId: intent.traceId,
+              ruleId: 'intent.select-route',
+              conditionId: 'route-pressure-lethal',
+              reason: 'elite route entry pressure would defeat the player'
+            });
+          } else {
+            annotateLastNodePressureRoute(world, selectedRoute);
+            const selected = selectShortRunRouteNode(world.run, route, intent.routeId);
+            world.run = selected.run;
+            world.route = selected.route;
+            applyNextBattleContext(world);
+            const routePressure = applyRoutePressureOnEntry(world, selectedRoute, intent.traceId);
+            queue.push({
+              type: 'RouteChosen',
+              tick: world.tick,
+              traceId: intent.traceId,
+              routeId: intent.routeId,
+              fromNode: selectedRoute.fromNode,
+              toNode: selectedRoute.toNode
+            });
+            queue.push(...routePressure.events);
+            if (!routePressure.failed) {
+              queue.push(...applyCommand(world, { type: 'CompactEnemySlots', traceId: intent.traceId }));
+              queue.push(...applyCommand(world, { type: 'FillEnemySlots', traceId: intent.traceId }));
+              queue.push(...applyCommand(world, { type: 'AdvanceRound', traceId: intent.traceId }));
+              queue.push(...dealIntoPlayerTurn(world, intent.traceId, 'route selected'));
+            }
           }
         }
       }

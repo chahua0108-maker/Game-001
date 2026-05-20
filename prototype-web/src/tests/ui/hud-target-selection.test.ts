@@ -570,7 +570,11 @@ describe('HUD run and meta layer labels', () => {
     expect(runState.routeLabel).toBe('路线候选 2');
     expect(runState.pressureLabel).toBe('上压 首战');
     expect(runState.nextState).toBe('选路线');
-    expect(runState.nextDetail).toBe('安全复核+1/偏修补 | 高风险MP+1/偏终结');
+    expect(runState.nextDetail).toContain('安全');
+    expect(runState.nextDetail).toContain('下战修补');
+    expect(runState.nextDetail).toContain('非即时回血');
+    expect(runState.nextDetail).toContain('高风险');
+    expect(runState.nextDetail).toContain('MP+1');
   });
 
   it('keeps long pressure, build, and route consequence copy in compact HUD lanes', () => {
@@ -678,7 +682,9 @@ describe('HUD run and meta layer labels', () => {
     expect(pressure.previousPressureLabel).toMatch(/^上压 .+…$/);
     expect(pressure.previousPressureLabel.length).toBeLessThanOrEqual(18);
     expect(pressure.buildProblemLabel).toBe('构筑 缺桥');
-    expect(pressure.nextRouteConsequenceLabel).toBe('安全复核+1/偏修补 | 高风险MP+1/偏终结');
+    expect(pressure.nextRouteConsequenceLabel).toBe(
+      '安全下战修补/复核+1/非即时回血 | 高风险MP+1/HP代价/污染风险低'
+    );
 
     const root = {
       innerHTML: '',
@@ -1127,9 +1133,11 @@ describe('HUD run and meta layer labels', () => {
     const routeSummary = root.innerHTML.match(/<section class="run-layer-panel"[\s\S]*?<\/section>/)?.[0];
 
     expect.soft(repairButton).toMatch(/安全|推荐/);
+    expect.soft(repairButton).toContain('下战修补');
+    expect.soft(repairButton).toContain('非即时回血');
     expect.soft(eliteButton).toMatch(/风险|贪心/);
     expect.soft(eliteButton).toContain('-2 HP / 污染');
-    expect.soft(routeSummary).toMatch(/复核\+1\/偏修补[\s\S]*(MP\+1\/偏终结|MP\+1 · 偏终结)/);
+    expect.soft(routeSummary).toMatch(/下战修补\/复核\+1\/非即时回血[\s\S]*高风险MP\+1\/-2 HP\/\+污染/);
   });
 
   it('shows activity difficulty and route pressure cost in the run layer', () => {
@@ -1172,6 +1180,39 @@ describe('HUD run and meta layer labels', () => {
       rewardToken: '偏终结',
       preview: expect.stringContaining('-2 HP / 无污染')
     });
+  });
+
+  it('shows D2 and D3 activity titles in the run layer', () => {
+    const baseSnapshot = {
+      round: 1,
+      run: {
+        currentNode: 1,
+        maxNodes: 3,
+        rewardHistory: []
+      },
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3'],
+        completedLevelIds: []
+      },
+      debug: { events: [] }
+    };
+
+    expect(
+      hudRunLayerState({
+        ...baseSnapshot,
+        activity: { ...baseSnapshot.activity, currentLevelId: 'd2', completedLevelIds: ['d1'] }
+      } as unknown as GameSnapshot).title
+    ).toBe('D2 低压追账');
+    expect(
+      hudRunLayerState({
+        ...baseSnapshot,
+        run: { ...baseSnapshot.run, maxNodes: 6 },
+        activity: { ...baseSnapshot.activity, currentLevelId: 'd3', completedLevelIds: ['d1', 'd2'] }
+      } as unknown as GameSnapshot).title
+    ).toBe('D3 中级入口');
   });
 
   it('shows D4 as the pollution first-look activity level', () => {
@@ -1319,5 +1360,126 @@ describe('HUD run and meta layer labels', () => {
       expect.objectContaining({ type: 'continue-activity' }),
       expect.objectContaining({ type: 'restart-current-level' })
     ]);
+  });
+
+  it('explains D1-D3 settlement progression without changing playable tier flow', () => {
+    const root = {
+      innerHTML: '',
+      addEventListener: () => undefined
+    } as unknown as HTMLElement;
+    const hud = new Hud(root, () => undefined);
+    const baseSettlement = {
+      tick: 1,
+      round: 4,
+      elapsedSeconds: 0,
+      player: {
+        hp: 30,
+        maxHp: 72,
+        energy: 0,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 12,
+        level: 2,
+        deck: ['debt_hook'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'Settlement', characters: {} },
+      reward: { pending: false, choices: [], xpThreshold: 12 },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null
+    };
+
+    hud.render({
+      ...baseSettlement,
+      run: { runNumber: 1, currentNode: 3, maxNodes: 3, status: 'victory', rewardHistory: [] },
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3', 'd4'],
+        currentLevelId: 'd1',
+        completedLevelIds: []
+      },
+      activitySettlementPreview: {
+        currentLevelId: 'd1',
+        currentLevelLabel: 'D1',
+        currentLevelTitle: '试营业清算',
+        completed: true,
+        nextLevelId: 'd2',
+        nextLevelLabel: 'D2',
+        canContinue: true
+      }
+    } as unknown as GameSnapshot);
+    expect(root.innerHTML).toContain('进入 D2');
+    expect(root.innerHTML).toContain('下一局仍是低压清算，开始注意路线代价');
+
+    hud.render({
+      ...baseSettlement,
+      run: { runNumber: 2, currentNode: 3, maxNodes: 3, status: 'victory', rewardHistory: [] },
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3', 'd4'],
+        currentLevelId: 'd2',
+        completedLevelIds: ['d1']
+      },
+      activitySettlementPreview: {
+        currentLevelId: 'd2',
+        currentLevelLabel: 'D2',
+        currentLevelTitle: '低压追账',
+        completed: true,
+        nextLevelId: 'd3',
+        nextLevelLabel: 'D3',
+        canContinue: true
+      }
+    } as unknown as GameSnapshot);
+    expect(root.innerHTML).toContain('进入 D3');
+    expect(root.innerHTML).toContain('下一局进入6节点长局，优先保守路线');
+
+    hud.render({
+      ...baseSettlement,
+      run: { runNumber: 2, currentNode: 6, maxNodes: 6, status: 'victory', rewardHistory: [] },
+      activity: {
+        id: 'redline-core-activity-01',
+        title: '红线清算局 第一套闯关',
+        totalDifficultyTiers: 10,
+        playableLevelIds: ['d1', 'd2', 'd3', 'd4'],
+        currentLevelId: 'd3',
+        completedLevelIds: ['d1', 'd2']
+      },
+      activitySettlementPreview: {
+        currentLevelId: 'd3',
+        currentLevelLabel: 'D3',
+        currentLevelTitle: '中级清算入口',
+        completed: true,
+        nextLevelId: 'd4',
+        nextLevelLabel: 'D4',
+        canContinue: true
+      }
+    } as unknown as GameSnapshot);
+    expect(root.innerHTML).toContain('核心三局已打通');
+    expect(root.innerHTML).toContain('后续才进入污染首秀');
+    expect(root.innerHTML).toContain('进入 D4');
   });
 });

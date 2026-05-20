@@ -89,6 +89,18 @@ function continueToD4(tracePrefix: string): WorldState {
   return continueActivity(world, `${tracePrefix}-continue-d4`);
 }
 
+function continueToD2(tracePrefix: string): WorldState {
+  let world = createInitialWorld(1, createInitialActivityState());
+  winCurrentLevel(world, `${tracePrefix}-win-d1`);
+  return continueActivity(world, `${tracePrefix}-continue-d2`);
+}
+
+function continueToD3(tracePrefix: string): WorldState {
+  let world = continueToD2(tracePrefix);
+  winCurrentLevel(world, `${tracePrefix}-win-d2`);
+  return continueActivity(world, `${tracePrefix}-continue-d3`);
+}
+
 function enemyStats(world: WorldState): Array<{ hp: number; maxHp: number; damage: number }> {
   return Object.values(world.enemies)
     .filter((enemy) => enemy.alive)
@@ -234,11 +246,7 @@ describe('redline activity difficulty ladder', () => {
   });
 
   it('keeps D3 elite routes below the old first-clear cliff while preserving route visibility', () => {
-    let world = createInitialWorld(1, createInitialActivityState());
-    winCurrentLevel(world, 'activity-d3-route-win-d1');
-    world = continueActivity(world, 'activity-d3-route-continue-d2');
-    winCurrentLevel(world, 'activity-d3-route-win-d2');
-    world = continueActivity(world, 'activity-d3-route-continue-d3');
+    const world = continueToD3('activity-d3-route');
 
     forceRewardReady(world);
     selectReward(world, 'severance_burst', 'activity-d3-route-reward');
@@ -253,6 +261,55 @@ describe('redline activity difficulty ladder', () => {
     expect(hpBeforeRoute - world.player.hp).toBe(4);
     expect(world.player.discardPile).not.toContain('static_overload');
     expect(world.run.pressure?.totalPollutionAdded ?? 0).toBe(0);
+  });
+
+  it('keeps D2 elite routes as a light pressure step between D1 and D3', () => {
+    const world = continueToD2('activity-d2-route');
+    forceRewardReady(world);
+    selectReward(world, 'severance_burst', 'activity-d2-route-reward');
+
+    const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
+    expect(eliteRoute?.preview).toContain('-3 HP');
+    expect(eliteRoute?.preview).toContain('无污染');
+
+    const hpBeforeRoute = world.player.hp;
+    selectRouteByKind(world, 'elite-pressure', 'activity-d2-elite-route');
+
+    expect(hpBeforeRoute - world.player.hp).toBe(3);
+    expect(world.player.discardPile).not.toContain('static_overload');
+    expect(world.run.pressure?.totalPollutionAdded ?? 0).toBe(0);
+  });
+
+  it('rejects direct lethal elite route intents across D1-D3 instead of relying only on HUD disabled buttons', () => {
+    const levels = [
+      { tracePrefix: 'activity-d1-lethal-guard', createWorld: () => createInitialWorld(1, createInitialActivityState()) },
+      { tracePrefix: 'activity-d2-lethal-guard', createWorld: () => continueToD2('activity-d2-lethal-setup') },
+      { tracePrefix: 'activity-d3-lethal-guard', createWorld: () => continueToD3('activity-d3-lethal-setup') }
+    ];
+
+    for (const level of levels) {
+      const world = level.createWorld();
+      forceRewardReady(world);
+      selectReward(world, 'severance_burst', `${level.tracePrefix}-reward`);
+      const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
+      expect(eliteRoute).toBeDefined();
+
+      const nodeBefore = world.run.currentNode;
+      const hpBefore = eliteRoute!.routePressure?.entryDamage ?? 1;
+      world.player.hp = hpBefore;
+      tickWorld(world, [{ type: 'select-route', routeId: eliteRoute!.id, traceId: `${level.tracePrefix}-select` }]);
+
+      expect(world.fsm.gameFlow).toBe('RouteSelect');
+      expect(world.run.currentNode).toBe(nodeBefore);
+      expect(world.player.hp).toBe(hpBefore);
+      expect(world.run.status).toBe('in-progress');
+      expect(world.debug.failedConditions).toContainEqual(
+        expect.objectContaining({
+          ruleId: 'intent.select-route',
+          conditionId: 'route-pressure-lethal'
+        })
+      );
+    }
   });
 
   it('continues victory from D3 to playable D4 with six nodes, three rewards, and elite pollution pressure', () => {
@@ -368,6 +425,38 @@ describe('redline activity difficulty ladder', () => {
     expect(sortedEnemyStats(world)).toEqual(initialStats);
   });
 
+  it('scales D2 and D3 refill enemies through their current activity difficulty path', () => {
+    const worlds = [continueToD2('activity-d2-refill'), continueToD3('activity-d3-refill')];
+
+    for (const world of worlds) {
+      const initialStats = sortedEnemyStats(world);
+      tickWorld(world, [{ type: 'deal-hand', traceId: `${currentActivityLevel(world.activity!).id}-refill-deal` }]);
+      world.enemies['enemy-1'].alive = false;
+      tickWorld(world, [{ type: 'end-turn', traceId: `${currentActivityLevel(world.activity!).id}-refill-end-turn` }]);
+
+      expect(sortedEnemyStats(world)).toEqual(initialStats);
+    }
+  });
+
+  it('keeps activity progression scoped without adding carryover deck growth or new playable tiers', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+    expect(world.activity?.playableLevelIds).toEqual(['d1', 'd2', 'd3', 'd4']);
+
+    winCurrentLevel(world, 'activity-scope-win-d1');
+    world = continueActivity(world, 'activity-scope-continue-d2');
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+    expect(world.player.deck).toEqual(startingHand);
+    expect(world.player.deck).not.toContain('severance_burst');
+
+    winCurrentLevel(world, 'activity-scope-win-d2');
+    world = continueActivity(world, 'activity-scope-continue-d3');
+    expect(currentActivityLevel(world.activity!).id).toBe('d3');
+    expect(world.player.deck).toEqual(startingHand);
+    expect(world.player.deck).not.toContain('severance_burst');
+    expect(world.activity?.playableLevelIds).not.toContain('d5');
+    expect(world.activity?.playableLevelIds).not.toContain('d10');
+  });
+
   it('lets a conservative player naturally clear D1 without forced rewards or forced settlement', () => {
     const world = createInitialWorld(1, createInitialActivityState());
 
@@ -418,6 +507,7 @@ describe('redline activity difficulty ladder', () => {
     const d3Level = currentActivityLevel(world.activity!);
     expect(d3Level.id).toBe('d3');
     expect(d3Level.nodeCount).toBe(6);
+    expect(d3Level.playerMaxHp).toBe(62);
     expect(d3Level.enemyHpMultiplier).toBe(0.88);
     expect(d3Level.rewardPickCount).toBe(3);
 

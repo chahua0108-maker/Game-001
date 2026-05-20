@@ -233,6 +233,22 @@ function activityLevelHudLabel(levelId: string | null): string | null {
   return null;
 }
 
+function settlementProgressionDetail(currentLevelId: string | null, nextLevelLabel: string | null): string | null {
+  if (currentLevelId === 'd1' && nextLevelLabel === 'D2') {
+    return '下一局仍是低压清算，开始注意路线代价';
+  }
+
+  if (currentLevelId === 'd2' && nextLevelLabel === 'D3') {
+    return '下一局进入6节点长局，优先保守路线';
+  }
+
+  if (currentLevelId === 'd3') {
+    return '核心三局已打通，后续才进入污染首秀';
+  }
+
+  return null;
+}
+
 export function hudPressureTimelineState(snapshot: GameSnapshot): HudPressureTimelineState {
   const source = snapshot as HudRunSnapshot;
   const run = toRunRecord(source.run);
@@ -477,8 +493,28 @@ function routeDisabledReason(kind: string, currentHp: number | null, entryDamage
 function routeChoicesSummary(routeChoices: HudRouteChoiceRead[]): string {
   return routeChoices
     .slice(0, 2)
-    .map((choice) => `${routeSummaryRiskToken(choice)}${choice.modifierToken}/${choice.rewardToken}`)
+    .map(routeSummaryLabel)
     .join(' | ');
+}
+
+function routeSummaryLabel(choice: HudRouteChoiceRead): string {
+  if (choice.tone === 'safe') {
+    return `${routeSummaryRiskToken(choice)}下战修补/${choice.modifierToken}/非即时回血`;
+  }
+
+  if (choice.tone === 'risk') {
+    return `${routeSummaryRiskToken(choice)}${choice.modifierToken}/${choice.costToken}/${choice.pollutionToken}`;
+  }
+
+  return `${routeSummaryRiskToken(choice)}${choice.modifierToken}/${choice.rewardToken}`;
+}
+
+function routeButtonRewardDetail(choice: HudRouteChoiceRead): string {
+  if (choice.tone === 'safe') {
+    return `${choice.modifierToken} · ${choice.rewardToken} · 下战修补 · 非即时回血`;
+  }
+
+  return `${choice.modifierToken} · ${choice.rewardToken}`;
 }
 
 function routeSummaryRiskToken(choice: HudRouteChoiceRead): string {
@@ -1316,6 +1352,7 @@ export class Hud {
     const activityLevelLabel = activityLevelHudLabel(firstString(activity?.currentLevelId)) ?? '本局';
     const nextLevelLabel = firstString(activityPreview?.nextLevelLabel);
     const settlementWon = isSettlement && snapshot.run?.status === 'victory';
+    const settlementDetail = settlementWon ? settlementProgressionDetail(firstString(activityPreview?.currentLevelId), nextLevelLabel) : null;
     const settlementAction = settlementWon && nextLevelLabel
       ? {
           attr: 'data-continue-activity',
@@ -1579,10 +1616,12 @@ export class Hud {
 
       ${
         isSettlement
-          ? `<section class="game-over-panel" aria-label="game over">
+              ? `<section class="game-over-panel" aria-label="game over">
               <span>${settlementWon ? 'Clear' : 'Game Over'}</span>
               <strong>${settlementWon ? `${activityLevelLabel} 完成` : '你已阵亡'}</strong>
-              <small>回合 ${snapshot.round} · ${settlementWon ? settlementAction.label : '敌群突破防线'}</small>
+              <small>回合 ${snapshot.round} · ${
+                settlementWon ? `${settlementAction.label}${settlementDetail ? ` · ${settlementDetail}` : ''}` : '敌群突破防线'
+              }</small>
               <button type="button" ${settlementAction.attr}>${settlementAction.label}</button>
             </section>`
           : ''
@@ -1765,12 +1804,12 @@ export class Hud {
                 type="button"
                 data-route-choice-id="${choice.id}"
                 ${choice.disabled ? 'disabled' : ''}
-                title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}。${choice.preview}"
+                title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken} · ${routeButtonRewardDetail(choice)}。${choice.preview}"
               >
                 <span>${choice.nodeLabel}</span>
                 <strong>${choice.label}</strong>
                 <small>${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}</small>
-                <small>${choice.modifierToken} · ${choice.rewardToken}</small>
+                <small>${routeButtonRewardDetail(choice)}</small>
                 ${choice.disabledReason ? `<small>${choice.disabledReason} · 不可选</small>` : ''}
                 <em>${choice.preview}</em>
               </button>

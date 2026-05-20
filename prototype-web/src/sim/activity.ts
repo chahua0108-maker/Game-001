@@ -43,7 +43,7 @@ export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
     difficultyTier: 3,
     band: 'intermediate',
     nodeCount: 6,
-    playerMaxHp: 60,
+    playerMaxHp: 62,
     enemyHpMultiplier: 0.88,
     enemyDamageMultiplier: 0.85,
     rewardPickCount: 3,
