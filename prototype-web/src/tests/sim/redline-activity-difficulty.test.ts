@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { startingHand } from '../../data/cards';
+import { cards, startingHand } from '../../data/cards';
 import { createInitialActivityState, currentActivityLevel } from '../../sim/activity';
 import { tickWorld } from '../../sim/runtime';
 import { createInitialWorld } from '../../sim/world';
 import type { CardId, Intent, WorldState } from '../../sim/types';
 
 const rewardChoices: CardId[] = ['severance_burst', 'wild_gap_key', 'blood_reclaim'];
+const conservativeRewardPriority: CardId[] = [
+  'severance_burst',
+  'wild_gap_key',
+  'blood_reclaim',
+  'pulse_draw',
+  'wild_mana_stitch',
+  'spark_tap',
+  'clearance_order'
+];
 
 function forceRewardReady(world: WorldState, choices: CardId[] = rewardChoices): void {
   world.fsm.gameFlow = 'Reward';
@@ -82,6 +91,103 @@ function enemyStats(world: WorldState): Array<{ hp: number; maxHp: number; damag
 
 function sortedEnemyStats(world: WorldState): Array<{ hp: number; maxHp: number; damage: number }> {
   return enemyStats(world).sort((left, right) => left.maxHp - right.maxHp || left.damage - right.damage);
+}
+
+function frontAliveEnemies(world: WorldState) {
+  return Object.values(world.enemies)
+    .filter((enemy) => enemy.alive && enemy.slot >= 0 && enemy.slot < 5)
+    .sort((left, right) => left.hp - right.hp || right.damage - left.damage || left.slot - right.slot);
+}
+
+function bestTargetId(world: WorldState): string | undefined {
+  return frontAliveEnemies(world)[0]?.id;
+}
+
+function canPay(cardId: CardId, world: WorldState): boolean {
+  const card = cards[cardId];
+  const authorization =
+    card?.targets === 'all-enemies' && card.cost === 3 && world.player.authorizationRestriction === 'payoff-only'
+      ? world.player.tempAuthorizationMP
+      : 0;
+  return Boolean(card && world.player.energy + authorization >= card.cost);
+}
+
+function playableCardPriority(cardId: CardId, world: WorldState): number {
+  const card = cards[cardId];
+  if (!card || !canPay(cardId, world)) {
+    return 999;
+  }
+  if (card.targets === 'all-enemies' && world.player.tempAuthorizationMP > 0) {
+    return 0;
+  }
+  const expected = world.chain.nextExpectedCost;
+  if (card.cost === expected) {
+    return 10 + card.cost;
+  }
+  if (card.utilities?.includes('wild') && expected > 0 && expected <= 3) {
+    return 20 + card.cost;
+  }
+  return 50 + card.cost;
+}
+
+function choosePlayableCard(world: WorldState): CardId | null {
+  return [...world.player.hand]
+    .filter((cardId) => canPay(cardId, world))
+    .sort((left, right) => playableCardPriority(left, world) - playableCardPriority(right, world))[0] ?? null;
+}
+
+function chooseReward(world: WorldState): CardId {
+  return conservativeRewardPriority.find((cardId) => world.reward.choices.includes(cardId)) ?? world.reward.choices[0];
+}
+
+function playConservativeRun(world: WorldState, tracePrefix: string, maxSteps = 160): WorldState {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (world.fsm.gameFlow === 'Settlement') {
+      return world;
+    }
+
+    if (world.fsm.gameFlow === 'Deal') {
+      tickWorld(world, [{ type: 'deal-hand', traceId: `${tracePrefix}-deal-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'Reward') {
+      tickWorld(world, [{ type: 'select-reward', cardId: chooseReward(world), traceId: `${tracePrefix}-reward-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'RouteSelect') {
+      const routeId =
+        world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'repair-cache')?.id ??
+        world.route?.pendingNodeChoices[0]?.id;
+      expect(routeId).toBeDefined();
+      tickWorld(world, [{ type: 'select-route', routeId: routeId!, traceId: `${tracePrefix}-route-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'PlayerTurn') {
+      const cardId = choosePlayableCard(world);
+      if (!cardId) {
+        tickWorld(world, [{ type: 'end-turn', traceId: `${tracePrefix}-end-${step}` }]);
+        continue;
+      }
+
+      const card = cards[cardId];
+      tickWorld(world, [
+        {
+          type: 'play-card',
+          cardId,
+          ...(card.targets === 'front-enemy' ? { targetId: bestTargetId(world) } : {}),
+          traceId: `${tracePrefix}-card-${step}-${cardId}`
+        }
+      ]);
+      continue;
+    }
+
+    tickWorld(world, [{ type: 'advance-time', deltaSeconds: 0.016, traceId: `${tracePrefix}-tick-${step}` }]);
+  }
+
+  return world;
 }
 
 describe('redline activity difficulty ladder', () => {
@@ -165,5 +271,36 @@ describe('redline activity difficulty ladder', () => {
     tickWorld(world, [{ type: 'end-turn', traceId: 'activity-refill-end-turn' }]);
 
     expect(sortedEnemyStats(world)).toEqual(initialStats);
+  });
+
+  it('lets a conservative player naturally clear D1 without forced rewards or forced settlement', () => {
+    const world = createInitialWorld(1, createInitialActivityState());
+
+    playConservativeRun(world, 'd1-natural');
+
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+    expect(world.run.currentNode).toBe(3);
+    expect(world.player.hp).toBeGreaterThan(24);
+    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3]);
+  });
+
+  it('lets a conservative player naturally clear D1 then continue and clear D2', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    world = playConservativeRun(world, 'd1-before-d2-natural');
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+
+    world = continueActivity(world, 'd1-natural-continue-d2');
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+
+    world = playConservativeRun(world, 'd2-natural');
+
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+    expect(world.run.currentNode).toBe(3);
+    expect(world.player.hp).toBeGreaterThan(24);
+    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3]);
   });
 });
