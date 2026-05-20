@@ -223,6 +223,28 @@ describe('redline activity difficulty ladder', () => {
     expect(world.run.pressure?.totalPollutionAdded ?? 0).toBe(0);
   });
 
+  it('keeps D3 elite routes below the old first-clear cliff while preserving route visibility', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+    winCurrentLevel(world, 'activity-d3-route-win-d1');
+    world = continueActivity(world, 'activity-d3-route-continue-d2');
+    winCurrentLevel(world, 'activity-d3-route-win-d2');
+    world = continueActivity(world, 'activity-d3-route-continue-d3');
+
+    forceRewardReady(world);
+    selectReward(world, 'severance_burst', 'activity-d3-route-reward');
+
+    const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
+    expect(eliteRoute?.preview).toContain('-4 HP');
+    expect(eliteRoute?.preview).toContain('无污染');
+
+    const hpBeforeRoute = world.player.hp;
+    selectRouteByKind(world, 'elite-pressure', 'activity-d3-elite-route');
+
+    expect(hpBeforeRoute - world.player.hp).toBe(4);
+    expect(world.player.discardPile).not.toContain('static_overload');
+    expect(world.run.pressure?.totalPollutionAdded ?? 0).toBe(0);
+  });
+
   it('continues victory from D1 to D2 and then D3 while keeping run rewards non-permanent', () => {
     let world = createInitialWorld(1, createInitialActivityState());
 
@@ -302,5 +324,37 @@ describe('redline activity difficulty ladder', () => {
     expect(world.run.currentNode).toBe(3);
     expect(world.player.hp).toBeGreaterThan(24);
     expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3]);
+  });
+
+  it('lets a conservative player naturally clear D1 then D2 then first-clear D3', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    world = playConservativeRun(world, 'd1-before-d3-natural');
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+
+    world = continueActivity(world, 'd1-natural-continue-d2-before-d3');
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+
+    world = playConservativeRun(world, 'd2-before-d3-natural');
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+    const d2ClearHp = world.player.hp;
+
+    world = continueActivity(world, 'd2-natural-continue-d3');
+    const d3Level = currentActivityLevel(world.activity!);
+    expect(d3Level.id).toBe('d3');
+    expect(d3Level.nodeCount).toBe(6);
+    expect(d3Level.enemyHpMultiplier).toBe(0.88);
+    expect(d3Level.rewardPickCount).toBe(3);
+
+    world = playConservativeRun(world, 'd3-natural-first-clear', 320);
+
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+    expect(world.run.currentNode).toBe(6);
+    expect(world.player.hp).toBeGreaterThan(12);
+    expect(world.player.hp).toBeLessThan(d2ClearHp);
+    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 });

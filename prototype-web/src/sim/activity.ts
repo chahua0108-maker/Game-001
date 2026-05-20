@@ -44,11 +44,11 @@ export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
     band: 'intermediate',
     nodeCount: 6,
     playerMaxHp: 60,
-    enemyHpMultiplier: 1,
-    enemyDamageMultiplier: 1,
+    enemyHpMultiplier: 0.88,
+    enemyDamageMultiplier: 0.85,
     rewardPickCount: 3,
-    eliteRouteEntryDamage: 6,
-    eliteRouteAddsPollution: true
+    eliteRouteEntryDamage: 4,
+    eliteRouteAddsPollution: false
   }
 ] as const;
 
