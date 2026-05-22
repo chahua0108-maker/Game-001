@@ -758,6 +758,14 @@ button {
   color: rgba(255, 216, 223, 0.78);
 }
 
+.run-layer-main .pollution-primer {
+  white-space: normal;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .run-layer-meta {
   border-color: rgba(255, 216, 104, 0.34);
   background: rgba(42, 34, 26, 0.62);
@@ -1140,6 +1148,12 @@ button {
 
 .route-choice small {
   color: #fff2b8;
+}
+
+.route-choice .route-response-hint {
+  color: #73ffe2;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .reward-card em,

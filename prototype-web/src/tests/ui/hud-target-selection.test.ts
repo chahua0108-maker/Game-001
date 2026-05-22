@@ -548,7 +548,8 @@ describe('HUD run and meta layer labels', () => {
         tone: 'safe',
         disabled: false,
         disabledReason: null,
-        preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。'
+        preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。',
+        responseHint: null
       },
       {
         id: 'run-1-node-1-to-2-elite-pressure',
@@ -562,7 +563,8 @@ describe('HUD run and meta layer labels', () => {
         tone: 'risk',
         disabled: false,
         disabledReason: null,
-        preview: '下一战临时信用额度 +1，更容易打出终结牌。'
+        preview: '下一战临时信用额度 +1，更容易打出终结牌。',
+        responseHint: null
       }
     ]);
 
@@ -1139,7 +1141,9 @@ describe('HUD run and meta layer labels', () => {
     expect.soft(repairButton).toContain('非即时回血');
     expect.soft(eliteButton).toMatch(/风险|贪心/);
     expect.soft(eliteButton).toContain('-2 HP / 污染');
-    expect.soft(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
+    expect.soft(root.innerHTML).toContain('污染=不接链状态牌');
+    expect.soft(root.innerHTML).toContain('抽到会挤掉 0-1-2');
+    expect.soft(root.innerHTML).toContain('应对：清污染/净化抽牌/打出状态消耗');
     expect.soft(routeSummary).toMatch(/下战修补\/复核\+1\/非即时回血[\s\S]*高风险MP\+1\/-2 HP\/\+污染/);
   });
 
@@ -1290,7 +1294,9 @@ describe('HUD run and meta layer labels', () => {
       addEventListener: () => undefined
     } as unknown as HTMLElement;
     new Hud(root, () => undefined).render(snapshot);
-    expect(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
+    expect(root.innerHTML).toContain('污染=不接链状态牌');
+    expect(root.innerHTML).toContain('抽到会挤掉 0-1-2');
+    expect(root.innerHTML).toContain('用清污染/净化抽牌或打出消耗处理');
   });
 
   it('splits victory continue and failure retry settlement actions into distinct intents', () => {
@@ -1560,8 +1566,9 @@ describe('HUD run and meta layer labels', () => {
     } as unknown as GameSnapshot);
     expect(root.innerHTML).toContain('核心三局已打通');
     expect(root.innerHTML).toContain('进入 D4 前说明');
-    expect(root.innerHTML).toContain('污染牌会进弃牌堆');
-    expect(root.innerHTML).toContain('清污染奖励可处理');
+    expect(root.innerHTML).toContain('污染是不接链状态牌');
+    expect(root.innerHTML).toContain('抽到会挤掉 0-1-2');
+    expect(root.innerHTML).toContain('用清污染/净化抽牌或打出消耗处理');
     expect(root.innerHTML).toContain('进入 D4');
   });
 });

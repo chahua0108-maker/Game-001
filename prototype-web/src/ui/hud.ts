@@ -62,6 +62,7 @@ export type HudRouteChoiceRead = {
   disabled: boolean;
   disabledReason: string | null;
   preview: string;
+  responseHint: string | null;
 };
 
 export type HudCardPaymentRead = {
@@ -300,7 +301,7 @@ function settlementProgressionDetail(currentLevelId: string | null, nextLevelLab
   }
 
   if (currentLevelId === 'd3') {
-    return '核心三局已打通，进入 D4 前说明：污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
+    return '核心三局已打通，进入 D4 前说明：污染是不接链状态牌；高压会塞弃牌堆，抽到会挤掉 0-1-2；用清污染/净化抽牌或打出消耗处理';
   }
 
   return null;
@@ -313,7 +314,7 @@ function pollutionPrimerLabel(snapshot: GameSnapshot, routeChoices: HudRouteChoi
   const hasPollutionRoute = routeChoices.some((choice) => choice.pollutionToken.includes('污染') && choice.pollutionToken !== '无污染');
 
   if (currentLevelId === 'd4' || hasPollutionRoute) {
-    return '污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
+    return '污染=不接链状态牌；高压塞弃牌堆，抽到会挤掉 0-1-2；用清污染/净化抽牌或打出消耗处理';
   }
 
   return null;
@@ -643,7 +644,8 @@ function routeChoiceRead(value: unknown, currentHp: number | null = null): HudRo
     tone: routeTone(kind),
     disabled: Boolean(disabledReason),
     disabledReason,
-    preview
+    preview,
+    responseHint: routePollutionResponseHint(kind, preview, addsPollution)
   };
 }
 
@@ -680,6 +682,17 @@ function routeButtonRewardDetail(choice: HudRouteChoiceRead): string {
   }
 
   return `${choice.modifierToken} · ${choice.rewardToken}`;
+}
+
+function routePollutionResponseHint(kind: string, preview: string, addsPollution: boolean | null): string | null {
+  const hasPollutionPressure =
+    kind === 'elite-pressure' && (addsPollution === true || (addsPollution === null && preview.includes('污染')));
+
+  if (!hasPollutionPressure) {
+    return null;
+  }
+
+  return '应对：清污染/净化抽牌/打出状态消耗';
 }
 
 function routeSummaryRiskToken(choice: HudRouteChoiceRead): string {
@@ -2213,7 +2226,7 @@ export class Hud {
           <strong>${runLayer.nodeLabel}</strong>
           <em>${runLayer.campaignLabel}</em>
           <small>${runLayer.difficultyBandLabel} · ${runLayer.buildProblemLabel}</small>
-          ${pollutionPrimer ? `<small>${pollutionPrimer}</small>` : ''}
+          ${pollutionPrimer ? `<small class="pollution-primer">${pollutionPrimer}</small>` : ''}
         </div>
         <div class="run-layer-meta" aria-label="下一战继承">
           <span>${runLayer.nextTitle}</span>
@@ -2494,6 +2507,7 @@ export class Hud {
                 <strong>${choice.label}</strong>
                 <small>${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}</small>
                 <small>${routeButtonRewardDetail(choice)}</small>
+                ${choice.responseHint ? `<small class="route-response-hint">${choice.responseHint}</small>` : ''}
                 ${choice.disabledReason ? `<small>${choice.disabledReason} · 不可选</small>` : ''}
                 <em>${choice.preview}</em>
               </button>
