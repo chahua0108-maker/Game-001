@@ -61,7 +61,7 @@ const ROUTE_BRIDGE_CARD_IDS = new Set<CardId>([
   'paper_shatter',
   'lantern_captain'
 ]);
-const CLEANSE_CARD_IDS = new Set<CardId>(['burn_after_reading']);
+const CLEANSE_CARD_IDS = new Set<CardId>(['burn_after_reading', 'silt_purge', 'ash_filter']);
 const CARD_UPGRADE_REWARD_PREFIX = 'card-upgrade-choice:';
 
 function addBranch(branches: Set<RewardBranch>, branch: unknown): void {

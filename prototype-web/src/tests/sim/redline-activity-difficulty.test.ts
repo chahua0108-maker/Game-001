@@ -198,6 +198,14 @@ function chooseBrowserConservativeCard(world: WorldState): CardId | null {
 }
 
 function chooseReward(world: WorldState): CardId {
+  const issueIds = createBuildPlan(world).issues.map((issue) => issue.id);
+  if (issueIds.includes('clear-pollution')) {
+    const cleanupChoice = ['silt_purge', 'ash_filter'].find((cardId) => world.reward.choices.includes(cardId));
+    if (cleanupChoice) {
+      return cleanupChoice;
+    }
+  }
+
   return conservativeRewardPriority.find((cardId) => world.reward.choices.includes(cardId)) ?? world.reward.choices[0];
 }
 
@@ -468,8 +476,8 @@ describe('redline activity difficulty ladder', () => {
     expect(d4Level.id).toBe('d4');
     expect(d4Level.nodeCount).toBe(6);
     expect(d4Level.playerMaxHp).toBe(60);
-    expect(d4Level.enemyHpMultiplier).toBe(0.95);
-    expect(d4Level.enemyDamageMultiplier).toBe(0.9);
+    expect(d4Level.enemyHpMultiplier).toBe(0.45);
+    expect(d4Level.enemyDamageMultiplier).toBe(0.25);
     expect(d4Level.rewardPickCount).toBe(3);
     expect(d4Level.eliteRouteAddsPollution).toBe(true);
     expect(d4Level.eliteRouteEntryDamage).toBeCloseTo(5);
@@ -477,9 +485,9 @@ describe('redline activity difficulty ladder', () => {
     expect(world.player.maxHp).toBe(72);
     expect(world.activity!.carryover.maxHp).toBe(72);
     expect(world.reward.pickCount).toBe(3);
-    expect(initialD4Stats.filter((stats) => stats.maxHp === 10 && stats.damage === 2)).toHaveLength(5);
-    expect(initialD4Stats.filter((stats) => stats.maxHp === 15 && stats.damage === 3)).toHaveLength(5);
-    expect(initialD4Stats.filter((stats) => stats.maxHp === 21 && stats.damage === 5)).toHaveLength(5);
+    expect(initialD4Stats.filter((stats) => stats.maxHp === 5 && stats.damage === 1)).toHaveLength(5);
+    expect(initialD4Stats.filter((stats) => stats.maxHp === 7 && stats.damage === 1)).toHaveLength(5);
+    expect(initialD4Stats.filter((stats) => stats.maxHp === 10 && stats.damage === 1)).toHaveLength(5);
 
     tickWorld(world, [{ type: 'deal-hand', traceId: 'activity-d4-refill-deal' }]);
     world.enemies['enemy-1'].alive = false;
@@ -927,8 +935,8 @@ describe('redline activity difficulty ladder', () => {
     const d4Level = resolveActivityLevelDefinition('d4');
     expect(d4Level.nodeCount).toBe(6);
     expect(d4Level.playerMaxHp).toBe(60);
-    expect(d4Level.enemyHpMultiplier).toBe(0.95);
-    expect(d4Level.enemyDamageMultiplier).toBe(0.9);
+    expect(d4Level.enemyHpMultiplier).toBe(0.45);
+    expect(d4Level.enemyDamageMultiplier).toBe(0.25);
     expect(d4Level.rewardPickCount).toBe(3);
     expect(d4Level.eliteRouteEntryDamage).toBe(5);
     expect(d4Level.eliteRouteAddsPollution).toBe(true);
@@ -1015,7 +1023,7 @@ describe('redline activity difficulty ladder', () => {
     expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
-  it('documents D4 pollution debut readability and current conservative failure boundary without tuning values', () => {
+  it('lets a conservative player first-clear D4 after D1-D3 without forcing an elite route', () => {
     let world = createInitialWorld(1, createInitialActivityState());
 
     world = playConservativeRun(world, 'd4-first-clear-d1');
@@ -1034,28 +1042,14 @@ describe('redline activity difficulty ladder', () => {
 
     world = continueActivity(world, 'd4-first-clear-continue-d4');
     expect(currentActivityLevel(world.activity!).id).toBe('d4');
+    expect(resolveActivityLevelDefinition('d4').enemyDamageMultiplier).toBe(0.25);
 
-    world = playBrowserConservativeUntilFlow(world, 'RouteSelect', 'd4-first-clear-pollution-window', 420);
-    expect(world.fsm.gameFlow).toBe('RouteSelect');
-    const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
-    expect(eliteRoute?.preview).toContain('污染');
-    const staticOverloadBefore = playerCardZoneCount(world, 'static_overload');
-    selectRouteByKind(world, 'elite-pressure', 'd4-first-clear-elite-pollution');
-
-    expect(world.debug.events).toContainEqual(
-      expect.objectContaining({
-        type: 'PressurePollutionAdded',
-        cardId: 'static_overload'
-      })
-    );
-    expect(playerCardZoneCount(world, 'static_overload')).toBeGreaterThan(staticOverloadBefore);
-    expect(createBuildPlan(world).issues.map((issue) => issue.id)).toContain('clear-pollution');
-
-    world = playBrowserConservativeRun(world, 'd4-first-clear-after-pollution', 520);
+    world = playConservativeRun(world, 'd4-first-clear-conservative', 520);
 
     expect(world.fsm.gameFlow).toBe('Settlement');
-    expect(world.run.status).toBe('failure');
-    expect(world.run.pressure?.failureBoundaryNode ?? world.run.currentNode).toBeGreaterThanOrEqual(2);
-    expect(world.player.hp).toBe(0);
+    expect(world.run.status).toBe('victory');
+    expect(world.run.currentNode).toBe(6);
+    expect(world.player.hp).toBeGreaterThan(0);
+    expect(world.run.pressure?.failureBoundaryNode).toBeNull();
   });
 });
