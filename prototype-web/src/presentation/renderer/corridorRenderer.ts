@@ -81,14 +81,14 @@ function enemyTypeColor(definitionId: string): number {
 
 function enemyTypeLabel(definitionId: string): string {
   if (definitionId === 'redline_brute') {
-    return 'BRU';
+    return '蛮兵';
   }
 
   if (definitionId === 'pulse_collector') {
-    return 'COL';
+    return '收集';
   }
 
-  return 'WSP';
+  return '债雾';
 }
 
 function enemyMaterial(definitionId: string): THREE.MeshStandardMaterial {

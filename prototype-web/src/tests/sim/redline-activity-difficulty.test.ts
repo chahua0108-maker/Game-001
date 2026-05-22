@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { cards, startingHand } from '../../data/cards';
 import { createInitialActivityState, currentActivityLevel, resolveActivityLevelDefinition } from '../../sim/activity';
+import { createBuildPlan } from '../../sim/buildPlan';
 import { tickWorld } from '../../sim/runtime';
+import { buildSnapshot } from '../../sim/snapshot';
 import { createInitialWorld } from '../../sim/world';
 import type { CardId, Intent, WorldState } from '../../sim/types';
 
@@ -63,6 +65,15 @@ function restartCurrentLevel(world: WorldState, traceId: string): WorldState {
   ]);
 }
 
+function restartRun(world: WorldState, traceId: string): WorldState {
+  return tickWorld(world, [
+    {
+      type: 'restart-run',
+      traceId
+    } satisfies Intent
+  ]);
+}
+
 function continueActivity(world: WorldState, traceId: string): WorldState {
   return tickWorld(world, [
     {
@@ -72,9 +83,9 @@ function continueActivity(world: WorldState, traceId: string): WorldState {
   ]);
 }
 
-function winCurrentLevel(world: WorldState, traceId: string): void {
-  forceFinalRewardReady(world);
-  selectReward(world, 'severance_burst', `${traceId}-reward`);
+function winCurrentLevel(world: WorldState, traceId: string, cardId: CardId = 'severance_burst', choices: CardId[] = rewardChoices): void {
+  forceFinalRewardReady(world, choices);
+  selectReward(world, cardId, `${traceId}-reward`);
   expect(world.run.status).toBe('victory');
   expect(world.fsm.gameFlow).toBe('Settlement');
 }
@@ -83,9 +94,9 @@ function continueToD4(tracePrefix: string): WorldState {
   let world = createInitialWorld(1, createInitialActivityState());
   winCurrentLevel(world, `${tracePrefix}-win-d1`);
   world = continueActivity(world, `${tracePrefix}-continue-d2`);
-  winCurrentLevel(world, `${tracePrefix}-win-d2`);
+  winCurrentLevel(world, `${tracePrefix}-win-d2`, 'wild_gap_key', ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
   world = continueActivity(world, `${tracePrefix}-continue-d3`);
-  winCurrentLevel(world, `${tracePrefix}-win-d3`);
+  winCurrentLevel(world, `${tracePrefix}-win-d3`, 'blood_reclaim', ['blood_reclaim', 'pulse_draw', 'wild_mana_stitch']);
   return continueActivity(world, `${tracePrefix}-continue-d4`);
 }
 
@@ -97,7 +108,7 @@ function continueToD2(tracePrefix: string): WorldState {
 
 function continueToD3(tracePrefix: string): WorldState {
   let world = continueToD2(tracePrefix);
-  winCurrentLevel(world, `${tracePrefix}-win-d2`);
+  winCurrentLevel(world, `${tracePrefix}-win-d2`, 'wild_gap_key', ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
   return continueActivity(world, `${tracePrefix}-continue-d3`);
 }
 
@@ -121,8 +132,32 @@ function frontAliveEnemies(world: WorldState) {
     .sort((left, right) => left.hp - right.hp || right.damage - left.damage || left.slot - right.slot);
 }
 
+function playerCardZoneCount(world: WorldState, cardId: CardId): number {
+  return [
+    ...world.player.deck,
+    ...world.player.hand,
+    ...world.player.drawPile,
+    ...world.player.discardPile,
+    ...world.player.exhaustPile,
+    ...world.player.retainedCards
+  ].filter((candidate) => candidate === cardId).length;
+}
+
 function bestTargetId(world: WorldState): string | undefined {
   return frontAliveEnemies(world)[0]?.id;
+}
+
+function defaultBrowserTargetId(world: WorldState): string | undefined {
+  return Object.values(world.enemies)
+    .filter((enemy) => enemy.alive && enemy.slot >= 0 && enemy.slot < 5)
+    .sort((left, right) => {
+      const intentDelta = (world.enemyIntents[right.id]?.amount ?? 0) - (world.enemyIntents[left.id]?.amount ?? 0);
+      if (intentDelta !== 0) {
+        return intentDelta;
+      }
+
+      return left.hp - right.hp || left.slot - right.slot;
+    })[0]?.id;
 }
 
 function canPay(cardId: CardId, world: WorldState): boolean {
@@ -156,6 +191,10 @@ function choosePlayableCard(world: WorldState): CardId | null {
   return [...world.player.hand]
     .filter((cardId) => canPay(cardId, world))
     .sort((left, right) => playableCardPriority(left, world) - playableCardPriority(right, world))[0] ?? null;
+}
+
+function chooseBrowserConservativeCard(world: WorldState): CardId | null {
+  return [...world.player.hand].find((cardId) => canPay(cardId, world)) ?? null;
 }
 
 function chooseReward(world: WorldState): CardId {
@@ -212,6 +251,110 @@ function playConservativeRun(world: WorldState, tracePrefix: string, maxSteps = 
   return world;
 }
 
+function playBrowserConservativeRun(world: WorldState, tracePrefix: string, maxSteps = 420): WorldState {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (world.fsm.gameFlow === 'Settlement') {
+      return world;
+    }
+
+    if (world.fsm.gameFlow === 'Deal') {
+      tickWorld(world, [{ type: 'deal-hand', traceId: `${tracePrefix}-deal-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'Reward') {
+      tickWorld(world, [{ type: 'select-reward', cardId: chooseReward(world), traceId: `${tracePrefix}-reward-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'RouteSelect') {
+      const routeId =
+        world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'repair-cache')?.id ??
+        world.route?.pendingNodeChoices[0]?.id;
+      expect(routeId).toBeDefined();
+      tickWorld(world, [{ type: 'select-route', routeId: routeId!, traceId: `${tracePrefix}-route-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'PlayerTurn') {
+      const cardId = chooseBrowserConservativeCard(world);
+      if (!cardId) {
+        tickWorld(world, [{ type: 'end-turn', traceId: `${tracePrefix}-end-${step}` }]);
+        continue;
+      }
+
+      const card = cards[cardId];
+      tickWorld(world, [
+        {
+          type: 'play-card',
+          cardId,
+          ...(card.targets === 'front-enemy' ? { targetId: defaultBrowserTargetId(world) } : {}),
+          traceId: `${tracePrefix}-card-${step}-${cardId}`
+        }
+      ]);
+      continue;
+    }
+
+    tickWorld(world, [{ type: 'advance-time', deltaSeconds: 0.016, traceId: `${tracePrefix}-tick-${step}` }]);
+  }
+
+  return world;
+}
+
+function playBrowserConservativeUntilFlow(
+  world: WorldState,
+  targetFlow: WorldState['fsm']['gameFlow'],
+  tracePrefix: string,
+  maxSteps = 420
+): WorldState {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (world.fsm.gameFlow === targetFlow || world.fsm.gameFlow === 'Settlement') {
+      return world;
+    }
+
+    if (world.fsm.gameFlow === 'Deal') {
+      tickWorld(world, [{ type: 'deal-hand', traceId: `${tracePrefix}-deal-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'Reward') {
+      tickWorld(world, [{ type: 'select-reward', cardId: chooseReward(world), traceId: `${tracePrefix}-reward-${step}` }]);
+      continue;
+    }
+
+    if (world.fsm.gameFlow === 'RouteSelect') {
+      return world;
+    }
+
+    if (world.fsm.gameFlow === 'PlayerTurn') {
+      const cardId = chooseBrowserConservativeCard(world);
+      if (!cardId) {
+        tickWorld(world, [{ type: 'end-turn', traceId: `${tracePrefix}-end-${step}` }]);
+        continue;
+      }
+
+      const card = cards[cardId];
+      tickWorld(world, [
+        {
+          type: 'play-card',
+          cardId,
+          ...(card.targets === 'front-enemy' ? { targetId: defaultBrowserTargetId(world) } : {}),
+          traceId: `${tracePrefix}-card-${step}-${cardId}`
+        }
+      ]);
+      continue;
+    }
+
+    tickWorld(world, [{ type: 'advance-time', deltaSeconds: 0.016, traceId: `${tracePrefix}-tick-${step}` }]);
+  }
+
+  return world;
+}
+
+function hpRatio(world: WorldState): number {
+  return world.player.hp / world.player.maxHp;
+}
+
 describe('redline activity difficulty ladder', () => {
   it('starts activity mode at D1 as a 3-node beginner level inside a 10-tier ladder', () => {
     const world = createInitialWorld(1, createInitialActivityState());
@@ -252,15 +395,20 @@ describe('redline activity difficulty ladder', () => {
     selectReward(world, 'severance_burst', 'activity-d3-route-reward');
 
     const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
-    expect(eliteRoute?.preview).toContain('-4 HP');
-    expect(eliteRoute?.preview).toContain('无污染');
+    expect(eliteRoute?.preview).toContain('-10 HP');
+    expect(eliteRoute?.preview).toContain('污染');
 
     const hpBeforeRoute = world.player.hp;
     selectRouteByKind(world, 'elite-pressure', 'activity-d3-elite-route');
 
-    expect(hpBeforeRoute - world.player.hp).toBe(4);
-    expect(world.player.discardPile).not.toContain('static_overload');
-    expect(world.run.pressure?.totalPollutionAdded ?? 0).toBe(0);
+    expect(hpBeforeRoute - world.player.hp).toBe(10);
+    expect(playerCardZoneCount(world, 'static_overload')).toBeGreaterThan(0);
+    expect(world.debug.events).toContainEqual(
+      expect.objectContaining({
+        type: 'PressurePollutionAdded',
+        cardId: 'static_overload'
+      })
+    );
   });
 
   it('keeps D2 elite routes as a light pressure step between D1 and D3', () => {
@@ -326,7 +474,8 @@ describe('redline activity difficulty ladder', () => {
     expect(d4Level.eliteRouteAddsPollution).toBe(true);
     expect(d4Level.eliteRouteEntryDamage).toBeCloseTo(5);
     expect(world.run.maxNodes).toBe(6);
-    expect(world.player.maxHp).toBe(60);
+    expect(world.player.maxHp).toBe(72);
+    expect(world.activity!.carryover.maxHp).toBe(72);
     expect(world.reward.pickCount).toBe(3);
     expect(initialD4Stats.filter((stats) => stats.maxHp === 10 && stats.damage === 2)).toHaveLength(5);
     expect(initialD4Stats.filter((stats) => stats.maxHp === 15 && stats.damage === 3)).toHaveLength(5);
@@ -375,27 +524,86 @@ describe('redline activity difficulty ladder', () => {
     expect(staticOverloadAfter > staticOverloadBefore || pollutionAfter > pollutionBefore).toBe(true);
   });
 
-  it('continues victory from D1 to D2 and then D3 while keeping run rewards non-permanent', () => {
+  it('continues victory from D1 to D2 and then D3 while inheriting activity deck growth', () => {
     let world = createInitialWorld(1, createInitialActivityState());
 
     winCurrentLevel(world, 'activity-win-d1');
     world = continueActivity(world, 'activity-continue-d2');
     expect(currentActivityLevel(world.activity!).id).toBe('d2');
     expect(world.activity?.completedLevelIds).toEqual(['d1']);
-    expect(world.run.maxNodes).toBe(4);
-    expect(world.player.deck).toEqual(startingHand);
-    expect(world.player.deck).not.toContain('severance_burst');
+    expect(world.run.maxNodes).toBe(3);
+    expect(world.run.rewardHistory).toEqual([]);
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst']);
+    expect(world.reward.candidateCardPool).not.toContain('severance_burst');
 
-    winCurrentLevel(world, 'activity-win-d2');
+    winCurrentLevel(world, 'activity-win-d2', 'wild_gap_key', ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
     world = continueActivity(world, 'activity-continue-d3');
     expect(currentActivityLevel(world.activity!).id).toBe('d3');
     expect(world.activity?.completedLevelIds).toEqual(['d1', 'd2']);
     expect(world.run.maxNodes).toBe(6);
     expect(world.reward.pickCount).toBe(3);
-    expect(world.player.deck).toEqual(startingHand);
+    expect(world.run.rewardHistory).toEqual([]);
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst', 'wild_gap_key']);
+    expect(world.reward.candidateCardPool).not.toContain('wild_gap_key');
   });
 
-  it('restarts the current difficulty after failure or mid-run restart without advancing activity', () => {
+  it.each([
+    {
+      branch: '抽牌续链',
+      cardId: 'pulse_draw' as CardId,
+      choices: ['pulse_draw', 'blood_tithe', 'severance_burst'] as CardId[]
+    },
+    {
+      branch: '修补保命',
+      cardId: 'blood_tithe' as CardId,
+      choices: ['pulse_draw', 'blood_tithe', 'severance_burst'] as CardId[]
+    },
+    {
+      branch: '终结爆发',
+      cardId: 'severance_burst' as CardId,
+      choices: ['pulse_draw', 'blood_tithe', 'severance_burst'] as CardId[]
+    }
+  ])('records the D3 $branch reward fork as deck growth, payoff evidence, and settlement summary', ({ cardId, choices }) => {
+    const world = continueToD3(`activity-d3-fork-${cardId}`);
+    world.player.deck = [
+      'debt_hook',
+      'redline_cut',
+      'row_cleave',
+      'severance_burst',
+      'guard_reserve',
+      'guard_reserve',
+      'shield_reserve',
+      'shield_reserve',
+      'guard_reserve'
+    ];
+    const deckSizeBefore = world.player.deck.length;
+
+    forceFinalRewardReady(world, choices);
+    const planBeforePick = createBuildPlan(world);
+    selectReward(world, cardId, `activity-d3-fork-${cardId}-reward`);
+
+    expect(planBeforePick.issues.map((issue) => issue.id)).toEqual(
+      expect.arrayContaining(['missing-bridge', 'missing-finisher', 'need-resource'])
+    );
+    expect(planBeforePick.issues.flatMap((issue) => issue.evidence)).toContain(
+      '奖励分叉 抽牌续链: 脉冲抽牌 / 修补保命: 血税 / 终结爆发: 断账爆发'
+    );
+    expect(world.player.deck).toContain(cardId);
+    expect(world.player.deck).toHaveLength(deckSizeBefore + 1);
+    expect(world.run.rewardHistory[world.run.rewardHistory.length - 1]).toMatchObject({
+      node: 6,
+      selectedCardId: cardId,
+      choices
+    });
+    expect(world.activitySettlementPreview).toMatchObject({
+      currentLevelLabel: 'D3',
+      completed: true,
+      nextLevelId: 'd4'
+    });
+    expect(world.fsm.gameFlow).toBe('Settlement');
+  });
+
+  it('restarts the current difficulty from its activity entry snapshot without advancing activity', () => {
     let world = createInitialWorld(1, createInitialActivityState());
     world.run.status = 'failure';
     world.fsm.gameFlow = 'Settlement';
@@ -407,11 +615,14 @@ describe('redline activity difficulty ladder', () => {
     forceRewardReady(world);
     selectReward(world, 'wild_gap_key', 'activity-midrun-reward');
     expect(world.run.currentNode).toBe(1);
+    expect(world.player.deck).toContain('wild_gap_key');
 
     world = restartCurrentLevel(world, 'activity-midrun-restart');
     expect(currentActivityLevel(world.activity!).id).toBe('d1');
     expect(world.activity?.completedLevelIds).toEqual([]);
     expect(world.run.maxNodes).toBe(3);
+    expect(world.player.deck).toEqual(startingHand);
+    expect(world.player.deck).not.toContain('wild_gap_key');
   });
 
   it('scales refill enemies through the same activity difficulty path as initial enemies', () => {
@@ -438,36 +649,277 @@ describe('redline activity difficulty ladder', () => {
     }
   });
 
-  it('keeps activity progression scoped without adding carryover deck growth or new playable tiers', () => {
+  it('keeps activity progression scoped while carrying activity deck growth without new playable tiers', () => {
     let world = createInitialWorld(1, createInitialActivityState());
     expect(world.activity?.playableLevelIds).toEqual(['d1', 'd2', 'd3', 'd4']);
-    expect(world.activity).not.toHaveProperty('carryoverToken');
     expect(world.activity).not.toHaveProperty('routeCarryover');
 
     winCurrentLevel(world, 'activity-scope-win-d1');
     world = continueActivity(world, 'activity-scope-continue-d2');
     expect(currentActivityLevel(world.activity!).id).toBe('d2');
-    expect(world.player.deck).toEqual(startingHand);
-    expect(world.player.deck).not.toContain('severance_burst');
-    expect(world.activity).not.toHaveProperty('carryoverToken');
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst']);
+    expect((world.activity as unknown as { carryover?: { deck: CardId[] } }).carryover?.deck).toEqual([
+      ...startingHand,
+      'severance_burst'
+    ]);
     expect(world.activity).not.toHaveProperty('routeCarryover');
 
-    winCurrentLevel(world, 'activity-scope-win-d2');
+    winCurrentLevel(world, 'activity-scope-win-d2', 'wild_gap_key', ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
     world = continueActivity(world, 'activity-scope-continue-d3');
     expect(currentActivityLevel(world.activity!).id).toBe('d3');
-    expect(world.player.deck).toEqual(startingHand);
-    expect(world.player.deck).not.toContain('severance_burst');
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst', 'wild_gap_key']);
     expect(world.activity?.playableLevelIds).not.toContain('d5');
     expect(world.activity?.playableLevelIds).not.toContain('d10');
   });
 
-  it('defines D2 as a four-node low-pressure bridge without changing D4 or adding new tiers', () => {
+  it('inherits deck, reward pool, base attributes, xp, and upgrades from D1 into D2 inside one activity', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+    world.player.hp = 17;
+    world.activity!.carryover.maxEnergy = 4;
+    world.player.maxEnergy = 4;
+    world.player.energy = 4;
+    world.player.xp = 13;
+    world.player.level = 2;
+    world.reward.xpThreshold = 24;
+
+    forceFinalRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    selectReward(world, 'severance_burst', 'activity-carryover-d1-reward');
+    expect(world.player.deck).toContain('severance_burst');
+    expect(world.reward.candidateCardPool).not.toContain('severance_burst');
+
+    world.cardUpgrades.enhancements.debt_hook = {
+      cardId: 'debt_hook',
+      level: 1,
+      gemSlots: [{ color: 'red', gemId: null }]
+    };
+    world.cardUpgrades.history.push({
+      tick: world.tick,
+      traceId: 'activity-carryover-upgrade-history',
+      cardId: 'debt_hook',
+      choiceId: 'activity-carryover-upgrade:debt_hook:raise-level:0',
+      choiceType: 'raise-level',
+      level: 1,
+      gemSlots: [{ color: 'red', gemId: null }]
+    });
+    world.cardUpgrades.choices = [
+      {
+        id: 'activity-carryover-pending:debt_hook:raise-level:0',
+        type: 'raise-level',
+        targetCardId: 'debt_hook',
+        label: '债钩 +1',
+        description: 'pending choice must not cross activity level boundary',
+        damageBonusPreview: 2
+      }
+    ];
+    world.cardUpgrades.pending = true;
+
+    world = continueActivity(world, 'activity-carryover-continue-d2');
+
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst']);
+    expect(world.player.drawPile).toEqual([...startingHand, 'severance_burst']);
+    expect(world.player.hand).toEqual([]);
+    expect(world.player.discardPile).toEqual([]);
+    expect(world.player.exhaustPile).toEqual([]);
+    expect(world.player.retainedCards).toEqual([]);
+    expect(world.reward.candidateCardPool).not.toContain('severance_burst');
+    expect(world.player.hp).toBe(72);
+    expect(world.player.maxHp).toBe(72);
+    expect(world.player.maxEnergy).toBe(4);
+    expect(world.player.energy).toBe(4);
+    expect(world.player.xp).toBe(13);
+    expect(world.player.level).toBe(2);
+    expect(world.reward.xpThreshold).toBe(24);
+    expect(world.cardUpgrades.enhancements.debt_hook?.level).toBe(1);
+    expect(world.cardUpgrades.history).toHaveLength(1);
+    expect(world.cardUpgrades.choices).toEqual([]);
+    expect(world.cardUpgrades.pending).toBe(false);
+    expect(world.run.rewardHistory).toEqual([]);
+    expect(world.route?.history).toEqual([]);
+    expect(world.chain.playedCosts).toEqual([]);
+    expect(world.player.tempAuthorizationMP).toBe(0);
+    expect(world.player.authorizationRestriction).toBeNull();
+    expect(world.player.payoffArmed).toBe(false);
+  });
+
+  it('keeps inherited D1 and D2 deck growth when continuing into D3', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    forceFinalRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    selectReward(world, 'severance_burst', 'activity-carryover-d1');
+    world = continueActivity(world, 'activity-carryover-d2');
+
+    forceFinalRewardReady(world, ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
+    selectReward(world, 'wild_gap_key', 'activity-carryover-d2-reward');
+    world = continueActivity(world, 'activity-carryover-d3');
+
+    expect(currentActivityLevel(world.activity!).id).toBe('d3');
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst', 'wild_gap_key']);
+    expect(world.reward.candidateCardPool).not.toContain('severance_burst');
+    expect(world.reward.candidateCardPool).not.toContain('wild_gap_key');
+  });
+
+  it('restarts current activity level from the saved level-start carryover instead of failed mid-run rewards', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+    forceFinalRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    selectReward(world, 'severance_burst', 'activity-restart-boundary-d1');
+    world = continueActivity(world, 'activity-restart-boundary-d2');
+
+    forceRewardReady(world, ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
+    selectReward(world, 'wild_gap_key', 'activity-restart-boundary-midrun-reward');
+    expect(world.player.deck).toContain('wild_gap_key');
+    world.player.xp = 99;
+    world.player.level = 7;
+    world.player.maxEnergy = 5;
+    world.reward.candidateCardPool = ['pulse_draw'];
+    world.cardUpgrades.enhancements.redline_cut = {
+      cardId: 'redline_cut',
+      level: 2,
+      gemSlots: []
+    };
+
+    world = restartCurrentLevel(world, 'activity-restart-boundary-restart-d2');
+
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+    expect(world.activity?.completedLevelIds).toEqual(['d1']);
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst']);
+    expect(world.player.deck).not.toContain('wild_gap_key');
+    expect(world.reward.candidateCardPool).not.toContain('severance_burst');
+    expect(world.reward.candidateCardPool).toContain('wild_gap_key');
+    expect(world.player.xp).toBe(0);
+    expect(world.player.level).toBe(1);
+    expect(world.player.maxEnergy).toBe(3);
+    expect(world.cardUpgrades.enhancements.redline_cut).toBeUndefined();
+    expect(world.run.rewardHistory).toEqual([]);
+    expect(world.route?.history).toEqual([]);
+  });
+
+  it('treats restart-run as the same current-level restart inside activity mode', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+    forceFinalRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    selectReward(world, 'severance_burst', 'activity-restart-run-boundary-d1');
+    world = continueActivity(world, 'activity-restart-run-boundary-d2');
+
+    forceRewardReady(world, ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
+    selectReward(world, 'wild_gap_key', 'activity-restart-run-boundary-midrun-reward');
+    expect(world.player.deck).toContain('wild_gap_key');
+
+    world = restartRun(world, 'activity-restart-run-boundary-restart-d2');
+
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+    expect(world.activity?.completedLevelIds).toEqual(['d1']);
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst']);
+    expect(world.player.deck).not.toContain('wild_gap_key');
+  });
+
+  it('deep-clones activity carryover into snapshots', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+    forceFinalRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    selectReward(world, 'severance_burst', 'activity-snapshot-carryover-d1');
+    world.cardUpgrades.enhancements.debt_hook = {
+      cardId: 'debt_hook',
+      level: 1,
+      gemSlots: [{ color: 'red', gemId: null }]
+    };
+    world = continueActivity(world, 'activity-snapshot-carryover-d2');
+
+    const snapshot = buildSnapshot(world);
+    snapshot.player.deck.push('wild_gap_key');
+    snapshot.activity!.carryover.deck.push('wild_gap_key');
+    snapshot.activity!.carryover.rewardCandidateCardPool.push('severance_burst');
+    snapshot.activity!.carryover.cardUpgrades.enhancements.debt_hook!.gemSlots[0].gemId = 'crimson_chip';
+
+    expect(world.player.deck).toEqual([...startingHand, 'severance_burst']);
+    expect(world.activity!.carryover.deck).toEqual([...startingHand, 'severance_burst']);
+    expect(world.activity!.carryover.rewardCandidateCardPool).not.toContain('severance_burst');
+    expect(world.activity!.carryover.cardUpgrades.enhancements.debt_hook!.gemSlots[0].gemId).toBeNull();
+  });
+
+  it('keeps maxEnergyThisRunPlusOne scoped to the current small-run instead of activity carryover', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    forceRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    selectReward(world, 'severance_burst', 'activity-temp-energy-reward');
+    selectRouteByKind(world, 'elite-pressure', 'activity-temp-energy-route');
+    expect(world.player.maxEnergy).toBe(4);
+    expect(world.player.energy).toBe(4);
+
+    winCurrentLevel(world, 'activity-temp-energy-win-d1', 'wild_gap_key', ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
+    world = continueActivity(world, 'activity-temp-energy-continue-d2');
+
+    expect(currentActivityLevel(world.activity!).id).toBe('d2');
+    expect(world.activity!.carryover.maxEnergy).toBe(3);
+    expect(world.player.maxEnergy).toBe(3);
+    expect(world.player.energy).toBe(3);
+  });
+
+  it('accumulates activity reward history across completed small-runs', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    winCurrentLevel(world, 'activity-history-win-d1', 'severance_burst', [
+      'severance_burst',
+      'wild_gap_key',
+      'blood_reclaim'
+    ]);
+    world = continueActivity(world, 'activity-history-continue-d2');
+    winCurrentLevel(world, 'activity-history-win-d2', 'wild_gap_key', ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
+    world = continueActivity(world, 'activity-history-continue-d3');
+
+    expect(world.activity!.carryover.activityRewardHistory.map((entry) => entry.selectedCardId)).toEqual([
+      'severance_burst',
+      'wild_gap_key'
+    ]);
+  });
+
+  it('does not capture carryover when continue-activity is not a legal victory settlement action', () => {
+    const cases: Array<{ name: string; mutate?: (world: WorldState) => void }> = [
+      { name: 'non-settlement' },
+      {
+        name: 'non-victory-settlement',
+        mutate: (world) => {
+          world.fsm.gameFlow = 'Settlement';
+          world.run.status = 'failure';
+        }
+      },
+      {
+        name: 'cannot-continue-preview',
+        mutate: (world) => {
+          world.fsm.gameFlow = 'Settlement';
+          world.run.status = 'victory';
+          world.activitySettlementPreview = {
+            currentLevelId: 'd1',
+            currentLevelLabel: 'D1',
+            currentLevelTitle: '试营业清算',
+            completed: true,
+            nextLevelId: null,
+            nextLevelLabel: null,
+            canContinue: false
+          };
+        }
+      }
+    ];
+
+    for (const testCase of cases) {
+      const world = createInitialWorld(1, createInitialActivityState());
+      testCase.mutate?.(world);
+      const entryDeck = [...world.activity!.carryover.deck];
+      world.player.deck.push('severance_burst');
+
+      const continued = continueActivity(world, `activity-carryover-illegal-continue-${testCase.name}`);
+
+      expect(continued).toBe(world);
+      expect(world.activity!.currentLevelId).toBe('d1');
+      expect(world.activity!.carryover.deck).toEqual(entryDeck);
+    }
+  });
+
+  it('defines D2 as a three-node low-pressure bridge without changing D4 or adding new tiers', () => {
     const d2Level = resolveActivityLevelDefinition('d2');
-    expect(d2Level.title).toBe('低压过渡');
-    expect(d2Level.nodeCount).toBe(4);
+    expect(d2Level.title).toBe('三节点桥接清算');
+    expect(d2Level.nodeCount).toBe(3);
     expect(d2Level.playerMaxHp).toBe(68);
-    expect(d2Level.enemyHpMultiplier).toBe(0.86);
-    expect(d2Level.enemyDamageMultiplier).toBe(0.58);
+    expect(d2Level.enemyHpMultiplier).toBe(0.65);
+    expect(d2Level.enemyDamageMultiplier).toBe(0.25);
     expect(d2Level.rewardPickCount).toBe(4);
     expect(d2Level.eliteRouteEntryDamage).toBe(3);
     expect(d2Level.eliteRouteAddsPollution).toBe(false);
@@ -500,22 +952,23 @@ describe('redline activity difficulty ladder', () => {
     world = playConservativeRun(world, 'd1-before-d2-natural');
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
-    const d1ClearHp = world.player.hp;
 
     world = continueActivity(world, 'd1-natural-continue-d2');
     const d2Level = currentActivityLevel(world.activity!);
     expect(d2Level.id).toBe('d2');
-    expect(d2Level.nodeCount).toBe(4);
+    expect(d2Level.nodeCount).toBe(3);
     expect(d2Level.rewardPickCount).toBe(4);
 
     world = playConservativeRun(world, 'd2-natural');
 
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
-    expect(world.run.currentNode).toBe(4);
-    expect(world.player.hp).toBeGreaterThan(35);
-    expect(world.player.hp).toBeLessThan(d1ClearHp);
-    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3, 4]);
+    expect(world.run.currentNode).toBe(3);
+    expect(world.player.hp).toBeGreaterThanOrEqual(18);
+    expect(hpRatio(world)).toBeGreaterThanOrEqual(0.6);
+    expect(hpRatio(world)).toBeLessThanOrEqual(0.8);
+    expect(world.player.deck.length).toBeGreaterThan(startingHand.length);
+    expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3]);
   });
 
   it('lets a conservative player naturally clear D1 then D2 then first-clear D3', () => {
@@ -531,25 +984,78 @@ describe('redline activity difficulty ladder', () => {
     world = playConservativeRun(world, 'd2-before-d3-natural');
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
-    expect(world.run.currentNode).toBe(4);
-    expect(world.player.hp).toBeGreaterThan(35);
-    const d2ClearHp = world.player.hp;
+    expect(world.run.currentNode).toBe(3);
+    expect(world.player.hp).toBeGreaterThanOrEqual(18);
+    const d2HpRatio = hpRatio(world);
 
     world = continueActivity(world, 'd2-natural-continue-d3');
     const d3Level = currentActivityLevel(world.activity!);
     expect(d3Level.id).toBe('d3');
     expect(d3Level.nodeCount).toBe(6);
-    expect(d3Level.playerMaxHp).toBe(62);
-    expect(d3Level.enemyHpMultiplier).toBe(0.88);
+    expect(d3Level.playerMaxHp).toBe(98);
+    expect(d3Level.playerMaxHp).toBeLessThan(100);
+    expect(d3Level.enemyHpMultiplier).toBe(0.45);
+    expect(d3Level.enemyDamageMultiplier).toBe(0.45);
     expect(d3Level.rewardPickCount).toBe(3);
+    expect(d3Level.eliteRouteEntryDamage).toBe(10);
+    expect(d3Level.eliteRouteAddsPollution).toBe(true);
+    expect(world.player.hp).toBe(98);
+    expect(world.player.maxHp).toBe(98);
 
-    world = playConservativeRun(world, 'd3-natural-first-clear', 320);
+    world = playBrowserConservativeRun(world, 'd3-browser-conservative-first-clear', 420);
 
     expect(world.fsm.gameFlow).toBe('Settlement');
     expect(world.run.status).toBe('victory');
     expect(world.run.currentNode).toBe(6);
-    expect(world.player.hp).toBeGreaterThan(12);
-    expect(world.player.hp).toBeLessThan(d2ClearHp);
+    expect(world.round).toBeGreaterThanOrEqual(18);
+    expect(world.player.hp).toBeGreaterThanOrEqual(12);
+    expect(hpRatio(world)).toBeLessThanOrEqual(0.7);
+    expect(hpRatio(world)).toBeLessThan(d2HpRatio);
+    expect(world.player.deck.length).toBeGreaterThan(startingHand.length);
     expect(world.run.rewardHistory.map((entry) => entry.node)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it('documents D4 pollution debut readability and current conservative failure boundary without tuning values', () => {
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    world = playConservativeRun(world, 'd4-first-clear-d1');
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+
+    world = continueActivity(world, 'd4-first-clear-continue-d2');
+    world = playConservativeRun(world, 'd4-first-clear-d2');
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+
+    world = continueActivity(world, 'd4-first-clear-continue-d3');
+    world = playBrowserConservativeRun(world, 'd4-first-clear-d3', 420);
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('victory');
+
+    world = continueActivity(world, 'd4-first-clear-continue-d4');
+    expect(currentActivityLevel(world.activity!).id).toBe('d4');
+
+    world = playBrowserConservativeUntilFlow(world, 'RouteSelect', 'd4-first-clear-pollution-window', 420);
+    expect(world.fsm.gameFlow).toBe('RouteSelect');
+    const eliteRoute = world.route?.pendingNodeChoices.find((candidate) => candidate.kind === 'elite-pressure');
+    expect(eliteRoute?.preview).toContain('污染');
+    const staticOverloadBefore = playerCardZoneCount(world, 'static_overload');
+    selectRouteByKind(world, 'elite-pressure', 'd4-first-clear-elite-pollution');
+
+    expect(world.debug.events).toContainEqual(
+      expect.objectContaining({
+        type: 'PressurePollutionAdded',
+        cardId: 'static_overload'
+      })
+    );
+    expect(playerCardZoneCount(world, 'static_overload')).toBeGreaterThan(staticOverloadBefore);
+    expect(createBuildPlan(world).issues.map((issue) => issue.id)).toContain('clear-pollution');
+
+    world = playBrowserConservativeRun(world, 'd4-first-clear-after-pollution', 520);
+
+    expect(world.fsm.gameFlow).toBe('Settlement');
+    expect(world.run.status).toBe('failure');
+    expect(world.run.pressure?.failureBoundaryNode ?? world.run.currentNode).toBeGreaterThanOrEqual(2);
+    expect(world.player.hp).toBe(0);
   });
 });

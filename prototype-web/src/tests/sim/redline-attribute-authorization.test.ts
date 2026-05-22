@@ -163,6 +163,41 @@ describe('Redline P0 temp MP authorization acceptance contract', () => {
     });
   });
 
+  it('spends armed temp authorization before natural MP on a 3 MP payoff', () => {
+    const world = createInitialWorld();
+    prepareHand(world, ['severance_burst']);
+    world.player.energy = 3;
+    world.player.tempAuthorizationMP = 3;
+    world.player.authorizationRestriction = 'payoff-only';
+    world.player.payoffArmed = true;
+
+    playCard(world, 'severance_burst', 'auth-priority-payoff');
+
+    expect(world.player.energy).toBe(3);
+    expect(world.player.tempAuthorizationMP).toBe(0);
+    expect(world.player.authorizationRestriction).toBeNull();
+    expect(world.player.payoffArmed).toBe(false);
+    expect(paymentEvents(world, 'auth-priority-payoff')).toContainEqual(
+      expect.objectContaining({
+        type: 'CardPaymentRecorded',
+        source: 'authorization',
+        currentEnergyPaid: 0,
+        authorizationPaid: 3,
+        payoffArmed: true
+      })
+    );
+    expect(playedCard(world, 'auth-priority-payoff')).toMatchObject({
+      cardId: 'severance_burst',
+      currentEnergyPaid: 0,
+      authorizationPaid: 3,
+      payoffArmed: true
+    });
+    expect(payoffResolved(world, 'auth-priority-payoff')).toMatchObject({
+      cardId: 'severance_burst',
+      payoffArmed: true
+    });
+  });
+
   it('does not grant temp authorization to an incomplete chain; ordinary 3 MP can still play unarmed', () => {
     const unauthorized = createInitialWorld();
     prepareHand(unauthorized, ['debt_hook', 'row_cleave', 'severance_burst']);
@@ -195,6 +230,7 @@ describe('Redline P0 temp MP authorization acceptance contract', () => {
       cardId: 'severance_burst',
       payoffArmed: false
     });
+    expect(paymentEvents(ordinary, 'ordinary-unarmed-payoff')).toHaveLength(0);
   });
 
   it('treats clearance_order as the 2 MP authorization segment, not a payoff finisher', () => {

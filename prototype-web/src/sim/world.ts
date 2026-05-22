@@ -1,6 +1,6 @@
 import { enemies as enemyDefinitions } from '../data/enemies';
 import { rewardCardPool, startingHand } from '../data/cards';
-import { cloneActivityState, currentActivityLevel, scaleEnemyForActivityLevel } from './activity';
+import { cloneActivityCarryover, cloneActivityState, currentActivityLevel, scaleEnemyForActivityLevel } from './activity';
 import { createInitialCardUpgradeState } from './cardUpgrades';
 import { INITIAL_REWARD_XP_THRESHOLD } from './rewardProgression';
 import { createInitialShortRunRouteState } from './runRoute';
@@ -72,8 +72,18 @@ export function createInitialRunState(runNumber = 1, maxNodes = 3): RunState {
 }
 
 export function createInitialWorld(runNumber = 1, activity?: ActivityState): WorldState {
-  const activityLevel = activity ? currentActivityLevel(activity) : null;
-  const playerMaxHp = activityLevel?.playerMaxHp ?? 60;
+  const activityState = activity ? cloneActivityState(activity) : undefined;
+  const activityLevel = activityState ? currentActivityLevel(activityState) : null;
+  const activityCarryover = activityState?.carryover ? cloneActivityCarryover(activityState.carryover) : null;
+  const playerMaxHp = Math.max(activityCarryover?.maxHp ?? 0, activityLevel?.playerMaxHp ?? 60);
+  const carryoverStartsFullHp = activityCarryover ? activityCarryover.nextRunStartHp >= activityCarryover.maxHp : false;
+  const playerStartHp = carryoverStartsFullHp
+    ? playerMaxHp
+    : Math.max(1, Math.min(activityCarryover?.nextRunStartHp ?? playerMaxHp, playerMaxHp));
+  const playerMaxEnergy = activityCarryover?.maxEnergy ?? 3;
+  const playerDeck = activityCarryover?.deck ?? startingHand;
+  const rewardCandidateCardPool = activityCarryover?.rewardCandidateCardPool ?? rewardCardPool;
+  const cardUpgrades = activityCarryover?.cardUpgrades ?? createInitialCardUpgradeState();
   const rewardPickCount = activityLevel?.rewardPickCount ?? 3;
   const enemyList = Array.from({ length: MAX_ENEMY_FORMATION_SLOTS }, (_, slot) =>
     createEnemy(slot + 1, slot, activityLevel)
@@ -85,10 +95,10 @@ export function createInitialWorld(runNumber = 1, activity?: ActivityState): Wor
     elapsedSeconds: 0,
     player: {
       id: 'player',
-      hp: playerMaxHp,
+      hp: playerStartHp,
       maxHp: playerMaxHp,
-      energy: 3,
-      maxEnergy: 3,
+      energy: playerMaxEnergy,
+      maxEnergy: playerMaxEnergy,
       tempAuthorizationMP: 0,
       authorizationRestriction: null,
       lastAuthorizationReason: null,
@@ -97,11 +107,11 @@ export function createInitialWorld(runNumber = 1, activity?: ActivityState): Wor
       combo: 0,
       lastPlayedCost: null,
       costChainMultiplier: 1,
-      xp: 0,
-      level: 1,
-      deck: [...startingHand],
+      xp: activityCarryover?.xp ?? 0,
+      level: activityCarryover?.level ?? 1,
+      deck: [...playerDeck],
       hand: [],
-      drawPile: [...startingHand],
+      drawPile: [...playerDeck],
       discardPile: [],
       exhaustPile: [],
       retainedCards: []
@@ -118,18 +128,18 @@ export function createInitialWorld(runNumber = 1, activity?: ActivityState): Wor
       }
     },
     run: createInitialRunState(runNumber, activityLevel?.nodeCount ?? 3),
-    activity: activity ? cloneActivityState(activity) : undefined,
+    activity: activityState,
     activitySettlementPreview: null,
     route: createInitialShortRunRouteState(),
     reward: {
-      xpThreshold: INITIAL_REWARD_XP_THRESHOLD,
-      candidateCardPool: [...rewardCardPool],
+      xpThreshold: activityCarryover?.xpThreshold ?? INITIAL_REWARD_XP_THRESHOLD,
+      candidateCardPool: [...rewardCandidateCardPool],
       choices: [],
       pickCount: rewardPickCount,
       pending: false,
       source: null
     },
-    cardUpgrades: createInitialCardUpgradeState(),
+    cardUpgrades,
     debug: {
       events: [],
       commands: [],

@@ -92,6 +92,9 @@ export interface CardCostModifier {
 export interface CardDefinition {
   id: CardId;
   name: string;
+  displayName?: string;
+  shortName?: string;
+  hudRoleLabel?: string;
   cost: number;
   verb: string;
   damage: number;
@@ -211,6 +214,19 @@ export interface ActivityLevelDefinition {
   eliteRouteAddsPollution: boolean;
 }
 
+export interface ActivityCarryoverState {
+  deck: CardId[];
+  rewardCandidateCardPool: CardId[];
+  maxHp: number;
+  nextRunStartHp: number;
+  maxEnergy: number;
+  xp: number;
+  level: number;
+  xpThreshold: number;
+  cardUpgrades: CardUpgradeState;
+  activityRewardHistory: RunRewardHistoryEntry[];
+}
+
 export interface ActivityState {
   id: 'redline-core-activity-01';
   title: string;
@@ -218,6 +234,7 @@ export interface ActivityState {
   playableLevelIds: ActivityLevelId[];
   currentLevelId: ActivityLevelId;
   completedLevelIds: ActivityLevelId[];
+  carryover: ActivityCarryoverState;
 }
 
 export interface ActivitySettlementPreview {

@@ -3,7 +3,7 @@ import type { EnemyDefinition } from '../sim/types';
 export const enemies: EnemyDefinition[] = [
   {
     id: 'debt_wisp',
-    name: 'Debt Wisp',
+    name: '债雾',
     hp: 10,
     speed: 2.2,
     damage: 2,
@@ -13,7 +13,7 @@ export const enemies: EnemyDefinition[] = [
   },
   {
     id: 'redline_brute',
-    name: 'Redline Brute',
+    name: '红线蛮兵',
     hp: 22,
     speed: 1.2,
     damage: 5,
@@ -23,7 +23,7 @@ export const enemies: EnemyDefinition[] = [
   },
   {
     id: 'pulse_collector',
-    name: 'Pulse Collector',
+    name: '脉冲收集者',
     hp: 16,
     speed: 1.6,
     damage: 3,

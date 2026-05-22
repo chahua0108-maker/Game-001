@@ -27,7 +27,7 @@ import type { EnemySnapshot, GameEvent, GameSnapshot } from '../../sim/types';
 const frontTarget: EnemySnapshot = {
   id: 'enemy-1',
   definitionId: 'debt_wisp',
-  name: 'Debt Wisp',
+  name: '债雾',
   hp: 10,
   maxHp: 10,
   slot: 0,
@@ -39,7 +39,7 @@ const frontTarget: EnemySnapshot = {
 const bruteTarget: EnemySnapshot = {
   id: 'enemy-2',
   definitionId: 'redline_brute',
-  name: 'Redline Brute',
+  name: '红线蛮兵',
   hp: 18,
   maxHp: 22,
   slot: 1,
@@ -87,13 +87,13 @@ describe('HUD authorization payment helpers', () => {
     expect(hudAuthorizationState(snapshotWithEnergy(0, 3))).toMatchObject({
       amount: 3,
       active: true,
-      label: '授权+3',
+      label: '临时授权3',
       detail: '本回合临时授权，只支付 3费终结牌'
     });
     expect(hudAuthorizationState(snapshotWithEnergy(0))).toMatchObject({
       amount: 0,
       active: false,
-      label: '授权+0'
+      label: '授权0'
     });
   });
 
@@ -106,7 +106,7 @@ describe('HUD authorization payment helpers', () => {
     expect(payment.usesAuthorization).toBe(true);
     expect(payment.missingMP).toBe(0);
     expect(payment.reason).toContain('授权支付');
-    expect(payment.costLabel).toContain('授权+3');
+    expect(payment.costLabel).toContain('临时授权3');
     expect(hudCardPaymentStatusToken(card, snapshotWithEnergy(0, 3))).toEqual({
       label: '授权付',
       className: 'authorization-cost'
@@ -160,7 +160,7 @@ describe('HUD card lifecycle feedback labels', () => {
   it('keeps lifecycle text as compact visible tokens on cards', () => {
     expect(hudCardLifecycleToken(cards.static_overload)).toBe('污');
     expect(hudCardLifecycleToken(cards.guard_reserve)).toBe('留');
-    expect(hudCardVisibleRoleLabel(cards.static_overload)).toBe('开链 · 污');
+    expect(hudCardVisibleRoleLabel(cards.static_overload)).toBe('状态 · 污染');
     expect(hudCardVisibleRoleLabel(cards.guard_reserve)).toBe('承接 · 留');
     expect(hudCardVisibleRoleLabel(cards.severance_burst)).toBe('终结');
   });
@@ -202,8 +202,8 @@ describe('HUD card lifecycle feedback labels', () => {
       discardPileCount: 1
     };
 
-    expect(hudEventFeedbackLabel(movedToExhaust)).toBe('消耗 Static Overload · 打出');
-    expect(hudEventFeedbackLabel(retained)).toBe('留1下手 · Guard Reserve');
+    expect(hudEventFeedbackLabel(movedToExhaust)).toBe('消耗 静电过载 · 打出');
+    expect(hudEventFeedbackLabel(retained)).toBe('留1下手 · 守备保留');
     expect(hudEventFeedbackLabel(shuffled)).toBe('弃->抽 2张 · 留弃1');
   });
 });
@@ -252,7 +252,7 @@ describe('HUD card intent previews', () => {
       after: 2,
       prevented: 5,
       targetId: bruteTarget.id,
-      label: 'BRU 意图 7->2'
+      label: '蛮兵 意图 7->2'
     });
   });
 
@@ -312,7 +312,7 @@ describe('HUD chain extension reads', () => {
 
   it('shows wild gap key as a controlled MP3 extension instead of a broken chain', () => {
     expect(hudCardChainRead(cards.wild_gap_key, chainSnapshot())).toMatchObject({
-      label: '延MP3x4',
+      label: '延展 MP 3 x4',
       multiplier: 4,
       breaksChain: false,
       className: 'chain-match'
@@ -367,7 +367,7 @@ describe('HUD run and meta layer labels', () => {
 
     expect(planState).toEqual({
       token: 'MP+1',
-      reason: 'Max MP preview becomes 4 for this run only.',
+      reason: '最大MP 预览变为 4，仅本run。',
       active: true
     });
   });
@@ -427,7 +427,7 @@ describe('HUD run and meta layer labels', () => {
 
     expect(root.innerHTML).toContain('build-plan-chip active');
     expect(root.innerHTML).toContain('复核+1');
-    expect(root.innerHTML).toContain('Reward reroll preview gains 1 reroll for this run only.');
+    expect(root.innerHTML).toContain('奖励复核 预览获得 1 次复核，仅本run。');
   });
 
   it('reads current run progress and recent reward without presenting meta growth as a permanent upgrade', () => {
@@ -444,13 +444,13 @@ describe('HUD run and meta layer labels', () => {
 
     expect(runState.title).toBe('本次清算');
     expect(runState.nodeLabel).toBe('节点 2/7');
-    expect(runState.rewardLabel).toBe('已拿 Severance Burst');
+    expect(runState.rewardLabel).toBe('已拿 断账爆发');
     expect(runState.routeLabel).toBe('路线记录 1');
     expect(runState.pressureLabel).toBe('上压 已清算');
     expect(runState.buildProblemLabel).toBe('构筑 稳定');
     expect(runState.nextTitle).toBe('下一战后果');
-    expect(runState.nextState).toBe('带入 Severance Burst');
-    expect(runState.nextDetail).toBe('仅本run');
+    expect(runState.nextState).toBe('带入 断账爆发');
+    expect(runState.nextDetail).toBe('活动继承牌组');
     expect(visibleCopy).not.toContain('最大 MP +3');
     expect(visibleCopy).not.toContain('永久升级');
     expect(visibleCopy).not.toContain('永久');
@@ -476,11 +476,11 @@ describe('HUD run and meta layer labels', () => {
 
     expect(runState.nodeLabel).toBe('节点 2/7');
     expect(runState.rewardLabel).toBe('奖励候选 修补/终结/路线');
-    expect(runState.routeLabel).toBe('路线候选 Spark Tap');
+    expect(runState.routeLabel).toBe('路线候选 点火');
     expect(runState.pressureLabel).toBe('上压 已清算');
     expect(runState.buildProblemLabel).toBe('构筑 稳定');
     expect(runState.nextState).toBe('选1入组');
-    expect(runState.nextDetail).toBe('牌组3 · 仅本run');
+    expect(runState.nextDetail).toBe('牌组3 · 活动继承牌组');
   });
 
   it('falls back defensively before snapshot.run is wired into the runtime snapshot', () => {
@@ -492,10 +492,10 @@ describe('HUD run and meta layer labels', () => {
     } as unknown as GameSnapshot);
 
     expect(runState.nodeLabel).toBe('节点? R4');
-    expect(runState.rewardLabel).toBe('已拿 Wild Gap Key');
+    expect(runState.rewardLabel).toBe('已拿 缺口钥匙');
     expect(runState.routeLabel).toBe('路线记录 1');
     expect(runState.pressureLabel).toBe('上压 首战');
-    expect(runState.nextDetail).toBe('仅本run');
+    expect(runState.nextDetail).toBe('活动继承牌组');
   });
 
   it('reads two pending route buttons as compact next-fight modifier and reward tendency tokens', () => {
@@ -911,6 +911,8 @@ describe('HUD run and meta layer labels', () => {
       /<button[^>]+data-route-choice-id="run-1-node-1-to-2-elite-pressure"[\s\S]*?<\/button>/
     )?.[0];
 
+    expect(root.innerHTML).toContain('路线选择');
+    expect(root.innerHTML).not.toContain('RouteSelect');
     expect.soft(eliteButtonMarkup).toMatch(/HP不足|会阵亡|不可选/);
 
     listeners.pointerdown?.({
@@ -1137,6 +1139,7 @@ describe('HUD run and meta layer labels', () => {
     expect.soft(repairButton).toContain('非即时回血');
     expect.soft(eliteButton).toMatch(/风险|贪心/);
     expect.soft(eliteButton).toContain('-2 HP / 污染');
+    expect.soft(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
     expect.soft(routeSummary).toMatch(/下战修补\/复核\+1\/非即时回血[\s\S]*高风险MP\+1\/-2 HP\/\+污染/);
   });
 
@@ -1174,7 +1177,9 @@ describe('HUD run and meta layer labels', () => {
       debug: { events: [] }
     } as unknown as GameSnapshot;
 
-    expect(hudRunLayerState(snapshot).title).toBe('D1 试营业清算');
+    expect(hudRunLayerState(snapshot).title).toBe('D1 初级试营业');
+    expect(hudRunLayerState(snapshot).campaignLabel).toBe('D1-D3 连续三局 · 活动继承牌组/XP/升级');
+    expect(hudRunLayerState(snapshot).difficultyBandLabel).toBe('初级 · 3节点');
     expect(hudRouteChoicesState(snapshot)[0]).toMatchObject({
       modifierToken: 'MP+1',
       rewardToken: '偏终结',
@@ -1185,6 +1190,9 @@ describe('HUD run and meta layer labels', () => {
   it('shows D2 and D3 activity titles in the run layer', () => {
     const baseSnapshot = {
       round: 1,
+      player: {
+        deck: ['debt_hook', 'redline_cut', 'row_cleave', 'severance_burst']
+      },
       run: {
         currentNode: 1,
         maxNodes: 3,
@@ -1200,20 +1208,26 @@ describe('HUD run and meta layer labels', () => {
       debug: { events: [] }
     };
 
-    expect(
-      hudRunLayerState({
-        ...baseSnapshot,
-        run: { ...baseSnapshot.run, maxNodes: 4 },
-        activity: { ...baseSnapshot.activity, currentLevelId: 'd2', completedLevelIds: ['d1'] }
-      } as unknown as GameSnapshot).title
-    ).toBe('D2 低压过渡');
-    expect(
-      hudRunLayerState({
-        ...baseSnapshot,
-        run: { ...baseSnapshot.run, maxNodes: 6 },
-        activity: { ...baseSnapshot.activity, currentLevelId: 'd3', completedLevelIds: ['d1', 'd2'] }
-      } as unknown as GameSnapshot).title
-    ).toBe('D3 中级入口');
+    const d2State = hudRunLayerState({
+      ...baseSnapshot,
+      run: { ...baseSnapshot.run, maxNodes: 4 },
+      activity: { ...baseSnapshot.activity, currentLevelId: 'd2', completedLevelIds: ['d1'] }
+    } as unknown as GameSnapshot);
+    const d3State = hudRunLayerState({
+      ...baseSnapshot,
+      run: { ...baseSnapshot.run, maxNodes: 6 },
+      activity: { ...baseSnapshot.activity, currentLevelId: 'd3', completedLevelIds: ['d1', 'd2'] }
+    } as unknown as GameSnapshot);
+
+    expect(d2State.title).toBe('D2 低压清算');
+    expect(d2State.campaignLabel).toBe('D1-D3 连续三局 · 活动继承牌组/XP/升级');
+    expect(d2State.difficultyBandLabel).toBe('低压 · 4节点');
+    expect(d2State.nextDetail).toBe('牌组4 · 活动继承牌组');
+    expect(d2State.nextDetail).not.toContain('仅本run');
+    expect(d3State.title).toBe('D3 中级入口');
+    expect(d3State.difficultyBandLabel).toBe('中级 · 6节点');
+    expect(d3State.nextDetail).toBe('牌组4 · 活动继承牌组');
+    expect(d3State.nextDetail).not.toContain('仅本run');
   });
 
   it('shows D4 as the pollution first-look activity level', () => {
@@ -1224,6 +1238,39 @@ describe('HUD run and meta layer labels', () => {
         maxNodes: 6,
         rewardHistory: []
       },
+      player: {
+        hp: 30,
+        maxHp: 30,
+        energy: 3,
+        maxEnergy: 3,
+        tempAuthorizationMP: 0,
+        lastPlayedCost: null,
+        costChainMultiplier: 1,
+        xp: 0,
+        level: 1,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave'],
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        exhaustPile: [],
+        retainedCards: []
+      },
+      chain: {
+        playedCosts: [],
+        lastCost: null,
+        nextExpectedCost: 0,
+        multiplier: 1,
+        broken: false,
+        breakReason: null,
+        repairedThisTurn: false,
+        extendedThisTurn: false
+      },
+      enemies: [],
+      enemyIntents: [],
+      enemyIntentSummary: { totalDamage: 0, intentEnemyIds: [] },
+      fsm: { gameFlow: 'Deal', characters: {} },
+      reward: { pending: false, choices: [], xpThreshold: 12 },
+      cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
       activity: {
         id: 'redline-core-activity-01',
         title: '红线清算局 第一套闯关',
@@ -1232,11 +1279,18 @@ describe('HUD run and meta layer labels', () => {
         currentLevelId: 'd4',
         completedLevelIds: ['d1', 'd2', 'd3']
       },
-      debug: { events: [] }
+      debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+      lastBurstTick: null
     } as unknown as GameSnapshot;
 
     expect(hudRunLayerState(snapshot).title).toBe('D4 污染首秀清算');
     expect(hudRunLayerState(snapshot).nodeLabel).toBe('节点 1/6');
+    const root = {
+      innerHTML: '',
+      addEventListener: () => undefined
+    } as unknown as HTMLElement;
+    new Hud(root, () => undefined).render(snapshot);
+    expect(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
   });
 
   it('splits victory continue and failure retry settlement actions into distinct intents', () => {
@@ -1300,7 +1354,17 @@ describe('HUD run and meta layer labels', () => {
 
     hud.render({
       ...baseSettlement,
-      run: { runNumber: 1, currentNode: 3, maxNodes: 3, status: 'victory', rewardHistory: [] },
+      player: {
+        ...baseSettlement.player,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave', 'wild_gap_key', 'severance_burst', 'spark_tap', 'blood_tithe']
+      },
+      run: {
+        runNumber: 1,
+        currentNode: 3,
+        maxNodes: 3,
+        status: 'victory',
+        rewardHistory: [{ cardId: 'wild_gap_key' }, { cardId: 'severance_burst' }, { cardId: 'spark_tap' }]
+      },
       activitySettlementPreview: {
         currentLevelId: 'd1',
         currentLevelLabel: 'D1',
@@ -1412,7 +1476,17 @@ describe('HUD run and meta layer labels', () => {
 
     hud.render({
       ...baseSettlement,
-      run: { runNumber: 1, currentNode: 3, maxNodes: 3, status: 'victory', rewardHistory: [] },
+      player: {
+        ...baseSettlement.player,
+        deck: ['debt_hook', 'redline_cut', 'row_cleave', 'wild_gap_key', 'severance_burst', 'spark_tap', 'blood_tithe']
+      },
+      run: {
+        runNumber: 1,
+        currentNode: 3,
+        maxNodes: 3,
+        status: 'victory',
+        rewardHistory: [{ cardId: 'wild_gap_key' }, { cardId: 'severance_burst' }, { cardId: 'spark_tap' }]
+      },
       activity: {
         id: 'redline-core-activity-01',
         title: '红线清算局 第一套闯关',
@@ -1432,7 +1506,10 @@ describe('HUD run and meta layer labels', () => {
       }
     } as unknown as GameSnapshot);
     expect(root.innerHTML).toContain('进入 D2');
-    expect(root.innerHTML).toContain('下一局进入4节点低压过渡，开始注意路线代价');
+    expect(root.innerHTML).toContain('本局新增3张 / 牌组 4->7 / 下局继承');
+    expect(root.innerHTML).toContain('继承 D1 牌组与基础属性');
+    expect(root.innerHTML).toContain('保留牌组/XP/升级');
+    expect(root.innerHTML).toContain('重置手牌/战场/路线');
 
     hud.render({
       ...baseSettlement,
@@ -1456,7 +1533,9 @@ describe('HUD run and meta layer labels', () => {
       }
     } as unknown as GameSnapshot);
     expect(root.innerHTML).toContain('进入 D3');
-    expect(root.innerHTML).toContain('下一局进入6节点长局，D2 已完成路线代价练习');
+    expect(root.innerHTML).toContain('继承 D1-D2 构筑');
+    expect(root.innerHTML).toContain('保留牌组/XP/升级');
+    expect(root.innerHTML).toContain('重置手牌/战场/路线');
 
     hud.render({
       ...baseSettlement,
@@ -1480,7 +1559,9 @@ describe('HUD run and meta layer labels', () => {
       }
     } as unknown as GameSnapshot);
     expect(root.innerHTML).toContain('核心三局已打通');
-    expect(root.innerHTML).toContain('后续才进入污染首秀');
+    expect(root.innerHTML).toContain('进入 D4 前说明');
+    expect(root.innerHTML).toContain('污染牌会进弃牌堆');
+    expect(root.innerHTML).toContain('清污染奖励可处理');
     expect(root.innerHTML).toContain('进入 D4');
   });
 });

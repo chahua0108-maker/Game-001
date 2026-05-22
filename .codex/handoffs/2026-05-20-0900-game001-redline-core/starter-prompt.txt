@@ -1,0 +1,3 @@
+请读取 /Users/roc/Game-001/.codex/handoffs/2026-05-20-0900-game001-redline-core/handoff.md，然后只接手 /Users/roc/Game-001 的游戏原型工作。不要处理 AIRoc 插件制作或 GitHub 上传，那些继续留在原会话。
+
+当前 Redline Web 原型第 18 轮已达到核心体验 95/100，最新提交是 10aff7d。不要自动追加第 19 轮；后续只做真实玩家复测、小范围 UI 可读性修正、bugfix，除非我明确给出新的游戏目标。如果本地状态与 handoff 不一致，先汇报差异再继续。

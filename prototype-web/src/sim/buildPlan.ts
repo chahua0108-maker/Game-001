@@ -1,4 +1,5 @@
 import { cards } from '../data/cards';
+import { rewardBranchesForCard } from './rewardChoices';
 import type {
   BuildPlan,
   BuildPlanIssue,
@@ -137,11 +138,16 @@ function clearPollutionIssue(world: WorldState): BuildPlanIssueDraft | null {
 
 function missingBridgeIssue(world: WorldState): BuildPlanIssueDraft | null {
   const deckCards = deckCardsInDefinition(world);
+  const requiredChainCount = densityRequirement(deckCards.length);
   const openerCount = deckCards.filter((card) => card.cost === 0 && countsForChain(card)).length;
   const connectorCount = deckCards.filter((card) => card.cost === 1 && countsForChain(card)).length;
   const routeSegmentCount = deckCards.filter((card) => card.cost === 2 && countsForChain(card)).length;
 
-  if (openerCount > 0 && connectorCount > 0 && routeSegmentCount > 0) {
+  if (
+    openerCount >= requiredChainCount &&
+    connectorCount >= requiredChainCount &&
+    routeSegmentCount >= requiredChainCount
+  ) {
     return null;
   }
 
@@ -167,15 +173,18 @@ function missingBridgeIssue(world: WorldState): BuildPlanIssueDraft | null {
 
   return issue('missing-bridge', {
     reason: recentlyPickedBridge
-      ? `刚补过 ${cardLabel(recentReward!.selectedCardId)}，但费用链仍未闭合：0费 ${openerCount}，1费 ${connectorCount}，2费 ${routeSegmentCount}。`
-      : `当前牌组费用链密度不足：0费 ${openerCount}，1费 ${connectorCount}，2费 ${routeSegmentCount}。`,
+      ? `刚补过 ${cardLabel(recentReward!.selectedCardId)}，但 ${deckCards.length} 张牌组仍未达到费用链密度：0费 ${openerCount}/${requiredChainCount}，1费 ${connectorCount}/${requiredChainCount}，2费 ${routeSegmentCount}/${requiredChainCount}。`
+      : `当前 ${deckCards.length} 张牌组费用链密度不足：0费 ${openerCount}/${requiredChainCount}，1费 ${connectorCount}/${requiredChainCount}，2费 ${routeSegmentCount}/${requiredChainCount}。`,
     nextStep: recentlyPickedBridge
-      ? '继续补缺失费用段或 wild 修补牌，下一战验证 0-1-2 是否能稳定接上。'
-      : '优先拿低费接链或 wild 修补牌，让 0-1-2 授权链稳定成型。',
+      ? '继续补缺失费用段或 wild 修补牌；如果同时出现 payoff，这是稳定桥牌和提前兑现之间的小分叉。'
+      : '优先拿低费接链或 wild 修补牌；D2-D3 若同时出现终结牌，就是稳定桥牌 vs 高压兑现的分叉。',
     evidence: [
-      `0费链牌 ${openerCount}`,
-      `1费链牌 ${connectorCount}`,
-      `2费链牌 ${routeSegmentCount}`,
+      `牌组张数 ${deckCards.length}`,
+      `费用链密度阈值 ${requiredChainCount}`,
+      `0费链牌 ${openerCount}/${requiredChainCount}`,
+      `1费链牌 ${connectorCount}/${requiredChainCount}`,
+      `2费链牌 ${routeSegmentCount}/${requiredChainCount}`,
+      ...rewardForkEvidence(world),
       ...routeEvidence(world),
       ...rewardHistoryEvidence(world),
       ...upgradeHistoryEvidence(world)
@@ -186,11 +195,11 @@ function missingBridgeIssue(world: WorldState): BuildPlanIssueDraft | null {
 }
 
 function missingFinisherIssue(world: WorldState): BuildPlanIssueDraft | null {
-  const hasFinisher = deckCardsInDefinition(world).some(
-    (card) => card.cycleRole === 'finisher' || card.buildRole === 'payoff-finisher' || card.cardType === 'payoff'
-  );
+  const deckCards = deckCardsInDefinition(world);
+  const requiredFinisherCount = densityRequirement(deckCards.length);
+  const finisherCount = deckCards.filter(isFinisher).length;
 
-  if (hasFinisher) {
+  if (finisherCount >= requiredFinisherCount) {
     return null;
   }
 
@@ -200,9 +209,22 @@ function missingFinisherIssue(world: WorldState): BuildPlanIssueDraft | null {
   });
 
   return issue('missing-finisher', {
-    reason: '当前牌组能组织路线，但没有 3 MP payoff 终结牌来消费授权窗口。',
-    nextStep: '优先拿全场终结牌，让完成 0-1-2 后的授权能转化为清场。',
-    evidence: ['终结牌 0', ...rewardEvidence(world), ...evolutionEvidence(world)],
+    reason:
+      finisherCount === 0
+        ? '当前牌组能组织路线，但没有 3 MP payoff 终结牌来消费授权窗口。'
+        : `当前 ${deckCards.length} 张牌组只有 ${finisherCount}/${requiredFinisherCount} 张终结牌，D2-D3 抽牌变厚后高压兑现不稳定。`,
+    nextStep:
+      finisherCount === 0
+        ? '优先拿全场终结牌，让完成 0-1-2 后的授权能转化为清场。'
+        : '如果桥牌已经能稳住节奏，可以提前拿 payoff；否则把它当作和稳定桥牌并列的高压兑现分叉。',
+    evidence: [
+      `牌组张数 ${deckCards.length}`,
+      `终结密度阈值 ${requiredFinisherCount}`,
+      `终结牌 ${finisherCount}/${requiredFinisherCount}`,
+      ...rewardEvidence(world),
+      ...rewardForkEvidence(world),
+      ...evolutionEvidence(world)
+    ],
     recommendedCardIds: recommendations,
     recommendedUpgradeChoiceIds: []
   });
@@ -210,17 +232,11 @@ function missingFinisherIssue(world: WorldState): BuildPlanIssueDraft | null {
 
 function needResourceIssue(world: WorldState): BuildPlanIssueDraft | null {
   const deckCards = deckCardsInDefinition(world);
-  const hasFinisher = deckCards.some((card) => card.cardType === 'payoff' || card.cycleRole === 'finisher');
-  const resourceCount = deckCards.filter(
-    (card) =>
-      card.drawCards ||
-      card.energyGain ||
-      card.utilities?.some((utility) => utility === 'draw' || utility === 'mana' || utility === 'wild') ||
-      card.buildRole === 'draw-fixer' ||
-      card.buildRole === 'wild-fixer'
-  ).length;
+  const hasFinisher = deckCards.some(isFinisher);
+  const requiredResourceCount = densityRequirement(deckCards.length);
+  const resourceCount = deckCards.filter(isResourceFixer).length;
 
-  if (!hasFinisher || resourceCount > 0) {
+  if (!hasFinisher || resourceCount >= requiredResourceCount) {
     return null;
   }
 
@@ -236,9 +252,19 @@ function needResourceIssue(world: WorldState): BuildPlanIssueDraft | null {
   });
 
   return issue('need-resource', {
-    reason: '牌组已有终结压力，但缺少抽牌、修补或返 MP 工具，容易摸不到终结或断在中段。',
-    nextStep: '补抽牌、wild 修补或返 MP 牌，让终结牌更常出现在授权回合。',
-    evidence: [`资源修正牌 ${resourceCount}`, ...rewardEvidence(world), ...evolutionEvidence(world)],
+    reason:
+      resourceCount === 0
+        ? '牌组已有终结压力，但缺少抽牌、修补或返 MP 工具，容易摸不到终结或断在中段。'
+        : `当前 ${deckCards.length} 张牌组只有 ${resourceCount}/${requiredResourceCount} 张抽牌、修补或返 MP 工具，厚牌组里还不足以支撑终结回合。`,
+    nextStep: '补抽牌、wild 修补或返 MP 牌；和 payoff 同屏时形成“先稳桥牌/资源”或“提前高压兑现”的选择。',
+    evidence: [
+      `牌组张数 ${deckCards.length}`,
+      `资源密度阈值 ${requiredResourceCount}`,
+      `资源修正牌 ${resourceCount}/${requiredResourceCount}`,
+      ...rewardEvidence(world),
+      ...rewardForkEvidence(world),
+      ...evolutionEvidence(world)
+    ],
     recommendedCardIds: recommendations,
     recommendedUpgradeChoiceIds: []
   });
@@ -286,6 +312,47 @@ function rewardChoices(world: WorldState): CardId[] {
 
 function rewardEvidence(world: WorldState): string[] {
   return rewardChoices(world).length > 0 ? [`奖励候选 ${rewardChoices(world).map(cardLabel).join(', ')}`] : [];
+}
+
+function rewardForkEvidence(world: WorldState): string[] {
+  const choices = rewardChoices(world);
+  if (choices.length === 0) {
+    return [];
+  }
+
+  const used = new Set<CardId>();
+  const drawChain = choices.find((cardId) => {
+    const card = cards[cardId];
+    return Boolean(
+      card &&
+        rewardBranchesForCard(card).has('route-bridge') &&
+        (card.drawCards || card.utilities?.includes('draw') || card.buildRole === 'draw-fixer')
+    );
+  });
+  if (drawChain) {
+    used.add(drawChain);
+  }
+
+  const repair = choices.find((cardId) => {
+    const card = cards[cardId];
+    return Boolean(card && !used.has(cardId) && rewardBranchesForCard(card).has('repair-resource'));
+  });
+  if (repair) {
+    used.add(repair);
+  }
+
+  const payoff = choices.find((cardId) => {
+    const card = cards[cardId];
+    return Boolean(card && !used.has(cardId) && rewardBranchesForCard(card).has('payoff'));
+  });
+
+  if (!drawChain || !repair || !payoff) {
+    return [];
+  }
+
+  return [
+    `奖励分叉 抽牌续链: ${displayCardLabel(drawChain)} / 修补保命: ${displayCardLabel(repair)} / 终结爆发: ${displayCardLabel(payoff)}`
+  ];
 }
 
 function routeEvidence(world: WorldState): string[] {
@@ -355,8 +422,37 @@ function pollutionPriorityAdjustment(pollutionCount: number, hasCleanupPlan: boo
   return pollutionCount >= 2 ? -5 : 0;
 }
 
+function densityRequirement(deckSize: number): number {
+  if (deckSize >= 15) {
+    return 3;
+  }
+
+  if (deckSize >= 9) {
+    return 2;
+  }
+
+  return 1;
+}
+
 function countsForChain(card: CardDefinition): boolean {
-  return card.countsForChain !== false && card.cardType !== 'status';
+  return card.countsForChain !== false && card.cardType !== 'status' && card.buildRole !== 'reserve-test';
+}
+
+function isFinisher(card: CardDefinition): boolean {
+  return card.cycleRole === 'finisher' || card.buildRole === 'payoff-finisher' || card.cardType === 'payoff';
+}
+
+function isResourceFixer(card: CardDefinition): boolean {
+  return Boolean(
+    card.drawCards ||
+      card.energyGain ||
+      card.cardType === 'repair' ||
+      card.cardType === 'resource' ||
+      card.chainRole === 'repair' ||
+      card.utilities?.some((utility) => utility === 'draw' || utility === 'mana' || utility === 'wild') ||
+      card.buildRole === 'draw-fixer' ||
+      card.buildRole === 'wild-fixer'
+  );
 }
 
 function isPollutionBurden(cardId: CardId): boolean {
@@ -374,4 +470,9 @@ function cardDamage(cardId: CardId): number {
 
 function cardLabel(cardId: CardId): string {
   return cards[cardId]?.name ?? cardId;
+}
+
+function displayCardLabel(cardId: CardId): string {
+  const card = cards[cardId];
+  return card?.displayName ?? card?.name ?? cardId;
 }

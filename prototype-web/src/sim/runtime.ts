@@ -3,6 +3,7 @@ import { setCharacterState, setGameFlowState } from '../fsm/stateMachine';
 import { evaluateRules } from '../eca/ruleSet';
 import { redlineRules } from '../eca/redlineRules';
 import {
+  captureActivityCarryoverFromWorld,
   continueActivityAfterVictory,
   createActivitySettlementPreview,
   currentActivityLevel
@@ -17,6 +18,7 @@ import {
 import { createBuildPlan } from './buildPlan';
 import { buildRewardChoices } from './rewardChoices';
 import { nextLevelXp, type RewardBuildPlanPreference, type RewardResponseProblem } from './rewardProgression';
+import { HAND_SIZE } from './constants';
 import {
   completeCombatRouteNode,
   createInitialShortRunRouteState,
@@ -45,7 +47,6 @@ import type {
 } from './types';
 
 const DEBUG_LIMIT = 2000;
-const HAND_SIZE = 4;
 const ENEMY_PRESSURE_Z = -3.2;
 const PRESSURE_POLLUTION_CARD_ID: CardId = 'static_overload';
 const ELITE_ROUTE_ENTRY_DAMAGE = 6;
@@ -977,8 +978,8 @@ function validatePlayCard(world: WorldState, intent: Extract<Intent, { type: 'pl
     return [];
   }
 
-  const currentEnergyPaid = Math.min(world.player.energy, card.cost);
-  const authorizationPaid = card.cost - currentEnergyPaid;
+  const authorizationPaid = canUseAuthorization ? Math.min(world.player.tempAuthorizationMP, card.cost) : 0;
+  const currentEnergyPaid = card.cost - authorizationPaid;
 
   if (card.targets === 'front-enemy') {
     const target = intent.targetId ? world.enemies[intent.targetId] : undefined;
@@ -1514,7 +1515,8 @@ function continueActivityWorld(current: WorldState): WorldState {
     return current;
   }
 
-  return createInitialWorld(current.run.runNumber + 1, continueActivityAfterVictory(current.activity));
+  const carryover = captureActivityCarryoverFromWorld(current);
+  return createInitialWorld(current.run.runNumber + 1, continueActivityAfterVictory(current.activity, carryover));
 }
 
 export function tickWorld(current: WorldState, intents: Intent[]): WorldState {

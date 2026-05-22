@@ -1,7 +1,8 @@
 import { cards } from '../data/cards';
 import { nextTraceId } from '../input/keyboard';
+import { BASE_HAND_SIZE } from '../sim/constants';
 import { ENEMY_COLUMNS } from '../sim/world';
-import type { CardDefinition, EnemySnapshot, GameEvent, GameSnapshot, Intent } from '../sim/types';
+import type { CardDefinition, EnemySnapshot, GameEvent, GameSnapshot, Intent, RewardBranch } from '../sim/types';
 
 export function validHudSelectedTargetId(
   targetId: string | null | undefined,
@@ -29,6 +30,8 @@ export type HudAuthorizationState = {
 export type HudRunLayerState = {
   title: string;
   nodeLabel: string;
+  campaignLabel: string;
+  difficultyBandLabel: string;
   pressureLabel: string;
   rewardLabel: string;
   routeLabel: string;
@@ -74,6 +77,13 @@ export type HudCardPaymentStatusToken = {
   className: 'missing-cost' | 'authorization-cost';
 };
 
+export type HudCardPaymentVisualState =
+  | 'normal-payable'
+  | 'authorization-payable'
+  | 'missing-mp'
+  | 'chain-break-playable'
+  | 'not-playable';
+
 export type HudCardChainRead = {
   label: string;
   multiplier: number;
@@ -85,6 +95,30 @@ export type HudBuildPlanState = {
   token: string;
   reason: string;
   active: boolean;
+};
+
+export type HudBuildGapRole = 'starter' | 'bridge' | 'expand' | 'payoff' | 'repair' | 'pollution';
+
+export type HudBuildGapToken = {
+  role: HudBuildGapRole;
+  label: string;
+  count: number;
+  desired: number;
+  gap: number;
+  active: boolean;
+};
+
+export type HudBuildGapState = {
+  tokens: HudBuildGapToken[];
+  primaryGap: HudBuildGapToken | null;
+  summary: string;
+};
+
+type HudFinisherDecisionState = {
+  mode: 'direct' | 'authorization-open' | 'chain-open';
+  primary: string;
+  secondary: string;
+  detail: string;
 };
 
 type AuthorizationSnapshot = GameSnapshot & {
@@ -103,6 +137,8 @@ type HudCardMetadata = {
   buildRole?: string;
   roleLabel?: string;
 };
+
+type HudCardTypeMark = '攻' | '术' | '增' | '状' | '终' | '修';
 
 type HudRunSnapshot = GameSnapshot & {
   run?: unknown;
@@ -131,7 +167,7 @@ export function hudAuthorizationState(snapshot: GameSnapshot): HudAuthorizationS
   return {
     amount,
     active: amount > 0,
-    label: amount > 0 ? `授权+${amount}` : '授权+0',
+    label: amount > 0 ? `临时授权${amount}` : '授权0',
     detail: amount > 0 ? '本回合临时授权，只支付 3费终结牌' : '完成 0->1->2 后，本回合临时支付 3费终结牌'
   };
 }
@@ -173,6 +209,10 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
   const routeChoices = hudRouteChoicesState(snapshot);
   const pressureTimeline = hudPressureTimelineState(snapshot);
   const activityLevelLabel = activityLevelHudLabel(firstString(activity?.currentLevelId));
+  const deckDetail =
+    deckCount === null
+      ? '活动继承牌组'
+      : `牌组${deckCount} · 活动继承牌组`;
 
   return {
     title: activityLevelLabel ?? '本次清算',
@@ -182,6 +222,8 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
         : currentNode !== null
           ? `节点 ${currentNode}/?`
           : `节点? R${fallbackRound}`,
+    campaignLabel: 'D1-D3 连续三局 · 活动继承牌组/XP/升级',
+    difficultyBandLabel: activityDifficultyBandLabel(firstString(activity?.currentLevelId), maxNode),
     pressureLabel: pressureTimeline.previousPressureLabel,
     rewardLabel:
       pendingChoices.length > 0
@@ -206,23 +248,21 @@ export function hudRunLayerState(snapshot: GameSnapshot): HudRunLayerState {
         ? '选1入组'
         : recentReward
           ? `带入 ${recentReward}`
-          : '继承当前牌组',
+          : '继承活动牌组',
     nextDetail:
       routeChoices.length > 0
         ? pressureTimeline.nextRouteConsequenceLabel
-        : deckCount === null
-          ? '仅本run'
-          : `牌组${deckCount} · 仅本run`,
+        : deckDetail,
     routeChoices
   };
 }
 
 function activityLevelHudLabel(levelId: string | null): string | null {
   if (levelId === 'd1') {
-    return 'D1 试营业清算';
+    return 'D1 初级试营业';
   }
   if (levelId === 'd2') {
-    return 'D2 低压过渡';
+    return 'D2 低压清算';
   }
   if (levelId === 'd3') {
     return 'D3 中级入口';
@@ -233,20 +273,71 @@ function activityLevelHudLabel(levelId: string | null): string | null {
   return null;
 }
 
+function activityDifficultyBandLabel(levelId: string | null, maxNode: number | null): string {
+  const nodeLabel = maxNode ? `${maxNode}节点` : '节点待定';
+  if (levelId === 'd1') {
+    return `初级 · ${nodeLabel}`;
+  }
+
+  if (levelId === 'd2') {
+    return `低压 · ${nodeLabel}`;
+  }
+
+  if (levelId === 'd3') {
+    return `中级 · ${nodeLabel}`;
+  }
+
+  return '初级/低压/中级节点长度可继承查看';
+}
+
 function settlementProgressionDetail(currentLevelId: string | null, nextLevelLabel: string | null): string | null {
   if (currentLevelId === 'd1' && nextLevelLabel === 'D2') {
-    return '下一局进入4节点低压过渡，开始注意路线代价';
+    return '继承 D1 牌组与基础属性；保留牌组/XP/升级，重置手牌/战场/路线';
   }
 
   if (currentLevelId === 'd2' && nextLevelLabel === 'D3') {
-    return '下一局进入6节点长局，D2 已完成路线代价练习';
+    return '继承 D1-D2 构筑；保留牌组/XP/升级，重置手牌/战场/路线';
   }
 
   if (currentLevelId === 'd3') {
-    return '核心三局已打通，后续才进入污染首秀';
+    return '核心三局已打通，进入 D4 前说明：污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
   }
 
   return null;
+}
+
+function pollutionPrimerLabel(snapshot: GameSnapshot, routeChoices: HudRouteChoiceRead[]): string | null {
+  const source = snapshot as HudRunSnapshot;
+  const activity = toRunRecord(source.activity);
+  const currentLevelId = firstString(activity?.currentLevelId);
+  const hasPollutionRoute = routeChoices.some((choice) => choice.pollutionToken.includes('污染') && choice.pollutionToken !== '无污染');
+
+  if (currentLevelId === 'd4' || hasPollutionRoute) {
+    return '污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
+  }
+
+  return null;
+}
+
+function settlementGrowthSummary(snapshot: GameSnapshot): string | null {
+  const source = snapshot as HudRunSnapshot;
+  const run = toRunRecord(source.run);
+  const activity = toRunRecord(source.activity);
+  const currentDeckCount = Array.isArray(snapshot.player?.deck) ? snapshot.player.deck.length : null;
+  const rewardHistory = firstArray(run?.rewardHistory, run?.rewards, run?.rewardLog);
+  const addedCount = rewardHistory.length;
+  const carryover = toRunRecord(activity?.carryover);
+  const carriedDeck = firstArray(carryover?.deck);
+  const previousDeckCount =
+    carriedDeck.length > 0 ? carriedDeck.length : currentDeckCount !== null ? Math.max(0, currentDeckCount - addedCount) : null;
+
+  const parts = [
+    `本局新增${addedCount}张`,
+    currentDeckCount !== null && previousDeckCount !== null ? `牌组 ${previousDeckCount}->${currentDeckCount}` : null,
+    '下局继承'
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.length > 0 ? parts.join(' / ') : null;
 }
 
 export function hudPressureTimelineState(snapshot: GameSnapshot): HudPressureTimelineState {
@@ -397,9 +488,82 @@ export function hudBuildPlanState(snapshot: GameSnapshot): HudBuildPlanState {
     (token === '常规' ? '无构筑预览' : '本run构筑预览');
 
   return {
-    token,
-    reason,
+    token: sanitizePlayerFacingText(token),
+    reason: sanitizePlayerFacingText(reason),
     active: token !== '常规' || issues.length > 0
+  };
+}
+
+export function hudBuildGapState(snapshot: GameSnapshot): HudBuildGapState {
+  const counts: Record<HudBuildGapRole, number> = {
+    starter: 0,
+    bridge: 0,
+    expand: 0,
+    payoff: 0,
+    repair: 0,
+    pollution: 0
+  };
+
+  for (const cardId of snapshot.player.deck ?? []) {
+    const card = cards[cardId];
+    if (!card) {
+      continue;
+    }
+
+    if (card.cardType === 'status' || card.countsForChain === false || card.keywords?.includes('污染')) {
+      counts.pollution += 1;
+      continue;
+    }
+
+    const role = hudCardRoleLabel(card);
+    if (role === '开链') {
+      counts.starter += 1;
+    } else if (role === '承接' || role === '整备') {
+      counts.bridge += 1;
+    } else if (role === '展开') {
+      counts.expand += 1;
+    } else if (role === '终结') {
+      counts.payoff += 1;
+    } else if (role === '修补') {
+      counts.repair += 1;
+    }
+  }
+
+  const specs: Array<{ role: HudBuildGapRole; name: string; desired: number }> = [
+    { role: 'starter', name: '开链', desired: 1 },
+    { role: 'bridge', name: '承接', desired: 1 },
+    { role: 'expand', name: '展开', desired: 1 },
+    { role: 'payoff', name: '终结', desired: 1 },
+    { role: 'repair', name: '修补', desired: 1 },
+    { role: 'pollution', name: '污染', desired: 0 }
+  ];
+
+  const tokens = specs.map((spec) => {
+    const count = counts[spec.role];
+    const gap = Math.max(0, spec.desired - count);
+    return {
+      role: spec.role,
+      label: `${spec.name}x${count}`,
+      count,
+      desired: spec.desired,
+      gap,
+      active: false
+    };
+  });
+  const primaryGap =
+    tokens
+      .filter((token) => token.gap > 0)
+      .sort((left, right) => right.gap - left.gap || specs.findIndex((spec) => spec.role === left.role) - specs.findIndex((spec) => spec.role === right.role))[0] ??
+    null;
+
+  if (primaryGap) {
+    primaryGap.active = true;
+  }
+
+  return {
+    tokens,
+    primaryGap,
+    summary: primaryGap ? `最缺 ${primaryGap.label.replace(/x\d+$/, '')}` : '构筑稳定'
   };
 }
 
@@ -423,7 +587,8 @@ function buildModifierReason(value: unknown): string | null {
   }
 
   const record = toRunRecord(value);
-  return record ? firstString(record.reason, record.summary, record.description, record.label) : null;
+  const reason = record ? firstString(record.reason, record.summary, record.description, record.label) : null;
+  return reason ? sanitizePlayerFacingText(reason) : null;
 }
 
 function modifierIdToken(id: string | null): string | null {
@@ -456,10 +621,10 @@ function routeChoiceRead(value: unknown, currentHp: number | null = null): HudRo
 
   const fromNode = firstNumber(record.fromNode, context?.sourceNode);
   const toNode = firstNumber(record.toNode, context?.targetNode);
-  const label = firstString(record.label, context?.label, record.kind) ?? '下一路线';
+  const label = sanitizePlayerFacingText(firstString(record.label, context?.label, record.kind) ?? '下一路线');
   const modifierId = firstString(record.modifierId, context?.modifierId);
   const rewardBranch = firstString(record.rewardBranchHint, context?.rewardBranchHint);
-  const preview = firstString(record.preview, context?.preview, record.description) ?? `${label} · 下一战`;
+  const preview = sanitizePlayerFacingText(firstString(record.preview, context?.preview, record.description) ?? `${label} · 下一战`);
   const kind = routeChoiceKind(record, context, id, label);
   const routePressure = toRunRecord(firstValue(record.routePressure, context?.routePressure, record.pressure, context?.pressure));
   const entryDamage = firstNumber(routePressure?.entryDamage, routePressure?.hpCost, routePressure?.damage);
@@ -637,7 +802,7 @@ function routeModifierToken(modifierId: string | null): string {
     return '修补牌';
   }
 
-  return modifierId ?? '无modifier';
+  return modifierId ? sanitizePlayerFacingText(modifierId) : '无路线修正';
 }
 
 function routeRewardToken(rewardBranch: string | null): string {
@@ -653,7 +818,7 @@ function routeRewardToken(rewardBranch: string | null): string {
     return '偏路线';
   }
 
-  return rewardBranch ?? '奖励常规';
+  return rewardBranch ? sanitizePlayerFacingText(rewardBranch) : '奖励常规';
 }
 
 function toRunRecord(value: unknown): RunRecord | null {
@@ -708,8 +873,374 @@ function lastItem(values: unknown[]): unknown {
 }
 
 function compactHudText(value: string, maxLength: number): string {
-  const cleaned = value.replace(/\s+/g, ' ').trim();
+  const cleaned = sanitizePlayerFacingText(value).replace(/\s+/g, ' ').trim();
   return cleaned.length <= maxLength ? cleaned : `${cleaned.slice(0, Math.max(1, maxLength - 1))}…`;
+}
+
+function sanitizePlayerFacingText(value: string): string {
+  let cleaned = value;
+  for (const card of Object.values(cards)) {
+    if (card.name && (card.displayName || card.shortName)) {
+      cleaned = cleaned.split(card.name).join(hudCardDisplayName(card));
+    }
+    if (card.id && (card.displayName || card.shortName)) {
+      cleaned = cleaned.split(card.id).join(hudCardDisplayName(card));
+      cleaned = cleaned.split(card.id.replace(/_/g, '-')).join(hudCardDisplayName(card));
+    }
+  }
+
+  return cleaned
+    .replace(/player\s*->\s*Idle\s*[:：]\s*cast resolved/gi, '玩家出牌结算')
+    .replace(/card[._-]damage[._-]front-enemy/gi, '单体伤害')
+    .replace(/front-enemy/gi, '单体目标')
+    .replace(/Settlement:\s*run completed/gi, '结算完成')
+    .replace(/run completed/gi, '本局完成')
+    .replace(/Debt Wisp/g, '债雾')
+    .replace(/Redline Brute/g, '红线蛮兵')
+    .replace(/Pulse Collector/g, '脉冲收集者')
+    .replace(/debt[-_]wisp/g, '债雾')
+    .replace(/redline[-_]brute/g, '红线蛮兵')
+    .replace(/pulse[-_]collector/g, '脉冲收集者')
+    .replace(/SetGameFlowStateDealHand/g, '进入发牌')
+    .replace(/SetGameFlowStatePlayerTurn/g, '进入出牌')
+    .replace(/SetGameFlowStateEnemyAttack/g, '进入敌方攻击')
+    .replace(/SetGameFlowStateEnemyRefill/g, '进入敌群补位')
+    .replace(/SetGameFlowStateReward/g, '进入奖励')
+    .replace(/SetGameFlowStateSettlement/g, '进入结算')
+    .replace(/SetGameFlowState/g, '切换阶段')
+    .replace(/RouteSelect/g, '路线选择')
+    .replace(/PlayerTurn/g, '玩家出牌')
+    .replace(/EnemyAttack/g, '怪物攻击')
+    .replace(/EnemyRefill/g, '怪物补位')
+    .replace(/DealHand/g, '发牌')
+    .replace(/Deal/g, '发牌')
+    .replace(/RewardChosen/g, '获得奖励')
+    .replace(/CardAddedToDeck/g, '加入牌组')
+    .replace(/CardPlayed/g, '打出牌')
+    .replace(/CardMoved/g, '移动牌')
+    .replace(/HandDealt/g, '发牌完成')
+    .replace(/AddCardToDeck/g, '加入牌组')
+    .replace(/DiscardHand/g, '弃掉手牌')
+    .replace(/DiscardPlayedCard/g, '弃掉已打牌')
+    .replace(/ClearRewardChoices/g, '清空奖励候选')
+    .replace(/SetCharacterState/g, '角色状态')
+    .replace(/SetCombo/g, '连锁倍率')
+    .replace(/DamageEnemy/g, '伤害敌人')
+    .replace(/DamageApplied/g, '造成伤害')
+    .replace(/ChainExtended/g, '延展链路')
+    .replace(/ChainAdvanced/g, '推进链路')
+    .replace(/IntentReceived/g, '收到操作')
+    .replace(/gameFlow/g, '阶段')
+    .replace(/player/g, '玩家')
+    .replace(/Cast/g, '出牌中')
+    .replace(/Idle/g, '待机')
+    .replace(/cast resolved/g, '出牌结算')
+    .replace(/玩家\s*[-=]*>\s*待机\s*[:：]\s*出牌结算/g, '玩家出牌结算')
+    .replace(/passed/g, '通过')
+    .replace(/select-route/gi, '选择路线')
+    .replace(/select-reward/gi, '选择奖励')
+    .replace(/play-card/gi, '打出牌')
+    .replace(/deal-hand/gi, '发牌')
+    .replace(/end-turn/gi, '结束回合')
+    .replace(/continue-activity/gi, '进入下一局')
+    .replace(/restart-current-level/gi, '重试本局')
+    .replace(/pointer/gi, '点击')
+    .replace(/internal command/gi, '系统指令')
+    .replace(/\bcommand\b/gi, '指令')
+    .replace(/\binternal\b/gi, '系统')
+    .replace(/Debug Trace/g, '战斗记录')
+    .replace(/\bCHAIN\b/g, '链路')
+    .replace(/\bFSM\b/g, '阶段')
+    .replace(/\bpayoff\b/gi, '终结')
+    .replace(/终结\s+终结牌/g, '终结牌')
+    .replace(/\bmodifier\b/gi, '修正')
+    .replace(/\bWild\b/g, '万能修补')
+    .replace(/\bMax MP\b/g, '最大MP')
+    .replace(/Reward reroll/gi, '奖励复核')
+    .replace(/preview becomes/gi, '预览变为')
+    .replace(/preview gains/gi, '预览获得')
+    .replace(/\breroll\b/gi, '次复核')
+    .replace(/for this run only/gi, '仅本run')
+    .replace(/\s+仅本run\./g, '，仅本run。')
+    .replace(/\bBRU\b/g, '蛮兵')
+    .replace(/\bCOL\b/g, '收集者')
+    .replace(/\bWSP\b/g, '债雾')
+    .replace(/_/g, '-');
+}
+
+function hasInternalDebugArtifact(label: string): boolean {
+  if (/[._]|->|=>|::/.test(label)) {
+    return true;
+  }
+
+  const asciiWords = label.match(/[A-Za-z][A-Za-z0-9-]*/g) ?? [];
+  return asciiWords.some((word) => !['HP', 'MP', 'XP'].includes(word) && !/^D\d+$/.test(word));
+}
+
+function enemyDisplayName(enemy: Pick<EnemySnapshot, 'definitionId' | 'name'> | null | undefined, fallbackId?: string): string {
+  const definitionId = enemy?.definitionId ?? fallbackId ?? '';
+  if (definitionId === 'debt_wisp' || definitionId === 'debt-wisp') {
+    return '债雾';
+  }
+
+  if (definitionId === 'redline_brute' || definitionId === 'redline-brute') {
+    return '红线蛮兵';
+  }
+
+  if (definitionId === 'pulse_collector' || definitionId === 'pulse-collector') {
+    return '脉冲收集者';
+  }
+
+  const name = enemy?.name ?? fallbackId ?? '未知敌人';
+  return sanitizePlayerFacingText(name);
+}
+
+const rewardInheritanceFeedback = '已加入继承牌组，后续活动继续可抽到';
+const rewardInheritanceInstruction = '选择后加入继承牌组，后续活动继续可抽到';
+
+export function hudCardDisplayName(card: CardDefinition): string {
+  return card.displayName ?? card.shortName ?? card.name;
+}
+
+export function hudCardShortName(card: CardDefinition): string {
+  return card.shortName ?? card.displayName ?? card.name;
+}
+
+export function hudCardMobileEffectLabel(card: CardDefinition, multiplier = 1): string {
+  if (card.drawCards && multiplier > 1) {
+    const drawLabel = `抽${card.drawCards * multiplier}`;
+    if (card.energyGain && card.energyGainCondition === 'chain-repaired') {
+      return `${drawLabel} MP+${card.energyGain}`;
+    }
+    return card.utilities?.includes('reorder') ? `${drawLabel}整备` : drawLabel;
+  }
+
+  if (card.mobileEffect) {
+    return compactHudText(dedupeAdjacentEffectText(card.mobileEffect), 8);
+  }
+
+  if (card.damage > 0) {
+    const scope = card.targets === 'front-row' ? '前排' : card.targets === 'all-enemies' ? '全场' : '单体';
+    return `${scope}${card.damage}`;
+  }
+
+  if (card.drawCards) {
+    return `抽${card.drawCards}`;
+  }
+
+  if (card.energyGain) {
+    return card.energyGainCondition === 'chain-repaired' ? `修补 MP +${card.energyGain}` : `MP +${card.energyGain}`;
+  }
+
+  return compactHudText(card.rulesText || hudCardTypeLabel(card), 8);
+}
+
+function dedupeAdjacentEffectText(value: string): string {
+  const compact = value.replace(/\s+/g, '');
+  if (compact.length % 2 === 0) {
+    const half = compact.length / 2;
+    if (compact.slice(0, half) === compact.slice(half)) {
+      return compact.slice(0, half);
+    }
+  }
+
+  return value;
+}
+
+function hudDesktopEffectLabel(costLabel: string, effectLabel: string, mobileEffectLabel: string, payoffLabel: string): string {
+  const mobile = normalizedHudEffectText(mobileEffectLabel);
+  const repeatsMobile =
+    mobile.length > 0 &&
+    (normalizedHudEffectText(effectLabel).includes(mobile) || normalizedHudEffectText(payoffLabel).includes(mobile));
+  return repeatsMobile ? costLabel : `${costLabel} · ${effectLabel}`;
+}
+
+function normalizedHudEffectText(value: string): string {
+  return value.replace(/\s+/g, '').replace(/伤害/g, '');
+}
+
+export function hudCardTypeLabel(card: CardDefinition): string {
+  const labels: Record<CardDefinition['cardType'], string> = {
+    attack: '攻击',
+    draw: '抽牌',
+    repair: '修补',
+    resource: '资源',
+    skill: '技能',
+    payoff: '终结',
+    status: '状态'
+  };
+  return labels[card.cardType] ?? card.cardType;
+}
+
+export function hudCardTypeMark(card: CardDefinition): HudCardTypeMark {
+  const marks: Record<CardDefinition['cardType'], HudCardTypeMark> = {
+    attack: '攻',
+    draw: '术',
+    repair: '修',
+    resource: '增',
+    skill: '术',
+    payoff: '终',
+    status: '状'
+  };
+  return marks[card.cardType] ?? '术';
+}
+
+export function hudCardChainRoleLabel(card: CardDefinition): string {
+  if (card.cardType === 'status' || card.countsForChain === false) {
+    return '不接链';
+  }
+
+  const labels: Record<CardDefinition['chainRole'], string> = {
+    starter: '开链',
+    bridge: '接链',
+    expand: '展开',
+    repair: '修补',
+    payoff: '终结'
+  };
+  return card.hudRoleLabel ?? labels[card.chainRole] ?? card.chainRole;
+}
+
+export function hudCardSecondaryRoleLabel(card: CardDefinition): string {
+  if (card.cardType === 'status' || card.countsForChain === false) {
+    return card.keywords?.includes('污染') ? '污染/不接链' : '不接链';
+  }
+
+  if (isHudAuthorizationPayoffCard(card)) {
+    return 'MP/授权';
+  }
+
+  if (card.cardType === 'payoff' || card.chainRole === 'payoff' || card.targets === 'all-enemies') {
+    return '收尾爆发';
+  }
+
+  if (card.chainRole === 'repair' || card.cardType === 'repair' || card.utilities?.includes('wild')) {
+    if (card.keywords?.includes('净化')) {
+      return '清污染';
+    }
+    if (card.drawCards) {
+      return '补流动';
+    }
+    return '补缺口';
+  }
+
+  if (card.chainRole === 'expand') {
+    return `${card.cost}费展开`;
+  }
+
+  if (card.utilities?.includes('reorder')) {
+    return '找终结';
+  }
+
+  if (card.drawCards) {
+    return '补手牌';
+  }
+
+  return hudCardChainRoleLabel(card);
+}
+
+function hudRewardBranchDetailLabel(card: CardDefinition): string {
+  const branch = card.rewardBranches?.[0];
+
+  if (branch === 'repair-resource') {
+    return hudCardSecondaryRoleLabel(card);
+  }
+
+  if (branch === 'payoff') {
+    return isHudAuthorizationPayoffCard(card) ? 'MP/授权' : '爆发收尾';
+  }
+
+  if (branch === 'route-bridge') {
+    return `${card.cost}费展开`;
+  }
+
+  return hudCardSecondaryRoleLabel(card);
+}
+
+export function hudRewardBranchLabel(branch: RewardBranch | string | undefined): string {
+  if (branch === 'route-bridge') {
+    return '路线';
+  }
+
+  if (branch === 'repair-resource') {
+    return '修补';
+  }
+
+  if (branch === 'payoff') {
+    return '终结';
+  }
+
+  return branch ?? '常规';
+}
+
+export function hudCardPaymentVisualState(
+  card: CardDefinition,
+  snapshot: GameSnapshot,
+  payment: HudCardPaymentRead = hudCardPaymentRead(card, snapshot),
+  chainRead: HudCardChainRead = hudCardChainRead(card, snapshot)
+): HudCardPaymentVisualState {
+  if (snapshot.fsm.gameFlow !== 'PlayerTurn') {
+    return 'not-playable';
+  }
+
+  if (payment.usesAuthorization) {
+    return 'authorization-payable';
+  }
+
+  if (!payment.playable) {
+    return 'missing-mp';
+  }
+
+  if (chainRead.breaksChain && payment.playable) {
+    return 'chain-break-playable';
+  }
+
+  return 'normal-payable';
+}
+
+function hudCardPaymentVisualToken(
+  state: HudCardPaymentVisualState,
+  card: CardDefinition,
+  payment: HudCardPaymentRead
+): string | null {
+  if (state === 'authorization-payable') {
+    return '授权付';
+  }
+
+  if (state === 'missing-mp') {
+    return isHudAuthorizationPayoffCard(card) ? '缺授权' : `缺MP${payment.missingMP}`;
+  }
+
+  if (state === 'chain-break-playable') {
+    return '断链可打';
+  }
+
+  if (state === 'not-playable') {
+    return '不可打';
+  }
+
+  return null;
+}
+
+function hudAuthorizationSegmentLabel(card: CardDefinition, snapshot?: GameSnapshot): string | null {
+  const isAuthorizationSegment =
+    card.chainRole === 'expand' && (card.keywords.includes('授权') || Boolean(card.mechanicTags?.includes('authorization')));
+  if (!isAuthorizationSegment) {
+    return null;
+  }
+
+  return snapshot?.chain?.nextExpectedCost === 2 ? '2费展开 · 临时授权3' : '临时授权3';
+}
+
+function hudChainBreakWarningLabel(card: CardDefinition, snapshot: GameSnapshot, payment: HudCardPaymentRead, chainRead: HudCardChainRead): string | null {
+  if (!payment.playable || !chainRead.breaksChain || snapshot.fsm.gameFlow !== 'PlayerTurn') {
+    return null;
+  }
+
+  if (snapshot.chain.nextExpectedCost === 2 && card.cost !== 2) {
+    return '断授权窗/少2费';
+  }
+
+  return null;
 }
 
 function readableRewardLabel(value: unknown): string | null {
@@ -718,7 +1249,7 @@ function readableRewardLabel(value: unknown): string | null {
   }
 
   if (typeof value === 'string') {
-    return cards[value]?.name ?? value;
+    return cards[value] ? hudCardDisplayName(cards[value]) : sanitizePlayerFacingText(value);
   }
 
   if (typeof value !== 'object') {
@@ -728,11 +1259,11 @@ function readableRewardLabel(value: unknown): string | null {
   const record = value as RunRecord;
   const cardId = typeof record.cardId === 'string' ? record.cardId : typeof record.id === 'string' ? record.id : null;
   if (cardId) {
-    return cards[cardId]?.name ?? cardId;
+    return cards[cardId] ? hudCardDisplayName(cards[cardId]) : sanitizePlayerFacingText(cardId);
   }
 
   const label = typeof record.name === 'string' ? record.name : typeof record.label === 'string' ? record.label : null;
-  return label;
+  return label ? sanitizePlayerFacingText(label) : null;
 }
 
 function rewardCandidateTokens(cardIds: string[]): string[] {
@@ -777,13 +1308,52 @@ function rewardRouteCandidateLabel(cardIds: string[]): string {
           card?.utilities?.includes('reorder')
       );
     })
-    .map((cardId) => cards[cardId]?.name ?? cardId);
+    .map((cardId) => (cards[cardId] ? hudCardDisplayName(cards[cardId]) : cardId));
 
   if (routeCards.length === 0) {
     return '路线候选 0';
   }
 
   return routeCards.length === 1 ? `路线候选 ${routeCards[0]}` : `路线候选 ${routeCards.length}`;
+}
+
+function hudRewardPickReason(card: CardDefinition, buildGap: HudBuildGapState): string {
+  const role = buildGap.primaryGap?.role;
+  const cardRole = hudCardRoleLabel(card);
+
+  if (role === 'payoff' && (card.rewardBranches?.includes('payoff') || cardRole === '终结')) {
+    return '缺终结，优先拿终结牌';
+  }
+
+  if (role === 'expand' && cardRole === '展开') {
+    return '缺2费展开，优先补授权节奏';
+  }
+
+  if (role === 'repair' && (card.rewardBranches?.includes('repair-resource') || cardRole === '修补')) {
+    return '缺修补，优先拿修补牌';
+  }
+
+  if (role === 'bridge' && (cardRole === '承接' || cardRole === '整备')) {
+    return '缺承接，优先补1费过渡';
+  }
+
+  if (role === 'starter' && cardRole === '开链') {
+    return '缺开链，优先补0费起手';
+  }
+
+  if (card.rewardBranches?.includes('payoff')) {
+    return '补终结路线，提高收尾能力';
+  }
+
+  if (card.rewardBranches?.includes('repair-resource')) {
+    return '补修补资源，降低卡手风险';
+  }
+
+  if (card.rewardBranches?.includes('route-bridge')) {
+    return '补路线节奏，稳定0-1-2展开';
+  }
+
+  return '补当前牌组短板';
 }
 
 export function isHudAuthorizationPayoffCard(card: CardDefinition): boolean {
@@ -795,10 +1365,19 @@ export function hudCardChainRead(card: CardDefinition, snapshot: GameSnapshot): 
   const isPlayerTurn = snapshot.fsm.gameFlow === 'PlayerTurn';
   const currentMultiplier = Math.max(snapshot.player.costChainMultiplier ?? 1, snapshot.chain.multiplier ?? 1);
 
+  if (card.countsForChain === false || card.cardType === 'status') {
+    return {
+      label: '不接链',
+      multiplier: 1,
+      breaksChain: false,
+      className: ''
+    };
+  }
+
   if (snapshot.player.lastPlayedCost === null) {
     const startsChain = card.cost === 0;
     return {
-      label: startsChain ? '起链x1' : '非起x1',
+      label: startsChain ? '0费起链 x1' : '等待0费起链',
       multiplier: 1,
       breaksChain: false,
       className: isPlayerTurn && hasEnergy && startsChain ? 'chain-match' : ''
@@ -814,7 +1393,7 @@ export function hudCardChainRead(card: CardDefinition, snapshot: GameSnapshot): 
   if (isWildRepair) {
     const multiplier = currentMultiplier + 1;
     return {
-      label: `修补MP${snapshot.chain.nextExpectedCost}x${multiplier}`,
+      label: `修补 MP ${snapshot.chain.nextExpectedCost} x${multiplier}`,
       multiplier,
       breaksChain: false,
       className: isPlayerTurn && hasEnergy ? 'chain-match' : ''
@@ -829,7 +1408,7 @@ export function hudCardChainRead(card: CardDefinition, snapshot: GameSnapshot): 
   if (isWildExtension) {
     const multiplier = currentMultiplier + 1;
     return {
-      label: `延MP3x${multiplier}`,
+      label: `延展 MP 3 x${multiplier}`,
       multiplier,
       breaksChain: false,
       className: isPlayerTurn && hasEnergy ? 'chain-match' : ''
@@ -854,6 +1433,10 @@ export function hudCardChainRead(card: CardDefinition, snapshot: GameSnapshot): 
 export function hudCardRoleLabel(card: CardDefinition): string {
   const utilities = new Set(card.utilities ?? []);
   const metadata = card as CardDefinition & HudCardMetadata;
+
+  if (card.cardType === 'status' || card.countsForChain === false) {
+    return '状态';
+  }
 
   if (card.id === 'clearance_order') {
     return '展开';
@@ -933,6 +1516,10 @@ export function hudCardLifecycleToken(card: CardDefinition): string | null {
 
 export function hudCardVisibleRoleLabel(card: CardDefinition): string {
   const lifecycle = hudCardLifecycleToken(card);
+  if (card.cardType === 'status' || card.countsForChain === false) {
+    return lifecycle ? `状态 · ${lifecycle === '污' ? '污染' : lifecycle}` : '状态 · 不接链';
+  }
+
   return lifecycle ? `${hudCardRoleLabel(card)} · ${lifecycle}` : hudCardRoleLabel(card);
 }
 
@@ -945,7 +1532,7 @@ export function hudCardTurnEndDestinationLabel(card: CardDefinition): string {
 }
 
 function cardName(cardId: string): string {
-  return cards[cardId]?.name ?? cardId;
+  return cards[cardId] ? hudCardDisplayName(cards[cardId]) : cardId;
 }
 
 function cardMoveReasonLabel(reason: string): string {
@@ -1037,7 +1624,7 @@ export function hudCardPaymentRead(
       playable,
       usesAuthorization: missingMP > 0 && canUseAuthorization,
       missingMP: 0,
-      reason: missingMP > 0 ? `授权支付：${card.name}` : `出牌：${card.name}`,
+      reason: missingMP > 0 ? `授权支付：${hudCardDisplayName(card)}` : `出牌：${hudCardDisplayName(card)}`,
       costLabel: missingMP > 0 ? `MP ${card.cost} · ${authorization.label}` : `MP ${card.cost}`
     };
   }
@@ -1083,14 +1670,14 @@ function frontRowEnemies(snapshot: GameSnapshot): EnemySnapshot[] {
 
 function enemyShortLabel(enemy: EnemySnapshot): string {
   if (enemy.definitionId === 'redline_brute') {
-    return 'BRU';
+    return '蛮兵';
   }
 
   if (enemy.definitionId === 'pulse_collector') {
-    return 'COL';
+    return '收集';
   }
 
-  return 'WSP';
+  return '债雾';
 }
 
 export function defaultHudFrontTargetId(snapshot: GameSnapshot): string | null {
@@ -1353,6 +1940,7 @@ export class Hud {
     const nextLevelLabel = firstString(activityPreview?.nextLevelLabel);
     const settlementWon = isSettlement && snapshot.run?.status === 'victory';
     const settlementDetail = settlementWon ? settlementProgressionDetail(firstString(activityPreview?.currentLevelId), nextLevelLabel) : null;
+    const settlementGrowth = settlementWon ? settlementGrowthSummary(snapshot) : null;
     const settlementAction = settlementWon && nextLevelLabel
       ? {
           attr: 'data-continue-activity',
@@ -1370,12 +1958,26 @@ export class Hud {
     const authorization = hudAuthorizationState(snapshot);
     const runLayer = hudRunLayerState(snapshot);
     const buildPlan = hudBuildPlanState(snapshot);
+    const buildGap = hudBuildGapState(snapshot);
     const routeChoiceMarkup = this.renderRouteChoices(runLayer.routeChoices);
+    const pollutionPrimer = pollutionPrimerLabel(snapshot, runLayer.routeChoices);
+    const latestRuleLabels = latestRules
+      .map((rule) => this.ruleFeedbackLabel(rule.ruleId, rule.passed))
+      .filter((label): label is string => Boolean(label));
+    const latestFailedLabels = latestFailed
+      .map((item) => this.failedConditionLabel(item.conditionId, item.reason))
+      .filter((label): label is string => Boolean(label));
+    const latestOperationLabels = [
+      ...latestCommands.map((command) => this.commandFeedbackLabel(command.type)),
+      ...latestTrace.map((trace) => this.traceFeedbackLabel(trace.label))
+    ]
+      .filter((label): label is string => Boolean(label))
+      .slice(0, 6);
     const chainStarted = snapshot.player.lastPlayedCost !== null;
     const nextChainCost = chainStarted ? snapshot.player.lastPlayedCost! + 1 : 0;
     const nextChainMultiplier = chainStarted ? snapshot.player.costChainMultiplier + 1 : 1;
     const chainRouteLabel = this.chainRouteLabel(snapshot);
-    const chainHint = chainStarted ? `下MP${nextChainCost} x${nextChainMultiplier}` : 'MP0起链';
+    const chainHint = chainStarted ? `下张 MP ${nextChainCost} x${nextChainMultiplier}` : '等待0费起链';
     const frontEnemySlots = Array.from({ length: ENEMY_COLUMNS }, (_, slot) =>
       snapshot.enemies.find((enemy) => enemy.alive && enemy.slot === slot)
     );
@@ -1390,9 +1992,11 @@ export class Hud {
         : snapshot.fsm.gameFlow === 'EnemyRefill'
           ? '怪物补位'
           : snapshot.fsm.gameFlow === 'Reward'
-            ? '升级奖励'
+            ? '战后奖励'
           : snapshot.fsm.gameFlow === 'Settlement'
             ? '游戏结束'
+            : snapshot.fsm.gameFlow === 'RouteSelect'
+              ? '路线选择'
             : snapshot.fsm.gameFlow;
     const activeEnemies = snapshot.enemies.filter((enemy) => enemy.alive);
     const frontThreatEnemies = activeEnemies.filter((enemy) => enemy.slot >= 0 && enemy.slot < ENEMY_COLUMNS);
@@ -1435,18 +2039,30 @@ export class Hud {
           ? `${activeEnemies.length} 后排压上`
           : '清场窗口';
     const threatDetail = priorityThreat
-      ? `${priorityThreat.name} HP ${priorityThreat.hp}/${priorityThreat.maxHp}`
+      ? `${enemyDisplayName(priorityThreat)} HP ${priorityThreat.hp}/${priorityThreat.maxHp}`
       : activeEnemies.length > 0
         ? '下一波正在补位'
         : '回收节奏，准备下一轮';
     const actionLabel = isPlayerTurn
       ? playableCount > 0
-        ? `${playableCount} 可打 · ${playableVerbs.join(' / ')}`
-        : '无可打牌'
+        ? burstCardsReady
+          ? `${playableCount} 可支付 · 终结可打`
+          : `${playableCount} 可支付 · ${chainStarted ? `接 MP ${nextChainCost}` : '先打 MP 0'}`
+        : '无可支付牌'
       : flowLabel;
     const payoffPreview = this.payoffPreviewLabel(snapshot);
-    const deckLoopLabel = `总 ${snapshot.player.deck.length} · 抽 ${snapshot.player.drawPile.length} · 弃 ${snapshot.player.discardPile.length} · 手 ${snapshot.player.hand.length} · 消 ${snapshot.player.exhaustPile.length} · 留 ${snapshot.player.retainedCards.length}`;
-    const compactDeckLoopLabel = `抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length} 消${snapshot.player.exhaustPile.length} 留${snapshot.player.retainedCards.length}`;
+    const finisherDecision = this.finisherDecisionState(snapshot);
+    const handCountLabel = `手 ${snapshot.player.hand.length}/${BASE_HAND_SIZE}`;
+    const deckLoopLabel = `总 ${snapshot.player.deck.length} · 抽 ${snapshot.player.drawPile.length} · 弃 ${snapshot.player.discardPile.length} · ${handCountLabel} · 消 ${snapshot.player.exhaustPile.length} · 留 ${snapshot.player.retainedCards.length}`;
+    const compactDeckLoopLabel = `抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length}`;
+    const visibleDeckLoopLabel = `手${snapshot.player.hand.length}/${BASE_HAND_SIZE} ${compactDeckLoopLabel}`;
+    const secondaryDeckLoopLabel = `消${snapshot.player.exhaustPile.length} 留${snapshot.player.retainedCards.length} 总${snapshot.player.deck.length}`;
+    const handHiddenCount = Math.max(0, snapshot.player.hand.length - 1);
+    const handRailHintLabel =
+      snapshot.player.hand.length > 1
+        ? `手牌 ${snapshot.player.hand.length}/${BASE_HAND_SIZE} 可横滑 · 还有${handHiddenCount}张`
+        : `手牌 ${snapshot.player.hand.length}/${BASE_HAND_SIZE}`;
+    const hasRewardChoices = Boolean(snapshot.reward.pending && snapshot.reward.choices.length > 0);
     const canEndTurn = canHudEndTurn(snapshot.fsm.gameFlow);
     const endTurnTitle = isPlayerTurn ? `结束当前玩家回合；${unresolvedIntentLabel}` : '当前不是玩家出牌阶段';
     const endTurnLabel = enemyIntent.totalDamage > 0 ? `结束-${enemyIntent.totalDamage}` : '结束回合';
@@ -1457,13 +2073,13 @@ export class Hud {
           ? '本关完成，进入下一难度。'
           : '你已阵亡，点击重试。'
         : snapshot.fsm.gameFlow === 'Reward'
-        ? '升级奖励选择中。'
+        ? '战后奖励选择中。'
         : isPlayerTurn
         ? '手牌已空，点击结束回合。'
         : '等待回合阶段结算。';
 
     const markup = `
-      <section class="status-strip" aria-label="status">
+      <section class="status-strip" aria-label="状态">
         <div class="resource-chip hp-chip ${playerHitClass}" style="--fill: ${hpFill}%">
           <span class="resource-head">
             <strong>HP</strong>
@@ -1488,7 +2104,7 @@ export class Hud {
           <span>XP ${snapshot.player.xp} / ${snapshot.reward.xpThreshold}</span>
         </div>
         <div class="status-chip chain-chip ${chainStarted ? 'active' : ''}">
-          <strong>CHAIN</strong>
+          <strong>链路</strong>
           <span>${chainRouteLabel}</span>
           <em>${chainHint}</em>
         </div>
@@ -1503,18 +2119,31 @@ export class Hud {
           <em>${enemyIntent.detail}</em>
         </div>
         <div class="status-chip phase-chip">
-          <strong>FSM</strong>
+          <strong>阶段</strong>
           <span>R${snapshot.round} ${flowLabel}</span>
         </div>
-        <div class="status-chip pile-chip" title="${deckLoopLabel}">
+        <div class="status-chip pile-chip" title="${deckLoopLabel}" data-base-hand-size="${BASE_HAND_SIZE}">
           <strong>牌堆</strong>
-          <span>抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length} 消${snapshot.player.exhaustPile.length} 留${snapshot.player.retainedCards.length}</span>
-          <em>抽/弃/消/留</em>
+          <span>${visibleDeckLoopLabel}</span>
+          <em>${secondaryDeckLoopLabel}</em>
         </div>
         <button type="button" data-restart-current-level>重试</button>
       </section>
 
-      <section class="combat-director chain-director ${directorState}" aria-label="hyper turn chain director">
+      <section
+        class="build-gap-bar ${buildGap.primaryGap ? 'has-gap' : 'stable'}"
+        aria-label="构筑缺口"
+        title="${buildGap.summary}"
+      >
+        ${buildGap.tokens
+          .map(
+            (token) =>
+              `<span class="build-gap-token ${token.active ? 'active' : ''}" data-build-gap-role="${token.role}" data-build-gap-count="${token.count}" data-build-gap-desired="${token.desired}">${token.label}</span>`
+          )
+          .join('')}
+      </section>
+
+      <section class="combat-director chain-director ${directorState}" aria-label="出牌决策">
         <div class="director-cell director-chain">
           <span>本回合链路</span>
           <strong>${chainRouteLabel}</strong>
@@ -1522,7 +2151,7 @@ export class Hud {
         </div>
         <div class="director-cell director-action">
           <span>下张费用</span>
-          <strong>${chainStarted ? `MP${nextChainCost}` : 'MP0'}</strong>
+          <strong>${chainStarted ? `MP ${nextChainCost}` : 'MP 0'}</strong>
           <em>${actionLabel}</em>
         </div>
         <div class="director-cell director-intent">
@@ -1537,13 +2166,24 @@ export class Hud {
         </div>
       </section>
 
-      <section class="deal-panel" aria-label="deal cards">
+      ${
+        finisherDecision
+          ? `<section class="finisher-decision-bar ${finisherDecision.mode}" aria-label="终结决策条" data-finisher-window="${finisherDecision.mode}" style="position: sticky; bottom: 0; z-index: 12;">
+              <span>终结决策</span>
+              <strong>${finisherDecision.primary}</strong>
+              <em>${finisherDecision.secondary}</em>
+              <small>${finisherDecision.detail}</small>
+            </section>`
+          : ''
+      }
+
+      <section class="deal-panel" aria-label="发牌与回合操作">
         <div>
           <span>回合 ${snapshot.round}</span>
           <strong>${flowLabel}</strong>
           <small>${
             isDeal
-              ? '按 D 或点击发牌'
+              ? '点击发牌'
                 : isSettlement
                   ? '本局已结束'
               : snapshot.fsm.gameFlow === 'Reward'
@@ -1562,45 +2202,46 @@ export class Hud {
         }
       </section>
 
-      <section class="target-panel ${selectedTarget ? 'target-locked' : 'target-random'}" aria-label="target selection">
+      <section class="target-panel ${selectedTarget ? 'target-locked' : 'target-random'}" aria-label="目标选择">
         <strong>目标</strong>
         <span>${selectedTarget ? enemyShortLabel(selectedTarget) : defaultTarget ? `默认${enemyShortLabel(defaultTarget)}` : '无前排'}</span>
       </section>
 
-      <section class="run-layer-panel" aria-label="run layer">
+      <section class="run-layer-panel" aria-label="路线层">
         <div class="run-layer-main">
           <span>${runLayer.title}</span>
           <strong>${runLayer.nodeLabel}</strong>
-          <em>${runLayer.pressureLabel}</em>
-          <small>${runLayer.buildProblemLabel}</small>
+          <em>${runLayer.campaignLabel}</em>
+          <small>${runLayer.difficultyBandLabel} · ${runLayer.buildProblemLabel}</small>
+          ${pollutionPrimer ? `<small>${pollutionPrimer}</small>` : ''}
         </div>
-        <div class="run-layer-meta" aria-label="next encounter carryover">
+        <div class="run-layer-meta" aria-label="下一战继承">
           <span>${runLayer.nextTitle}</span>
           <strong>${runLayer.nextState}</strong>
           <em>${runLayer.nextDetail}</em>
         </div>
       </section>
 
-      <section class="enemy-peek ${this.enemyInfoVisible ? 'enemy-info-visible' : ''}" aria-label="front enemy target controls">
+      <section class="enemy-peek ${this.enemyInfoVisible ? 'enemy-info-visible' : ''}" aria-label="前排目标按钮">
         <button
           type="button"
           class="enemy-peek-toggle"
           data-enemy-toggle
           aria-expanded="${this.enemyInfoVisible}"
-          title="${this.enemyInfoVisible ? '隐藏前排怪物信息' : '显示第一排怪物信息与目标按钮'}"
+        title="${this.enemyInfoVisible ? '隐藏前排怪物信息' : '显示第一排怪物信息与目标按钮'}"
         >
           ${this.enemyInfoVisible ? '隐藏前排' : `前排显影 ${livingFrontEnemies}`}
         </button>
         ${
           this.enemyInfoVisible
-            ? `<div class="enemy-slot-strip" aria-label="front enemy slots">
+            ? `<div class="enemy-slot-strip" aria-label="前排敌人槽位">
                 ${frontEnemySlots.map((enemy, index) => this.renderEnemySlot(enemy, index)).join('')}
               </div>`
             : ''
         }
       </section>
 
-      <section class="combat-feed" aria-label="combat feed" aria-live="polite">
+      <section class="combat-feed" aria-label="战斗信息" aria-live="polite">
         <header>
           <strong>战斗信息</strong>
           <span>${isDeal ? '待发牌' : flowLabel}</span>
@@ -1616,11 +2257,13 @@ export class Hud {
 
       ${
         isSettlement
-              ? `<section class="game-over-panel" aria-label="game over">
-              <span>${settlementWon ? 'Clear' : 'Game Over'}</span>
+              ? `<section class="game-over-panel" aria-label="结算">
+              <span>${settlementWon ? '通关' : '失败'}</span>
               <strong>${settlementWon ? `${activityLevelLabel} 完成` : '你已阵亡'}</strong>
               <small>回合 ${snapshot.round} · ${
-                settlementWon ? `${settlementAction.label}${settlementDetail ? ` · ${settlementDetail}` : ''}` : '敌群突破防线'
+                settlementWon
+                  ? `${settlementGrowth ? `${settlementGrowth} · ` : ''}${settlementAction.label}${settlementDetail ? ` · ${settlementDetail}` : ''}`
+                  : '敌群突破防线'
               }</small>
               <button type="button" ${settlementAction.attr}>${settlementAction.label}</button>
             </section>`
@@ -1628,15 +2271,15 @@ export class Hud {
       }
 
       ${
-        snapshot.fsm.gameFlow === 'Reward'
-          ? `<section class="reward-panel" aria-label="level reward">
+        snapshot.fsm.gameFlow === 'Reward' && hasRewardChoices
+          ? `<section class="reward-panel" aria-label="战后奖励">
               <header>
-                <span>Level ${snapshot.player.level} · ${runLayer.nodeLabel}</span>
-                <strong>选择一张新牌加入牌组</strong>
-                <small>${runLayer.rewardLabel} · ${runLayer.routeLabel} · ${runLayer.nextState}</small>
+                <span>等级 ${snapshot.player.level} · ${runLayer.nodeLabel}</span>
+                <strong>选择一张新牌加入活动继承牌组</strong>
+                <small>${runLayer.rewardLabel} · ${runLayer.routeLabel} · ${rewardInheritanceInstruction}</small>
               </header>
               <div class="reward-choices">
-                ${snapshot.reward.choices.map((cardId) => this.renderRewardChoice(cardId)).join('')}
+                ${snapshot.reward.choices.map((cardId) => this.renderRewardChoice(cardId, buildGap)).join('')}
               </div>
               ${routeChoiceMarkup}
             </section>`
@@ -1645,7 +2288,7 @@ export class Hud {
 
       ${
         snapshot.fsm.gameFlow === 'RouteSelect' && routeChoiceMarkup
-          ? `<section class="reward-panel route-panel" aria-label="next route selection">
+          ? `<section class="reward-panel route-panel" aria-label="下一战路线选择">
               <header>
                 <span>${runLayer.nodeLabel}</span>
                 <strong>选择下一战路线</strong>
@@ -1656,7 +2299,9 @@ export class Hud {
           : ''
       }
 
-      <section class="card-row" aria-label="cards">
+      <section class="card-rail-hint" aria-label="手牌横滑提示">${handRailHintLabel}</section>
+
+      <section class="card-row" aria-label="手牌">
         ${
           isSettlement
             ? `<div class="empty-hand game-ended">${emptyHandText}</div>`
@@ -1673,13 +2318,29 @@ export class Hud {
                       : payment.reason
                     : payment.reason;
                   const targetLabel = this.targetLabel(card.targets);
-                  const roleLabel = hudCardVisibleRoleLabel(card);
                   const chainRead = this.cardChainRead(card, snapshot);
                   const effectLabel = this.cardEffectLabel(card, chainRead.multiplier);
+                  const mobileEffectLabel = hudCardMobileEffectLabel(card, chainRead.multiplier);
+                  const typeLabel = hudCardTypeLabel(card);
+                  const typeMark = hudCardTypeMark(card);
+                  const chainRoleLabel = hudCardChainRoleLabel(card);
+                  const baseSecondaryRoleLabel = hudCardSecondaryRoleLabel(card);
+                  const visibleRoleLabel = hudCardVisibleRoleLabel(card);
+                  const lifecycleToken = hudCardLifecycleToken(card);
+                  const secondaryRoleLabel =
+                    lifecycleToken && !baseSecondaryRoleLabel.includes(lifecycleToken)
+                      ? `${baseSecondaryRoleLabel} · ${lifecycleToken}`
+                      : baseSecondaryRoleLabel;
+                  const displayName = hudCardDisplayName(card);
+                  const shortName = hudCardShortName(card);
                   const costLabel = payment.costLabel;
                   const chainPreview = chainRead.label;
                   const payoffLabel = this.cardPayoffLabel(card, chainRead.multiplier, snapshot);
+                  const authorizationSegmentLabel = hudAuthorizationSegmentLabel(card, snapshot);
                   const intentPreview = hudCardIntentPreview(card, snapshot, selectedTarget?.id ?? null, chainRead.multiplier);
+                  const paymentState = hudCardPaymentVisualState(card, snapshot, payment, chainRead);
+                  const paymentStateToken = hudCardPaymentVisualToken(paymentState, card, payment);
+                  const chainBreakWarningLabel = hudChainBreakWarningLabel(card, snapshot, payment, chainRead);
                   const activeTargetLabel =
                     card.targets === 'front-enemy' && selectedTarget
                       ? `目标${enemyShortLabel(selectedTarget)}`
@@ -1688,26 +2349,34 @@ export class Hud {
                         : targetLabel;
                   const selectedTargetAttr =
                     card.targets === 'front-enemy' && selectedTarget ? `data-selected-target-id="${selectedTarget.id}"` : '';
-                  const tooltip = `${reason}。${roleLabel} · ${chainPreview} · ${costLabel} · ${effectLabel} · ${intentPreview.label}${payoffLabel ? ` · ${payoffLabel}` : ''}。${authorization.detail}。${this.cardDetailText(card)}`;
-                  const paymentStatus = hudCardPaymentStatusToken(card, snapshot);
-                  const missingText = paymentStatus ? `<em class="${paymentStatus.className}">${paymentStatus.label}</em>` : '';
+                  const tooltip = `${displayName}。${reason}。${typeLabel} · ${chainRoleLabel} · ${visibleRoleLabel} · ${activeTargetLabel} · ${chainPreview} · ${costLabel} · ${effectLabel} · ${intentPreview.label}${authorizationSegmentLabel ? ` · ${authorizationSegmentLabel}` : ''}${chainBreakWarningLabel ? ` · ${chainBreakWarningLabel}` : ''}${payoffLabel ? ` · ${payoffLabel}` : ''}。${authorization.detail}。${this.cardDetailText(card)}`;
+                  const desktopEffectLabel = hudDesktopEffectLabel(costLabel, effectLabel, mobileEffectLabel, payoffLabel);
+                  const paymentStateText = paymentStateToken
+                    ? `<em class="payment-state-token payment-state-token-${paymentState}">${paymentStateToken}</em>`
+                    : '';
                   return `
-                    <button class="card-button ${card.targets === 'all-enemies' ? 'burst-card' : ''} ${chainRead.className} ${
+                    <button class="card-button card-type-${card.cardType} chain-role-${card.chainRole} payment-state-${paymentState} ${
+                      card.targets === 'all-enemies' ? 'burst-card' : ''
+                    } ${
+                      authorizationSegmentLabel ? 'authorization-segment-card' : ''
+                    } ${chainRead.className} ${
                       payment.usesAuthorization ? 'authorization-payable' : ''
                     } ${
                       disabled && isPlayerTurn ? 'locked-card' : ''
-                    }" type="button" data-card-id="${card.id}" ${selectedTargetAttr} aria-label="${reason}" title="${tooltip}" ${
+                    }" type="button" data-card-id="${card.id}" data-card-type="${card.cardType}" data-chain-role="${card.chainRole}" data-payment-state="${paymentState}" ${selectedTargetAttr} aria-label="${displayName}，${reason}" title="${tooltip}" ${
                       disabled ? 'disabled' : ''
                     }>
-                      <span class="card-cost"><small>MP</small><b>${card.cost}</b></span>
+                      <span class="card-cost payment-state-${paymentState}"><small>MP</small><b>${card.cost}</b></span>
                       <span class="hotkey">#${index + 1}</span>
-                      <strong>${card.name}</strong>
-                      <span class="card-meta"><b>${roleLabel}</b> · ${activeTargetLabel}</span>
+                      <strong>${shortName}</strong>
+                      <span class="card-meta"><b class="card-type-mark" aria-label="${typeLabel}">${typeMark}</b> ${typeLabel} · ${secondaryRoleLabel}</span>
                       <span class="chain-preview ${chainRead.breaksChain ? 'breaks-chain' : ''}">${chainPreview}</span>
                       <span class="card-intent-preview">${intentPreview.label}</span>
+                      ${authorizationSegmentLabel ? `<span class="card-authorization">${authorizationSegmentLabel}</span>` : ''}
+                      ${chainBreakWarningLabel ? `<span class="card-chain-warning">${chainBreakWarningLabel}</span>` : ''}
                       ${payoffLabel ? `<span class="card-payoff">${payoffLabel}</span>` : ''}
-                      <small class="card-effect">${costLabel} · ${effectLabel}</small>
-                      ${missingText}
+                      <small class="card-effect"><span class="desktop-effect">${desktopEffectLabel}</span><span class="mobile-effect">${mobileEffectLabel}</span></small>
+                      ${paymentStateText}
                     </button>
                   `;
                 })
@@ -1715,20 +2384,20 @@ export class Hud {
         }
       </section>
 
-      <details class="debug-panel" aria-label="debug trace">
+      <details class="debug-panel" aria-label="最近战况">
         <summary>
-          <strong>Debug Trace</strong>
-          <span>round ${snapshot.round}</span>
+          <strong>最近战况</strong>
+          <span>回合 ${snapshot.round}</span>
         </summary>
         <dl>
-          <dt>Rules</dt>
-          <dd>${latestRules.map((rule) => `${rule.ruleId}:${rule.passed ? 'ok' : 'fail'}`).join('<br>') || 'none'}</dd>
-          <dt>Failed Conditions</dt>
-          <dd>${latestFailed.map((item) => `${item.conditionId}: ${item.reason}`).join('<br>') || 'none'}</dd>
-          <dt>Commands</dt>
-          <dd>${latestCommands.map((command) => command.type).join('<br>') || 'none'}</dd>
-          <dt>Trace</dt>
-          <dd>${latestTrace.map((trace) => `${trace.traceId} · ${trace.label}`).join('<br>') || 'none'}</dd>
+          <dt>结算明细</dt>
+          <dd>${latestCombatLabels.join('<br>') || (isSettlement ? '本局结算完成' : '暂无') }</dd>
+          <dt>效果</dt>
+          <dd>${latestRuleLabels.join('<br>') || '暂无'}</dd>
+          <dt>未触发</dt>
+          <dd>${latestFailedLabels.join('<br>') || '暂无'}</dd>
+          <dt>最近操作</dt>
+          <dd>${latestOperationLabels.join('<br>') || '暂无'}</dd>
         </dl>
       </details>
     `;
@@ -1754,34 +2423,49 @@ export class Hud {
     const intentLabel = isFrontSlot ? (intent ? `本回合 -${intent.amount}` : '下轮') : '后排';
     const selectedClass = this.selectedTargetId === enemy.id ? 'target-selected' : '';
     const targetAttrs = isFrontSlot
-      ? `type="button" data-target-enemy-id="${enemy.id}" aria-pressed="${this.selectedTargetId === enemy.id}" title="选择 ${enemy.name} 作为单体牌目标"`
+      ? `type="button" data-target-enemy-id="${enemy.id}" aria-pressed="${this.selectedTargetId === enemy.id}" title="选择 ${enemyDisplayName(enemy)} 作为单体牌目标"`
       : '';
     const tag = isFrontSlot ? 'button' : 'div';
     return `
       <${tag} class="enemy-slot occupied ${rowClass} ${type.className} ${isFrontSlot ? 'targetable' : ''} ${selectedClass}" ${targetAttrs}>
         <span class="slot-id">${slotLabel}</span>
         <span class="type-badge">${type.label}</span>
-        <strong>${enemy.name}</strong>
+        <strong>${enemyDisplayName(enemy)}</strong>
         <small>${enemy.hp}/${enemy.maxHp}</small>
         <small class="enemy-intent-badge">${intentLabel}</small>
       </${tag}>
     `;
   }
 
-  private renderRewardChoice(cardId: string): string {
+  private renderRewardChoice(cardId: string, buildGap: HudBuildGapState): string {
     const card = cards[cardId];
     if (!card) {
       return '';
     }
 
-    const targetLabel = this.targetLabel(card.targets);
-    const roleLabel = hudCardVisibleRoleLabel(card);
+    const typeLabel = hudCardTypeLabel(card);
+    const typeMark = hudCardTypeMark(card);
+    const chainRoleLabel = hudCardChainRoleLabel(card);
     const effectLabel = this.cardEffectLabel(card);
     const costLabel = this.cardCostLabel(card);
+    const branchLabel = hudRewardBranchLabel(card.rewardBranches?.[0]);
+    const branchDetailLabel = hudRewardBranchDetailLabel(card);
+    const pickReason = hudRewardPickReason(card, buildGap);
     return `
-      <button class="reward-card ${card.targets === 'front-row' ? 'row-card' : ''}" type="button" data-reward-card-id="${card.id}" title="${costLabel} · ${effectLabel}。${this.cardDetailText(card)}">
-        <span>${roleLabel} · ${targetLabel}</span>
-        <strong>${card.name}</strong>
+      <button
+        class="reward-card card-type-${card.cardType} chain-role-${card.chainRole} ${card.targets === 'front-row' ? 'row-card' : ''}"
+        type="button"
+        data-reward-card-id="${card.id}"
+        data-card-type="${card.cardType}"
+        data-chain-role="${card.chainRole}"
+        data-reward-branch="${card.rewardBranches?.[0] ?? 'none'}"
+        aria-label="选择奖励 ${hudCardDisplayName(card)}"
+        title="${hudCardDisplayName(card)}。${typeMark} · ${typeLabel} · ${chainRoleLabel} · ${branchLabel} · ${costLabel} · ${effectLabel}。${pickReason}。${this.cardDetailText(card)}"
+      >
+        <span><b class="card-type-mark" aria-label="${typeLabel}">${typeMark}</b> ${typeLabel} · ${branchDetailLabel}</span>
+        <strong>${hudCardDisplayName(card)}</strong>
+        <small>${branchLabel} · ${branchDetailLabel}</small>
+        <small class="reward-pick-reason">${pickReason}</small>
         <small>${costLabel} · ${effectLabel}</small>
         <em>${this.cardRulesText(card)}</em>
       </button>
@@ -1794,7 +2478,7 @@ export class Hud {
     }
 
     return `
-      <div class="route-choices" aria-label="next route selection">
+      <div class="route-choices" aria-label="下一战路线选择">
         ${routeChoices
           .map(
             (choice) => `
@@ -1834,7 +2518,7 @@ export class Hud {
   private chainRouteLabel(snapshot: GameSnapshot): string {
     const lastCost = snapshot.player.lastPlayedCost;
     if (lastCost === null) {
-      return '0?';
+      return '待起链';
     }
 
     const chainLength = Math.max(1, snapshot.player.costChainMultiplier);
@@ -1855,7 +2539,7 @@ export class Hud {
           return null;
         }
         const enemy = snapshot.enemies.find((item) => item.id === enemyId);
-        return `${enemy?.name ?? enemyId} ${intent.amount}`;
+        return `${enemyDisplayName(enemy, enemyId)} ${intent.amount}`;
       })
       .filter((label): label is string => Boolean(label));
     const detail =
@@ -1863,6 +2547,106 @@ export class Hud {
         ? intentLabels.slice(0, 2).join(' / ') + (intentLabels.length > 2 ? ` / +${intentLabels.length - 2}` : '')
         : '无前排攻击';
     return { totalDamage: snapshot.enemyIntentSummary.totalDamage, detail };
+  }
+
+  private ruleFeedbackLabel(ruleId: string, passed: boolean): string | null {
+    const label = this.visibleInternalEventLabel(ruleId);
+    if (!label) {
+      return null;
+    }
+
+    return passed ? `${label}触发` : `${label}未触发`;
+  }
+
+  private failedConditionLabel(conditionId: string, reason: string): string | null {
+    const condition = this.visibleInternalEventLabel(conditionId);
+    const visibleReason = this.visibleInternalEventLabel(reason);
+    if (!condition && !visibleReason) {
+      return null;
+    }
+    if (!condition) {
+      return visibleReason ? `未触发 · ${visibleReason}` : null;
+    }
+    if (!visibleReason) {
+      return `${condition}未触发`;
+    }
+
+    return `${condition}未触发 · ${visibleReason}`;
+  }
+
+  private commandFeedbackLabel(type: string): string | null {
+    if (/internal command/i.test(type)) {
+      return '最近操作';
+    }
+
+    return this.visibleInternalEventLabel(type);
+  }
+
+  private traceFeedbackLabel(label: string): string | null {
+    return this.visibleInternalEventLabel(label);
+  }
+
+  private internalEventLabel(value: string): string {
+    return sanitizePlayerFacingText(value)
+      .replace(/^intent[.-]/i, '')
+      .replace(/\bblocked\b/gi, '未满足')
+      .replace(/规则|指令|记录|ruleId|traceId/gi, '')
+      .replace(/^\s*[:：·-]\s*/, '')
+      .trim() || '操作已记录';
+  }
+
+  private visibleInternalEventLabel(value: string): string | null {
+    const label = this.internalEventLabel(value);
+    return hasInternalDebugArtifact(label) ? null : label;
+  }
+
+  private finisherDecisionState(snapshot: GameSnapshot): HudFinisherDecisionState | null {
+    if (snapshot.fsm.gameFlow !== 'PlayerTurn') {
+      return null;
+    }
+
+    const playablePayoffs = snapshot.player.hand
+      .map((cardId) => cards[cardId])
+      .filter((card): card is CardDefinition => Boolean(card))
+      .filter((card) => this.isPayoffCard(card) && hudCardPaymentRead(card, snapshot).playable)
+      .map((card) => ({ card, chain: this.cardChainRead(card, snapshot) }))
+      .sort((left, right) => right.chain.multiplier - left.chain.multiplier || right.card.damage - left.card.damage);
+    const direct = playablePayoffs[0];
+    if (direct) {
+      return {
+        mode: 'direct',
+        primary: '直接处刑',
+        secondary: `${hudCardShortName(direct.card)} x${direct.chain.multiplier}`,
+        detail: '也可先走0>1>2开授权，再吃奖励或清场'
+      };
+    }
+
+    const authorization = hudAuthorizationState(snapshot);
+    if (authorization.active) {
+      return {
+        mode: 'authorization-open',
+        primary: '授权已开',
+        secondary: '等终结牌',
+        detail: '奖励优先拿终结，3费终结可用临时授权支付'
+      };
+    }
+
+    const hasAuthorizationSegment = snapshot.player.hand
+      .map((cardId) => cards[cardId])
+      .some((card) => card && hudAuthorizationSegmentLabel(card, snapshot));
+    const hasChainStartOrBridge = snapshot.player.hand
+      .map((cardId) => cards[cardId])
+      .some((card) => card && card.countsForChain !== false && card.cardType !== 'status' && card.cost >= 0 && card.cost <= 2);
+    if (!hasAuthorizationSegment && !hasChainStartOrBridge) {
+      return null;
+    }
+
+    return {
+      mode: 'chain-open',
+      primary: '走链路开授权',
+      secondary: snapshot.player.lastPlayedCost === null ? '从0费起链' : `接MP${snapshot.chain.nextExpectedCost}`,
+      detail: '目标是0>1>2拿临时授权，再支付3费终结'
+    };
   }
 
   private payoffPreviewLabel(snapshot: GameSnapshot): { title: string; detail: string } {
@@ -1877,13 +2661,15 @@ export class Hud {
     if (!best) {
       const authorization = hudAuthorizationState(snapshot);
       return authorization.active
-        ? { title: '授权就绪', detail: `${authorization.label} · 等终结` }
-        : { title: '终结未授权', detail: '先0>1>2' };
+        ? { title: '授权已开', detail: '等终结牌；奖励优先拿终结' }
+        : { title: '终结未授权', detail: '走0>1>2开授权' };
     }
 
     return {
-      title: `${best.card.name} x${best.chain.multiplier}`,
-      detail: this.cardPayoffLabel(best.card, best.chain.multiplier, snapshot) || this.cardEffectLabel(best.card, best.chain.multiplier)
+      title: '现在可直接处刑',
+      detail:
+        `${hudCardShortName(best.card)} x${best.chain.multiplier}；` +
+        '或走0>1>2开授权，可能先清场/拿奖励'
     };
   }
 
@@ -1901,11 +2687,15 @@ export class Hud {
     const parts = [damage, draw].filter(Boolean);
     const authorization = hudAuthorizationState(snapshot);
     if (isHudAuthorizationPayoffCard(card) && authorization.active) {
-      return [`授权终结x${multiplier}`, ...parts].join(' · ');
+      return ['授权可付', ...parts, `x${multiplier}`].join(' · ');
+    }
+
+    if (isHudAuthorizationPayoffCard(card) && hudCardPaymentRead(card, snapshot).playable) {
+      return ['MP可付', ...parts, `x${multiplier}`].join(' · ');
     }
 
     if (isHudAuthorizationPayoffCard(card)) {
-      return [`未授权x${multiplier}`, ...parts].join(' · ');
+      return ['需MP或授权', ...parts, `x${multiplier}`].join(' · ');
     }
 
     return [`终结x${multiplier}`, ...parts].join(' · ');
@@ -1939,7 +2729,7 @@ export class Hud {
     }
 
     if (card.energyGain) {
-      effects.push(card.energyGainCondition === 'chain-repaired' ? `修补MP+${card.energyGain}` : `MP+${card.energyGain}`);
+      effects.push(card.energyGainCondition === 'chain-repaired' ? `修补 MP +${card.energyGain}` : `MP +${card.energyGain}`);
     }
 
     return effects.length > 0 ? effects.join(' · ') : this.targetLabel(card.targets);
@@ -1948,7 +2738,7 @@ export class Hud {
   private visibleCardDescription(description: string): string {
     const cleaned = description.trim();
     return (
-      cleaned
+      sanitizePlayerFacingText(cleaned)
         .replace(/payoff/gi, '终结牌')
         .replace(/重排路线/g, '整备找牌')
         .replace(/重排/g, '整备')
@@ -1964,7 +2754,7 @@ export class Hud {
   }
 
   private cardDetailText(card: CardDefinition): string {
-    return card.detail || this.visibleCardDescription(card.description);
+    return this.visibleCardDescription(card.detail || card.description);
   }
 
   private damageScopeLabel(targets: CardDefinition['targets']): string {
@@ -2005,14 +2795,14 @@ export class Hud {
 
   private enemyTypeMeta(definitionId: string): { label: string; className: string } {
     if (definitionId === 'redline_brute') {
-      return { label: 'BRU', className: 'enemy-type-brute' };
+      return { label: '蛮', className: 'enemy-type-brute' };
     }
 
     if (definitionId === 'pulse_collector') {
-      return { label: 'COL', className: 'enemy-type-collector' };
+      return { label: '收', className: 'enemy-type-collector' };
     }
 
-    return { label: 'WSP', className: 'enemy-type-wisp' };
+    return { label: '雾', className: 'enemy-type-wisp' };
   }
 
   private combatEventLabel(event: GameEvent, snapshot: GameSnapshot): string | null {
@@ -2029,13 +2819,13 @@ export class Hud {
       const card = cards[event.cardId];
       const destinationLabel = card ? ` -> ${hudCardPlayDestinationLabel(card)}` : '';
       const drawCount = card?.drawCards ? card.drawCards * event.effectMultiplier : 0;
-      const repairLabel = event.chainRepaired && event.repairedCost !== undefined ? ` · 修补MP${event.repairedCost}` : '';
-      const extensionLabel = event.chainExtended && event.extendedCost !== undefined ? ` · 延MP${event.extendedCost}` : '';
+      const repairLabel = event.chainRepaired && event.repairedCost !== undefined ? ` · 修补 MP ${event.repairedCost}` : '';
+      const extensionLabel = event.chainExtended && event.extendedCost !== undefined ? ` · 延展 MP ${event.extendedCost}` : '';
       const energyLabel =
         card?.energyGain && card.energyGainCondition === 'chain-repaired' && event.chainRepaired
           ? ` · MP+${card.energyGain}`
           : '';
-      return `出牌 ${card?.name ?? event.cardId}${destinationLabel} · x${event.effectMultiplier}${repairLabel}${extensionLabel}${drawCount > 0 ? ` · 抽${drawCount}` : ''}${energyLabel}`;
+      return `出牌 ${card ? hudCardDisplayName(card) : event.cardId}${destinationLabel} · x${event.effectMultiplier}${repairLabel}${extensionLabel}${drawCount > 0 ? ` · 抽${drawCount}` : ''}${energyLabel}`;
     }
 
     if (event.type === 'ChainExtended') {
@@ -2056,17 +2846,17 @@ export class Hud {
 
     if (event.type === 'EnemyAttacked') {
       const enemy = snapshot.enemies.find((item) => item.id === event.enemyId);
-      return `${enemy?.name ?? event.enemyId} 攻击 -${event.amount} HP`;
+      return `${enemyDisplayName(enemy, event.enemyId)} 攻击 -${event.amount} HP`;
     }
 
     if (event.type === 'DamageApplied') {
       const enemy = snapshot.enemies.find((item) => item.id === event.targetId);
-      return `命中 ${enemy?.name ?? event.targetId} -${event.amount}，剩 ${event.remainingHp}`;
+      return `命中 ${enemyDisplayName(enemy, event.targetId)} -${event.amount}，剩 ${event.remainingHp}`;
     }
 
     if (event.type === 'EnemyKilled') {
       const enemy = snapshot.enemies.find((item) => item.id === event.enemyId);
-      return `击杀 ${enemy?.name ?? event.enemyId}，后排压上`;
+      return `击杀 ${enemyDisplayName(enemy, event.enemyId)}，后排压上`;
     }
 
     if (event.type === 'XpGained') {
@@ -2074,11 +2864,11 @@ export class Hud {
     }
 
     if (event.type === 'LevelUpReached') {
-      return `升级到 LV ${event.level}，选择奖励`;
+      return `达到 LV ${event.level}，选择战后奖励`;
     }
 
     if (event.type === 'RewardChosen') {
-      return `获得新牌 ${cards[event.cardId]?.name ?? event.cardId}`;
+      return `获得新牌 ${cards[event.cardId] ? hudCardDisplayName(cards[event.cardId]) : event.cardId}，${rewardInheritanceFeedback}`;
     }
 
     if (event.type === 'EnemiesRepositioned') {

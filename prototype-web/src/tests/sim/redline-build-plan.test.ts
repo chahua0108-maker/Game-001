@@ -31,7 +31,7 @@ describe('redline build plan runtime', () => {
     expect(plan.issues[0]).toMatchObject({
       id: 'missing-bridge',
       label: '缺桥',
-      nextStep: '优先拿低费接链或 wild 修补牌，让 0-1-2 授权链稳定成型。'
+      nextStep: '优先拿低费接链或 wild 修补牌；D2-D3 若同时出现终结牌，就是稳定桥牌 vs 高压兑现的分叉。'
     });
     expect(plan.issues[0].recommendedCardIds).toEqual(['heartbeat_spark', 'wild_gap_key']);
   });

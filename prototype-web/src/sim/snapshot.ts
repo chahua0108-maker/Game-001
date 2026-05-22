@@ -1,4 +1,5 @@
 import { createBuildPlan } from './buildPlan';
+import { cloneActivityState } from './activity';
 import type { GameSnapshot, WorldState } from './types';
 
 function snapshotRoute(world: WorldState): GameSnapshot['route'] {
@@ -27,6 +28,7 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
     elapsedSeconds: world.elapsedSeconds,
     player: {
       ...world.player,
+      deck: [...world.player.deck],
       hand: [...world.player.hand],
       drawPile: [...world.player.drawPile],
       discardPile: [...world.player.discardPile],
@@ -54,13 +56,7 @@ export function buildSnapshot(world: WorldState): GameSnapshot {
         choices: [...entry.choices]
       }))
     },
-    activity: world.activity
-      ? {
-          ...world.activity,
-          playableLevelIds: [...world.activity.playableLevelIds],
-          completedLevelIds: [...world.activity.completedLevelIds]
-        }
-      : undefined,
+    activity: world.activity ? cloneActivityState(world.activity) : undefined,
     activitySettlementPreview: world.activitySettlementPreview ? { ...world.activitySettlementPreview } : null,
     route: snapshotRoute(world),
     buildPlan: createBuildPlan(world),

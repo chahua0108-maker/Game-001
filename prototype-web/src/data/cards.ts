@@ -4,6 +4,8 @@ export const cards: Record<string, CardDefinition> = {
   debt_hook: {
     id: 'debt_hook',
     name: 'Debt Hook',
+    displayName: '债钩',
+    shortName: '债钩',
     cost: 0,
     verb: '拉',
     damage: 4,
@@ -31,6 +33,8 @@ export const cards: Record<string, CardDefinition> = {
   blood_reclaim: {
     id: 'blood_reclaim',
     name: 'Blood Reclaim',
+    displayName: '血债回收',
+    shortName: '回收',
     cost: 0,
     verb: '回收',
     damage: 3,
@@ -53,6 +57,8 @@ export const cards: Record<string, CardDefinition> = {
   blood_tithe: {
     id: 'blood_tithe',
     name: 'Blood Tithe',
+    displayName: '血税',
+    shortName: '血税',
     cost: 0,
     verb: '献血',
     damage: 0,
@@ -77,6 +83,8 @@ export const cards: Record<string, CardDefinition> = {
   spark_tap: {
     id: 'spark_tap',
     name: 'Spark Tap',
+    displayName: '点火',
+    shortName: '点火',
     cost: 0,
     verb: '点火',
     damage: 2,
@@ -99,6 +107,8 @@ export const cards: Record<string, CardDefinition> = {
   redline_cut: {
     id: 'redline_cut',
     name: 'Redline Cut',
+    displayName: '红线切割',
+    shortName: '切割',
     cost: 1,
     verb: '切',
     damage: 9,
@@ -126,6 +136,8 @@ export const cards: Record<string, CardDefinition> = {
   heartbeat_spark: {
     id: 'heartbeat_spark',
     name: 'Heartbeat Spark',
+    displayName: '心跳火花',
+    shortName: '火花',
     cost: 1,
     verb: '爆',
     damage: 6,
@@ -148,6 +160,8 @@ export const cards: Record<string, CardDefinition> = {
   verdict_mark: {
     id: 'verdict_mark',
     name: 'Verdict Mark',
+    displayName: '判决标记',
+    shortName: '判决',
     cost: 1,
     verb: '印',
     damage: 5,
@@ -170,6 +184,8 @@ export const cards: Record<string, CardDefinition> = {
   pulse_draw: {
     id: 'pulse_draw',
     name: 'Pulse Draw',
+    displayName: '脉冲抽牌',
+    shortName: '充能',
     cost: 1,
     verb: '充能',
     damage: 0,
@@ -194,6 +210,8 @@ export const cards: Record<string, CardDefinition> = {
   row_cleave: {
     id: 'row_cleave',
     name: 'Row Cleave',
+    displayName: '横扫清列',
+    shortName: '横扫',
     cost: 2,
     verb: '横扫',
     damage: 5,
@@ -215,6 +233,8 @@ export const cards: Record<string, CardDefinition> = {
   clearance_order: {
     id: 'clearance_order',
     name: 'Clearance Order',
+    displayName: '清算令',
+    shortName: '清算',
     cost: 2,
     verb: '清算',
     damage: 7,
@@ -237,6 +257,8 @@ export const cards: Record<string, CardDefinition> = {
   paper_shatter: {
     id: 'paper_shatter',
     name: 'Paper Route',
+    displayName: '纸路整备',
+    shortName: '整备',
     cost: 2,
     verb: '整备',
     damage: 0,
@@ -262,6 +284,8 @@ export const cards: Record<string, CardDefinition> = {
   silt_purge: {
     id: 'silt_purge',
     name: 'Silt Purge',
+    displayName: '淤泥净化',
+    shortName: '净化',
     cost: 0,
     verb: '滤净',
     damage: 0,
@@ -289,6 +313,8 @@ export const cards: Record<string, CardDefinition> = {
   ash_filter: {
     id: 'ash_filter',
     name: 'Ash Filter',
+    displayName: '灰烬过滤',
+    shortName: '滤灰',
     cost: 0,
     verb: '滤灰',
     damage: 0,
@@ -316,6 +342,8 @@ export const cards: Record<string, CardDefinition> = {
   toll_shunt: {
     id: 'toll_shunt',
     name: 'Toll Shunt',
+    displayName: '收费改道',
+    shortName: '改道',
     cost: 1,
     verb: '改道',
     damage: 3,
@@ -339,6 +367,8 @@ export const cards: Record<string, CardDefinition> = {
   last_light_cache: {
     id: 'last_light_cache',
     name: 'Last Light Cache',
+    displayName: '余光缓存',
+    shortName: '藏光',
     cost: 1,
     verb: '藏光',
     damage: 0,
@@ -366,6 +396,8 @@ export const cards: Record<string, CardDefinition> = {
   fuse_needle: {
     id: 'fuse_needle',
     name: 'Fuse Needle',
+    displayName: '引线针',
+    shortName: '穿线',
     cost: 1,
     verb: '穿线',
     damage: 7,
@@ -394,6 +426,8 @@ export const cards: Record<string, CardDefinition> = {
   cinder_crossing: {
     id: 'cinder_crossing',
     name: 'Cinder Crossing',
+    displayName: '灰烬垫步',
+    shortName: '垫步',
     cost: 0,
     verb: '垫步',
     damage: 2,
@@ -416,6 +450,8 @@ export const cards: Record<string, CardDefinition> = {
   signal_relay: {
     id: 'signal_relay',
     name: 'Signal Relay',
+    displayName: '信号接驳',
+    shortName: '接驳',
     cost: 2,
     verb: '接驳',
     damage: 6,
@@ -444,6 +480,8 @@ export const cards: Record<string, CardDefinition> = {
   crimson_receipt: {
     id: 'crimson_receipt',
     name: 'Crimson Receipt',
+    displayName: '猩红收据',
+    shortName: '追账',
     cost: 1,
     verb: '追账',
     damage: 8,
@@ -472,6 +510,8 @@ export const cards: Record<string, CardDefinition> = {
   severance_burst: {
     id: 'severance_burst',
     name: 'Severance Burst',
+    displayName: '断账爆发',
+    shortName: '处刑',
     cost: 3,
     verb: '处刑',
     damage: 16,
@@ -494,6 +534,8 @@ export const cards: Record<string, CardDefinition> = {
   red_ledger_burst: {
     id: 'red_ledger_burst',
     name: 'Red Ledger Burst',
+    displayName: '红账爆破',
+    shortName: '爆破',
     cost: 3,
     verb: '爆破',
     damage: 12,
@@ -516,6 +558,8 @@ export const cards: Record<string, CardDefinition> = {
   wild_mana_stitch: {
     id: 'wild_mana_stitch',
     name: 'Wild Mana Stitch',
+    displayName: '野性能量缝合',
+    shortName: '缝合',
     cost: 0,
     verb: '缝合',
     damage: 0,
@@ -542,6 +586,8 @@ export const cards: Record<string, CardDefinition> = {
   wild_gap_key: {
     id: 'wild_gap_key',
     name: 'Wild Gap Key',
+    displayName: '缺口钥匙',
+    shortName: '补位',
     cost: 1,
     verb: '补位',
     damage: 1,
@@ -565,6 +611,8 @@ export const cards: Record<string, CardDefinition> = {
   lantern_captain: {
     id: 'lantern_captain',
     name: 'Lantern Captain',
+    displayName: '提灯队长',
+    shortName: '号令',
     cost: 2,
     verb: '号令',
     damage: 0,
@@ -589,6 +637,8 @@ export const cards: Record<string, CardDefinition> = {
   static_overload: {
     id: 'static_overload',
     name: 'Static Overload',
+    displayName: '静电过载',
+    shortName: '过载',
     cost: 0,
     verb: '过载',
     damage: 0,
@@ -614,6 +664,8 @@ export const cards: Record<string, CardDefinition> = {
   guard_reserve: {
     id: 'guard_reserve',
     name: 'Guard Reserve',
+    displayName: '守备保留',
+    shortName: '保留',
     cost: 1,
     verb: '保留',
     damage: 0,
@@ -638,6 +690,8 @@ export const cards: Record<string, CardDefinition> = {
   shield_reserve: {
     id: 'shield_reserve',
     name: 'Shield Reserve',
+    displayName: '护盾保留',
+    shortName: '护盾',
     cost: 1,
     verb: '护盾',
     damage: 0,
@@ -660,6 +714,8 @@ export const cards: Record<string, CardDefinition> = {
   ledger_discount: {
     id: 'ledger_discount',
     name: 'Ledger Discount',
+    displayName: '账本折扣',
+    shortName: '降费',
     cost: 1,
     verb: '降费',
     damage: 0,
@@ -685,6 +741,8 @@ export const cards: Record<string, CardDefinition> = {
   burn_after_reading: {
     id: 'burn_after_reading',
     name: 'Burn After Reading',
+    displayName: '阅后焚档',
+    shortName: '焚档',
     cost: 0,
     verb: '焚档',
     damage: 0,

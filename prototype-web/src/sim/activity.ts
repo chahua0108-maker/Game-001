@@ -1,10 +1,17 @@
+import { rewardCardPool, startingHand } from '../data/cards';
+import { createInitialCardUpgradeState } from './cardUpgrades';
+import { INITIAL_REWARD_XP_THRESHOLD } from './rewardProgression';
 import type {
+  ActivityCarryoverState,
   ActivityLevelDefinition,
   ActivityLevelId,
   ActivitySettlementPreview,
   ActivityState,
+  CardUpgradeState,
   EnemyState,
-  RunStatus
+  RunRewardHistoryEntry,
+  RunStatus,
+  WorldState
 } from './types';
 
 export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
@@ -25,13 +32,13 @@ export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
   {
     id: 'd2',
     label: 'D2',
-    title: '低压过渡',
+    title: '三节点桥接清算',
     difficultyTier: 2,
     band: 'beginner',
-    nodeCount: 4,
+    nodeCount: 3,
     playerMaxHp: 68,
-    enemyHpMultiplier: 0.86,
-    enemyDamageMultiplier: 0.58,
+    enemyHpMultiplier: 0.65,
+    enemyDamageMultiplier: 0.25,
     rewardPickCount: 4,
     eliteRouteEntryDamage: 3,
     eliteRouteAddsPollution: false
@@ -43,12 +50,12 @@ export const REDLINE_ACTIVITY_LEVELS: readonly ActivityLevelDefinition[] = [
     difficultyTier: 3,
     band: 'intermediate',
     nodeCount: 6,
-    playerMaxHp: 62,
-    enemyHpMultiplier: 0.88,
-    enemyDamageMultiplier: 0.85,
+    playerMaxHp: 98,
+    enemyHpMultiplier: 0.45,
+    enemyDamageMultiplier: 0.45,
     rewardPickCount: 3,
-    eliteRouteEntryDamage: 4,
-    eliteRouteAddsPollution: false
+    eliteRouteEntryDamage: 10,
+    eliteRouteAddsPollution: true
   },
   {
     id: 'd4',
@@ -70,14 +77,75 @@ const LEVEL_BY_ID = new Map<ActivityLevelId, ActivityLevelDefinition>(
   REDLINE_ACTIVITY_LEVELS.map((level) => [level.id, level])
 );
 
+function cloneCardUpgradeState(cardUpgrades: CardUpgradeState): CardUpgradeState {
+  return {
+    enhancements: Object.fromEntries(
+      Object.entries(cardUpgrades.enhancements).map(([cardId, enhancement]) => [
+        cardId,
+        enhancement
+          ? {
+              ...enhancement,
+              gemSlots: enhancement.gemSlots.map((slot) => ({ ...slot }))
+            }
+          : enhancement
+      ])
+    ),
+    choices: cardUpgrades.choices.map((choice) => ({ ...choice })),
+    pending: cardUpgrades.pending,
+    history: cardUpgrades.history.map((entry) => ({
+      ...entry,
+      gemSlots: entry.gemSlots.map((slot) => ({ ...slot }))
+    }))
+  };
+}
+
+function cloneRewardHistory(history: readonly RunRewardHistoryEntry[]): RunRewardHistoryEntry[] {
+  return history.map((entry) => ({
+    ...entry,
+    choices: [...entry.choices]
+  }));
+}
+
+export function createInitialActivityCarryover(maxHp = REDLINE_ACTIVITY_LEVELS[0].playerMaxHp): ActivityCarryoverState {
+  return {
+    deck: [...startingHand],
+    rewardCandidateCardPool: [...rewardCardPool],
+    maxHp,
+    nextRunStartHp: maxHp,
+    maxEnergy: 3,
+    xp: 0,
+    level: 1,
+    xpThreshold: INITIAL_REWARD_XP_THRESHOLD,
+    cardUpgrades: createInitialCardUpgradeState(),
+    activityRewardHistory: []
+  };
+}
+
+export function cloneActivityCarryover(carryover: ActivityCarryoverState): ActivityCarryoverState {
+  return {
+    deck: [...carryover.deck],
+    rewardCandidateCardPool: [...carryover.rewardCandidateCardPool],
+    maxHp: carryover.maxHp,
+    nextRunStartHp: carryover.nextRunStartHp,
+    maxEnergy: carryover.maxEnergy,
+    xp: carryover.xp,
+    level: carryover.level,
+    xpThreshold: carryover.xpThreshold,
+    cardUpgrades: cloneCardUpgradeState(carryover.cardUpgrades),
+    activityRewardHistory: cloneRewardHistory(carryover.activityRewardHistory)
+  };
+}
+
 export function createInitialActivityState(): ActivityState {
+  const initialLevel = REDLINE_ACTIVITY_LEVELS[0];
   return {
     id: 'redline-core-activity-01',
     title: '红线清算局 第一套闯关',
     totalDifficultyTiers: 10,
     playableLevelIds: REDLINE_ACTIVITY_LEVELS.map((level) => level.id),
     currentLevelId: 'd1',
-    completedLevelIds: []
+    completedLevelIds: [],
+    carryover: createInitialActivityCarryover(initialLevel.playerMaxHp)
   };
 }
 
@@ -85,7 +153,10 @@ export function cloneActivityState(activity: ActivityState): ActivityState {
   return {
     ...activity,
     playableLevelIds: [...activity.playableLevelIds],
-    completedLevelIds: [...activity.completedLevelIds]
+    completedLevelIds: [...activity.completedLevelIds],
+    carryover: activity.carryover
+      ? cloneActivityCarryover(activity.carryover)
+      : createInitialActivityCarryover(resolveActivityLevelDefinition(activity.currentLevelId).playerMaxHp)
   };
 }
 
@@ -125,7 +196,32 @@ export function createActivitySettlementPreview(
   };
 }
 
-export function continueActivityAfterVictory(activity: ActivityState): ActivityState {
+export function captureActivityCarryoverFromWorld(world: WorldState): ActivityCarryoverState {
+  const priorHistory = world.activity?.carryover.activityRewardHistory ?? [];
+  const priorCarryoverMaxHp = world.activity?.carryover.maxHp ?? world.player.maxHp;
+  const priorCarryoverMaxEnergy = world.activity?.carryover.maxEnergy ?? world.player.maxEnergy;
+  const levelMaxHp = world.activity ? currentActivityLevel(world.activity).playerMaxHp : world.player.maxHp;
+  const earnedMaxHp = world.player.maxHp > levelMaxHp ? world.player.maxHp : priorCarryoverMaxHp;
+
+  return {
+    deck: [...world.player.deck],
+    rewardCandidateCardPool: [...world.reward.candidateCardPool],
+    maxHp: earnedMaxHp,
+    nextRunStartHp: earnedMaxHp,
+    maxEnergy: priorCarryoverMaxEnergy,
+    xp: world.player.xp,
+    level: world.player.level,
+    xpThreshold: world.reward.xpThreshold,
+    cardUpgrades: {
+      ...cloneCardUpgradeState(world.cardUpgrades),
+      choices: [],
+      pending: false
+    },
+    activityRewardHistory: [...cloneRewardHistory(priorHistory), ...cloneRewardHistory(world.run.rewardHistory)]
+  };
+}
+
+export function continueActivityAfterVictory(activity: ActivityState, carryover: ActivityCarryoverState): ActivityState {
   const nextActivity = cloneActivityState(activity);
   if (!nextActivity.completedLevelIds.includes(nextActivity.currentLevelId)) {
     nextActivity.completedLevelIds.push(nextActivity.currentLevelId);
@@ -136,6 +232,7 @@ export function continueActivityAfterVictory(activity: ActivityState): ActivityS
     nextActivity.currentLevelId = nextLevelId;
   }
 
+  nextActivity.carryover = cloneActivityCarryover(carryover);
   return nextActivity;
 }
 
