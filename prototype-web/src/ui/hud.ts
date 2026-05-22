@@ -692,7 +692,7 @@ function routePollutionResponseHint(kind: string, preview: string, addsPollution
     return null;
   }
 
-  return '应对：清污染/净化抽牌/打出状态消耗';
+  return '污染进弃牌堆；应对：清污染/净化抽牌/打出状态消耗';
 }
 
 function routeSummaryRiskToken(choice: HudRouteChoiceRead): string {
@@ -2501,7 +2501,7 @@ export class Hud {
                 type="button"
                 data-route-choice-id="${choice.id}"
                 ${choice.disabled ? 'disabled' : ''}
-                title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken} · ${routeButtonRewardDetail(choice)}。${choice.preview}"
+                title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken} · ${routeButtonRewardDetail(choice)}${choice.responseHint ? ` · ${choice.responseHint}` : ''}。${choice.preview}"
               >
                 <span>${choice.nodeLabel}</span>
                 <strong>${choice.label}</strong>

@@ -1141,6 +1141,7 @@ describe('HUD run and meta layer labels', () => {
     expect.soft(repairButton).toContain('非即时回血');
     expect.soft(eliteButton).toMatch(/风险|贪心/);
     expect.soft(eliteButton).toContain('-2 HP / 污染');
+    expect.soft(eliteButton).toContain('污染进弃牌堆');
     expect.soft(root.innerHTML).toContain('污染=不接链状态牌');
     expect.soft(root.innerHTML).toContain('抽到会挤掉 0-1-2');
     expect.soft(root.innerHTML).toContain('应对：清污染/净化抽牌/打出状态消耗');
