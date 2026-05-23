@@ -263,7 +263,7 @@ describe('HUD card intent previews', () => {
       before: 7,
       after: 7,
       prevented: 0,
-      label: '抽1仍-7'
+      label: '抽1 · 未减伤7'
     });
   });
 
@@ -275,13 +275,13 @@ describe('HUD card intent previews', () => {
       before: 7,
       after: 7,
       prevented: 0,
-      label: '抽2仍-7'
+      label: '抽2 · 未减伤7'
     });
     expect(paperPreview).toMatchObject({
       before: 7,
       after: 7,
       prevented: 0,
-      label: '抽3仍-7'
+      label: '抽3 · 未减伤7'
     });
   });
 });

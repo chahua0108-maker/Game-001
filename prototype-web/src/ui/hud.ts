@@ -1065,7 +1065,7 @@ function hudDesktopEffectLabel(costLabel: string, effectLabel: string, mobileEff
   const repeatsMobile =
     mobile.length > 0 &&
     (normalizedHudEffectText(effectLabel).includes(mobile) || normalizedHudEffectText(payoffLabel).includes(mobile));
-  return repeatsMobile ? costLabel : `${costLabel} · ${effectLabel}`;
+  return repeatsMobile ? effectLabel : effectLabel;
 }
 
 function normalizedHudEffectText(value: string): string {
@@ -1241,7 +1241,7 @@ function hudAuthorizationSegmentLabel(card: CardDefinition, snapshot?: GameSnaps
     return null;
   }
 
-  return snapshot?.chain?.nextExpectedCost === 2 ? '2费展开 · 临时授权3' : '临时授权3';
+  return snapshot?.chain?.nextExpectedCost === 2 ? '2费展开 · 接链后授权3' : '接链后授权3';
 }
 
 function hudChainBreakWarningLabel(card: CardDefinition, snapshot: GameSnapshot, payment: HudCardPaymentRead, chainRead: HudCardChainRead): string | null {
@@ -1251,6 +1251,23 @@ function hudChainBreakWarningLabel(card: CardDefinition, snapshot: GameSnapshot,
 
   if (snapshot.chain.nextExpectedCost === 2 && card.cost !== 2) {
     return '断授权窗/少2费';
+  }
+
+  return null;
+}
+
+function hudCardTargetPreviewLabel(card: CardDefinition, selectedTarget: EnemySnapshot | null, defaultTarget: EnemySnapshot | null): string | null {
+  if (card.targets === 'front-enemy') {
+    const target = selectedTarget ?? defaultTarget;
+    return target ? `目标：${enemyShortLabel(target)} ${target.hp}/${target.maxHp}` : '目标：无前排';
+  }
+
+  if (card.targets === 'front-row') {
+    return '目标：前排';
+  }
+
+  if (card.targets === 'all-enemies') {
+    return '目标：全体';
   }
 
   return null;
@@ -1723,8 +1740,8 @@ export function hudCardIntentPreview(
 
   if (card.damage <= 0) {
     const drawCount = card.drawCards ? card.drawCards * multiplier : 0;
-    const unresolved = before > 0 ? `仍-${before}` : '不降意图';
-    const utilityLabel = drawCount > 0 ? `抽${drawCount}${unresolved}` : card.energyGain ? `返MP${unresolved}` : '不降意图';
+    const unresolved = before > 0 ? `未减伤${before}` : '不降意图';
+    const utilityLabel = drawCount > 0 ? `抽${drawCount} · ${unresolved}` : card.energyGain ? `返MP · ${unresolved}` : '不降意图';
     return { label: utilityLabel, before, after: before, prevented: 0, targetId: null };
   }
 
@@ -1756,7 +1773,7 @@ export function hudCardIntentPreview(
   const after = Math.max(0, before - prevented);
 
   if (prevented <= 0) {
-    return { label: `仍-${before}`, before, after, prevented, targetId };
+    return { label: `未减伤${before}`, before, after, prevented, targetId };
   }
 
   const target = affectedEnemies[0];
@@ -1772,6 +1789,7 @@ export class Hud {
   private playerHitFlashUntil = 0;
   private selectedTargetId: string | null = null;
   private enemyInfoVisible = false;
+  private debugHudVisible = false;
 
   constructor(
     private readonly root: HTMLElement,
@@ -1792,6 +1810,19 @@ export class Hud {
     const target = event.target as HTMLElement | null;
     const button = target?.closest<HTMLButtonElement>('button');
     if (!button || button.disabled) {
+      return;
+    }
+
+    if (button.matches('[data-hud-mode-toggle]')) {
+      event.preventDefault();
+      if (event.type === 'pointerdown') {
+        this.suppressClickUntil = now + 500;
+      }
+      event.stopPropagation();
+      this.debugHudVisible = !this.debugHudVisible;
+      if (this.snapshot) {
+        this.render(this.snapshot);
+      }
       return;
     }
 
@@ -1910,6 +1941,7 @@ export class Hud {
 
   render(snapshot: GameSnapshot): void {
     this.snapshot = snapshot;
+    this.syncHudModeClass();
     const attackEvents = snapshot.debug.events.filter((event) => event.type === 'EnemyAttacked');
     const latestAttack = attackEvents[attackEvents.length - 1];
     if (latestAttack) {
@@ -2065,6 +2097,7 @@ export class Hud {
       : flowLabel;
     const payoffPreview = this.payoffPreviewLabel(snapshot);
     const finisherDecision = this.finisherDecisionState(snapshot);
+    const playerComboLabel = chainStarted ? `x${nextChainMultiplier}` : 'x1';
     const handCountLabel = `手 ${snapshot.player.hand.length}/${BASE_HAND_SIZE}`;
     const deckLoopLabel = `总 ${snapshot.player.deck.length} · 抽 ${snapshot.player.drawPile.length} · 弃 ${snapshot.player.discardPile.length} · ${handCountLabel} · 消 ${snapshot.player.exhaustPile.length} · 留 ${snapshot.player.retainedCards.length}`;
     const compactDeckLoopLabel = `抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length}`;
@@ -2077,8 +2110,12 @@ export class Hud {
         : `手牌 ${snapshot.player.hand.length}/${BASE_HAND_SIZE}`;
     const hasRewardChoices = Boolean(snapshot.reward.pending && snapshot.reward.choices.length > 0);
     const canEndTurn = canHudEndTurn(snapshot.fsm.gameFlow);
-    const endTurnTitle = isPlayerTurn ? `结束当前玩家回合；${unresolvedIntentLabel}` : '当前不是玩家出牌阶段';
-    const endTurnLabel = enemyIntent.totalDamage > 0 ? `结束-${enemyIntent.totalDamage}` : '结束回合';
+    const endTurnTitle = isPlayerTurn
+      ? enemyIntent.totalDamage > 0
+        ? `结束当前玩家回合；将承受 ${enemyIntent.totalDamage} 点伤害`
+        : '结束当前玩家回合；敌方当前无伤害意图'
+      : '当前不是玩家出牌阶段';
+    const endTurnLabel = enemyIntent.totalDamage > 0 ? `结束：受${enemyIntent.totalDamage}伤害` : '结束回合';
     const emptyHandText = isDeal
         ? '回合开始，先发牌。'
       : isSettlement
@@ -2143,6 +2180,28 @@ export class Hud {
         <button type="button" data-restart-current-level>重试</button>
       </section>
 
+      <button
+        class="hud-mode-toggle"
+        type="button"
+        data-hud-mode-toggle
+        aria-pressed="${this.debugHudVisible}"
+        title="${this.debugHudVisible ? '切换到玩家体验版 HUD' : '切换到战斗调试版 HUD'}"
+      >
+        ${this.debugHudVisible ? '玩家版' : '调试'}
+      </button>
+
+      <section class="crawler-combat-dials" aria-label="战斗资源">
+        <div class="crawler-combo-dial" title="${chainHint}">
+          <span>Combo</span>
+          <strong>${playerComboLabel}</strong>
+        </div>
+        <div class="crawler-mp-dial" title="${actionLabel}">
+          <span>MP</span>
+          <strong>${energyText}</strong>
+          <small>${chainStarted ? `下张${nextChainCost}` : '起链0'}</small>
+        </div>
+      </section>
+
       <section
         class="build-gap-bar ${buildGap.primaryGap ? 'has-gap' : 'stable'}"
         aria-label="构筑缺口"
@@ -2181,7 +2240,7 @@ export class Hud {
 
       ${
         finisherDecision
-          ? `<section class="finisher-decision-bar ${finisherDecision.mode}" aria-label="终结决策条" data-finisher-window="${finisherDecision.mode}" style="position: sticky; bottom: 0; z-index: 12;">
+          ? `<section class="finisher-decision-bar ${finisherDecision.mode}" aria-label="终结决策条" data-finisher-window="${finisherDecision.mode}">
               <span>终结决策</span>
               <strong>${finisherDecision.primary}</strong>
               <em>${finisherDecision.secondary}</em>
@@ -2360,6 +2419,14 @@ export class Hud {
                       : card.targets === 'front-enemy' && defaultTarget
                         ? `默认${enemyShortLabel(defaultTarget)}`
                         : targetLabel;
+                  const targetPreviewLabel = hudCardTargetPreviewLabel(card, selectedTarget, defaultTarget);
+                  const isRecommendedCard = isPlayerTurn && payment.playable && chainRead.className === 'chain-match';
+                  const actionPriorityLabel =
+                    isRecommendedCard
+                      ? '推荐：接链'
+                      : isPlayerTurn && payment.playable
+                        ? '风险：断链可打'
+                        : null;
                   const selectedTargetAttr =
                     card.targets === 'front-enemy' && selectedTarget ? `data-selected-target-id="${selectedTarget.id}"` : '';
                   const tooltip = `${displayName}。${reason}。${typeLabel} · ${chainRoleLabel} · ${visibleRoleLabel} · ${activeTargetLabel} · ${chainPreview} · ${costLabel} · ${effectLabel} · ${intentPreview.label}${authorizationSegmentLabel ? ` · ${authorizationSegmentLabel}` : ''}${chainBreakWarningLabel ? ` · ${chainBreakWarningLabel}` : ''}${payoffLabel ? ` · ${payoffLabel}` : ''}。${authorization.detail}。${this.cardDetailText(card)}`;
@@ -2376,6 +2443,8 @@ export class Hud {
                       payment.usesAuthorization ? 'authorization-payable' : ''
                     } ${
                       disabled && isPlayerTurn ? 'locked-card' : ''
+                    } ${
+                      isRecommendedCard ? 'recommended-card' : isPlayerTurn && payment.playable ? 'off-chain-playable' : ''
                     }" type="button" data-card-id="${card.id}" data-card-type="${card.cardType}" data-chain-role="${card.chainRole}" data-payment-state="${paymentState}" ${selectedTargetAttr} aria-label="${displayName}，${reason}" title="${tooltip}" ${
                       disabled ? 'disabled' : ''
                     }>
@@ -2383,7 +2452,9 @@ export class Hud {
                       <span class="hotkey">#${index + 1}</span>
                       <strong>${shortName}</strong>
                       <span class="card-meta"><b class="card-type-mark" aria-label="${typeLabel}">${typeMark}</b> ${typeLabel} · ${secondaryRoleLabel}</span>
+                      ${actionPriorityLabel ? `<span class="card-action-priority">${actionPriorityLabel}</span>` : ''}
                       <span class="chain-preview ${chainRead.breaksChain ? 'breaks-chain' : ''}">${chainPreview}</span>
+                      ${targetPreviewLabel ? `<span class="card-target-preview">${targetPreviewLabel}</span>` : ''}
                       <span class="card-intent-preview">${intentPreview.label}</span>
                       ${authorizationSegmentLabel ? `<span class="card-authorization">${authorizationSegmentLabel}</span>` : ''}
                       ${chainBreakWarningLabel ? `<span class="card-chain-warning">${chainBreakWarningLabel}</span>` : ''}
@@ -2417,6 +2488,15 @@ export class Hud {
     if (markup !== this.lastMarkup) {
       this.root.innerHTML = markup;
       this.lastMarkup = markup;
+    }
+  }
+
+  private syncHudModeClass(): void {
+    const rootWithClassList = this.root as HTMLElement & { classList?: DOMTokenList; dataset?: DOMStringMap };
+    rootWithClassList.classList?.toggle('hud-debug-mode', this.debugHudVisible);
+    rootWithClassList.classList?.toggle('hud-player-mode', !this.debugHudVisible);
+    if (rootWithClassList.dataset) {
+      rootWithClassList.dataset.hudMode = this.debugHudVisible ? 'debug' : 'player';
     }
   }
 

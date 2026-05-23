@@ -217,6 +217,51 @@ describe('HUD card readability P0', () => {
     expect(deal).toContain('不可打');
   });
 
+  it('shows visible card priority and target facts on the card face', () => {
+    const html = renderHud(
+      snapshot({
+        player: {
+          energy: 3,
+          hand: ['debt_hook', 'redline_cut', 'row_cleave']
+        } as GameSnapshot['player'],
+        enemies: [
+          {
+            id: 'enemy-1',
+            definitionId: 'debt_wisp',
+            name: 'Debt Wisp',
+            hp: 10,
+            maxHp: 10,
+            slot: 0,
+            lane: -2,
+            z: -6,
+            alive: true
+          },
+          {
+            id: 'enemy-2',
+            definitionId: 'redline_brute',
+            name: 'Redline Brute',
+            hp: 18,
+            maxHp: 18,
+            slot: 1,
+            lane: -1,
+            z: -6,
+            alive: true
+          }
+        ],
+        enemyIntents: [
+          { enemyId: 'enemy-1', kind: 'attack', amount: 2, slot: 0, description: 'attack', willRefill: true },
+          { enemyId: 'enemy-2', kind: 'attack', amount: 5, slot: 1, description: 'attack', willRefill: true }
+        ],
+        enemyIntentSummary: { totalDamage: 7, intentEnemyIds: ['enemy-1', 'enemy-2'] }
+      })
+    );
+
+    expect(cardMarkup(html, 'debt_hook')).toContain('推荐：接链');
+    expect(cardMarkup(html, 'debt_hook')).toContain('目标：蛮兵 18/18');
+    expect(cardMarkup(html, 'redline_cut')).toContain('风险：断链可打');
+    expect(cardMarkup(html, 'redline_cut')).toContain('未减伤7');
+  });
+
   it('surfaces authorization segment and payoff authorization labels', () => {
     const segment = cardMarkup(renderHud(snapshot({ player: { energy: 3, hand: ['row_cleave'] } as GameSnapshot['player'] })), 'row_cleave');
     const authorized = cardMarkup(
@@ -232,7 +277,7 @@ describe('HUD card readability P0', () => {
       'severance_burst'
     );
 
-    expect(segment).toContain('临时授权3');
+    expect(segment).toContain('接链后授权3');
     expect(authorized).toContain('授权可付');
     expect(authorized).toContain('全场 16');
     expect(unauthorized).toContain('需MP或授权');
@@ -339,7 +384,7 @@ describe('HUD card readability P0', () => {
     );
 
     expect(cardMarkup(html, 'row_cleave')).toContain('等待0费起链');
-    expect(cardMarkup(html, 'clearance_order')).toContain('临时授权3');
+    expect(cardMarkup(html, 'clearance_order')).toContain('接链后授权3');
     expect(html).not.toContain('非起x1');
     expect(html).not.toContain('给授权 +3');
   });
@@ -366,7 +411,7 @@ describe('HUD card readability P0', () => {
       })
     );
 
-    expect(cardMarkup(html, 'row_cleave')).toContain('2费展开 · 临时授权3');
+    expect(cardMarkup(html, 'row_cleave')).toContain('2费展开 · 接链后授权3');
     expect(cardMarkup(html, 'redline_cut')).toContain('断授权窗/少2费');
   });
 

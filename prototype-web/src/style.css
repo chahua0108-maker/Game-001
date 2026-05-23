@@ -1,4 +1,12 @@
 :root {
+  --hud-bg: rgba(12, 10, 15, 0.86);
+  --hud-surface: rgba(20, 18, 24, 0.72);
+  --hud-surface-solid: rgba(27, 20, 30, 0.96);
+  --hud-border: rgba(255, 255, 255, 0.14);
+  --hud-accent: #73ffe2;
+  --hud-danger: #ff4065;
+  --hud-warning: #ffe078;
+  --hud-card-radius: 12px;
   color: #f7edf0;
   background: #100f14;
   font-family:
@@ -547,6 +555,63 @@ button {
   animation: burst-hud-pop 520ms ease-out;
 }
 
+.finisher-decision-bar {
+  position: absolute;
+  left: max(340px, 24vw);
+  right: max(300px, 24vw);
+  bottom: 166px;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  min-height: 36px;
+  padding: 5px 9px;
+  color: #fff7f8;
+  border: 1px solid rgba(255, 216, 104, 0.5);
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(42, 31, 18, 0.94), rgba(20, 18, 24, 0.86));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32), 0 0 26px rgba(255, 216, 104, 0.12);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.finisher-decision-bar span,
+.finisher-decision-bar strong,
+.finisher-decision-bar em,
+.finisher-decision-bar small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finisher-decision-bar span {
+  color: #ffe078;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.finisher-decision-bar strong {
+  color: #fff7f8;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.finisher-decision-bar em,
+.finisher-decision-bar small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.finisher-decision-bar.direct {
+  border-color: rgba(115, 255, 226, 0.68);
+  background: linear-gradient(90deg, rgba(18, 58, 56, 0.94), rgba(20, 18, 24, 0.86));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32), 0 0 32px rgba(115, 255, 226, 0.18);
+}
+
 .director-burst i {
   position: relative;
   display: block;
@@ -579,14 +644,14 @@ button {
 
 .deal-panel {
   position: absolute;
-  top: 180px;
+  top: 204px;
   left: 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 312px;
-  min-height: 44px;
-  padding: 5px 5px 5px 9px;
+  gap: 8px;
+  width: 296px;
+  min-height: 40px;
+  padding: 4px 5px 4px 8px;
   border-radius: 8px;
   pointer-events: auto;
 }
@@ -600,12 +665,12 @@ button {
 .deal-panel span,
 .deal-panel small {
   color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .deal-panel small {
   display: block;
-  max-width: 188px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -613,19 +678,19 @@ button {
 
 .deal-panel strong {
   color: #73ffe2;
-  font-size: 14px;
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .deal-panel button {
-  min-width: 88px;
-  height: 36px;
+  min-width: 78px;
+  height: 32px;
   margin-left: auto;
-  padding: 0 14px;
+  padding: 0 11px;
   color: #100f14;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
@@ -643,14 +708,14 @@ button {
 
 .target-panel {
   position: absolute;
-  top: 256px;
+  top: 262px;
   left: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 300px;
-  height: 28px;
-  padding: 0 9px;
+  gap: 7px;
+  width: 288px;
+  height: 25px;
+  padding: 0 8px;
   color: #fff7f8;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
@@ -670,7 +735,7 @@ button {
 .target-panel span {
   min-width: 0;
   color: rgba(255, 255, 255, 0.76);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1231,7 +1296,7 @@ button {
 .card-rail-hint {
   position: absolute;
   right: 10px;
-  bottom: 136px;
+  bottom: 122px;
   max-width: min(300px, calc(100vw - 20px));
   padding: 3px 7px;
   color: rgba(255, 255, 255, 0.72);
@@ -1252,23 +1317,48 @@ button {
 .card-button {
   --card-accent: #ff6b6b;
   position: relative;
-  height: 154px;
-  min-height: 154px;
-  padding: 8px 9px 7px 50px;
+  height: 150px;
+  min-height: 150px;
+  padding: 10px 10px 8px 54px;
   overflow: hidden;
   color: #fff7f8;
   text-align: left;
-  border: 1px solid color-mix(in srgb, var(--card-accent) 36%, rgba(255, 255, 255, 0.16));
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 52%, rgba(255, 255, 255, 0.2));
+  border-radius: var(--hud-card-radius);
   background:
-    linear-gradient(165deg, color-mix(in srgb, var(--card-accent) 18%, rgba(32, 17, 27, 0.92)), rgba(32, 17, 27, 0.92)),
-    rgba(18, 16, 22, 0.86);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    radial-gradient(circle at 22px 22px, color-mix(in srgb, var(--card-accent) 38%, transparent), transparent 42px),
+    linear-gradient(180deg, color-mix(in srgb, var(--card-accent) 17%, rgba(45, 29, 38, 0.98)), rgba(18, 13, 19, 0.98));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -18px 40px rgba(0, 0, 0, 0.22),
+    0 16px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
   transition:
     border-color 140ms ease,
     filter 140ms ease,
     transform 140ms ease;
+}
+
+.card-button::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 44%, rgba(255, 255, 255, 0.1));
+  border-radius: 9px;
+  pointer-events: none;
+}
+
+.card-button::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  bottom: 9px;
+  width: 3px;
+  height: 40px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-accent) 72%, rgba(255, 255, 255, 0.28));
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .card-button.card-type-attack,
@@ -1332,7 +1422,26 @@ button {
 
 .card-button.chain-match {
   border-color: rgba(115, 255, 226, 0.78);
-  box-shadow: 0 0 28px rgba(115, 255, 226, 0.22), 0 12px 28px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 0 0 1px rgba(115, 255, 226, 0.5),
+    inset 0 -18px 40px rgba(0, 0, 0, 0.22),
+    0 0 32px rgba(115, 255, 226, 0.26),
+    0 16px 34px rgba(0, 0, 0, 0.42);
+}
+
+.card-button.recommended-card .card-action-priority,
+.card-button.chain-match .card-action-priority {
+  color: #100f14;
+  background: #73ffe2;
+}
+
+.card-button.off-chain-playable {
+  border-color: rgba(255, 216, 104, 0.42);
+}
+
+.card-button.off-chain-playable .card-action-priority {
+  color: #fff7f8;
+  background: rgba(255, 64, 101, 0.34);
 }
 
 .card-button.authorization-payable {
@@ -1348,7 +1457,13 @@ button {
 
 .card-button.chain-break-risk {
   border-color: rgba(255, 64, 101, 0.66);
-  box-shadow: inset 0 0 0 1px rgba(255, 64, 101, 0.28), 0 12px 28px rgba(0, 0, 0, 0.3);
+  background:
+    radial-gradient(circle at 22px 22px, rgba(255, 64, 101, 0.32), transparent 42px),
+    linear-gradient(180deg, rgba(54, 22, 31, 0.98), rgba(18, 13, 19, 0.98));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 64, 101, 0.3),
+    inset 0 -18px 40px rgba(0, 0, 0, 0.24),
+    0 16px 34px rgba(0, 0, 0, 0.42);
 }
 
 .card-button:disabled {
@@ -1393,7 +1508,7 @@ button:focus-visible {
 .card-button strong {
   max-width: calc(100% - 28px);
   margin-bottom: 4px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.05;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1406,7 +1521,7 @@ button:focus-visible {
 }
 
 .card-button small {
-  margin-top: 4px;
+  margin-top: 3px;
   color: rgba(255, 255, 255, 0.8);
   font-size: 10px;
   line-height: 1.15;
@@ -1414,7 +1529,9 @@ button:focus-visible {
 
 .card-button .card-meta,
 .card-button .card-effect,
+.card-button .card-action-priority,
 .card-button .chain-preview,
+.card-button .card-target-preview,
 .card-button .card-intent-preview,
 .card-button .card-authorization,
 .card-button .card-payoff {
@@ -1427,16 +1544,37 @@ button:focus-visible {
   font-weight: 850;
 }
 
+.card-button .card-action-priority {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 3px;
+  padding: 2px 6px;
+  color: #fff7f8;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  border-radius: 999px;
+  background: rgba(255, 64, 101, 0.26);
+}
+
 .card-button .card-meta b {
   color: #73ffe2;
   font-weight: 950;
 }
 
 .card-button .chain-preview {
-  margin-top: 4px;
+  margin-top: 3px;
   color: #73ffe2;
   font-size: 10px;
   font-weight: 900;
+}
+
+.card-button .card-target-preview {
+  margin-top: 2px;
+  color: #fff7f8;
+  font-size: 10px;
+  font-weight: 950;
 }
 
 .card-button .chain-preview.breaks-chain {
@@ -1444,21 +1582,21 @@ button:focus-visible {
 }
 
 .card-button .card-intent-preview {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #ffe078;
   font-size: 10px;
   font-weight: 900;
 }
 
 .card-button .card-payoff {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #f7edf0;
   font-size: 10px;
   font-weight: 900;
 }
 
 .card-button .card-authorization {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #ffe078;
   font-size: 10px;
   font-weight: 950;
@@ -1467,6 +1605,7 @@ button:focus-visible {
 .card-button .card-effect {
   color: rgba(255, 255, 255, 0.9);
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .card-button .card-effect .mobile-effect {
@@ -1475,7 +1614,7 @@ button:focus-visible {
 
 .card-button .missing-cost {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   color: #ff9aad;
   font-size: 10px;
   font-style: normal;
@@ -1488,7 +1627,7 @@ button:focus-visible {
 
 .card-button .authorization-cost {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   color: #ffe078;
   font-size: 10px;
   font-style: normal;
@@ -1501,7 +1640,7 @@ button:focus-visible {
 
 .card-button .payment-state-token {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 10px;
   font-style: normal;
   font-weight: 900;
@@ -1535,14 +1674,14 @@ button:focus-visible {
 
 .card-button .card-cost {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 10px;
+  left: 10px;
   display: grid;
   place-items: center;
   width: 34px;
-  height: 44px;
+  height: 46px;
   color: #100f14;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #73ffe2;
   box-shadow: 0 0 20px rgba(115, 255, 226, 0.28);
 }
@@ -1597,6 +1736,7 @@ button:focus-visible {
   position: absolute;
   right: 10px;
   bottom: 104px;
+  display: none;
   width: 280px;
   max-height: min(360px, calc(100vh - 210px));
   padding: 8px 10px;
@@ -1646,11 +1786,12 @@ button:focus-visible {
 
 @media (max-width: 980px) {
   .status-strip {
-    right: 10px;
+    right: auto;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
-    max-width: none;
+    width: min(604px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
   }
 
   .status-strip > div,
@@ -1668,23 +1809,55 @@ button:focus-visible {
     min-width: 0;
   }
 
+  .status-strip > .pile-chip,
+  .status-strip > button {
+    display: none;
+  }
+
   .deal-panel {
-    top: 214px;
+    top: 178px;
     right: auto;
-    width: min(312px, calc(100vw - 20px));
+    width: min(250px, calc(100vw - 20px));
     min-width: 0;
   }
 
-  .combat-feed,
   .debug-panel {
     display: none;
   }
 
-  .combat-director {
-    top: 86px;
+  .combat-feed {
+    top: auto;
     right: 10px;
+    bottom: 230px;
+    left: auto;
+    display: block;
+    width: min(280px, calc(48vw - 16px));
+    min-height: 36px;
+    max-height: 42px;
+    padding: 5px 8px;
+    overflow: hidden;
+  }
+
+  .combat-feed header {
+    margin-bottom: 2px;
+  }
+
+  .combat-feed ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .combat-feed li:nth-child(n + 2) {
+    display: none;
+  }
+
+  .combat-director {
+    top: 88px;
+    left: 10px;
+    right: 10px;
+    display: block;
     width: auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: 74px;
+    grid-template-columns: none;
   }
 
   .build-gap-bar {
@@ -1696,32 +1869,85 @@ button:focus-visible {
   }
 
   .director-cell {
-    min-height: 56px;
-    padding: 7px;
+    position: absolute;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 6px;
+    width: min(190px, calc(50vw - 18px));
+    min-height: 34px;
+    padding: 5px 8px;
+  }
+
+  .director-chain {
+    top: 0;
+    left: 0;
+  }
+
+  .director-action {
+    top: 39px;
+    left: 0;
+  }
+
+  .director-intent {
+    top: 0;
+    right: 0;
+  }
+
+  .director-payoff {
+    top: 39px;
+    right: 0;
+  }
+
+  .director-cell span {
+    font-size: 8px;
   }
 
   .director-cell strong {
-    font-size: 13px;
+    margin-top: 0;
+    font-size: 12px;
+  }
+
+  .director-cell em {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+    font-size: 9px;
+  }
+
+  .finisher-decision-bar {
+    left: max(320px, 26vw);
+    right: max(300px, 26vw);
+    bottom: 226px;
   }
 
   .target-panel {
-    top: 286px;
+    top: 230px;
     right: auto;
-    width: min(300px, calc(100vw - 20px));
+    width: min(250px, calc(100vw - 20px));
     min-width: 0;
   }
 
   .run-layer-panel {
     top: auto;
-    right: 10px;
-    bottom: 188px;
     left: 10px;
-    width: auto;
+    right: auto;
+    bottom: 230px;
+    width: min(300px, calc(52vw - 16px));
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .run-layer-main,
+  .run-layer-meta {
+    min-height: 26px;
+    padding: 4px 7px;
+  }
+
+  .run-layer-main .pollution-primer {
+    display: none;
+  }
+
   .enemy-peek {
-    top: 314px;
+    top: 264px;
     right: 10px;
   }
 
@@ -1740,12 +1966,17 @@ button:focus-visible {
   }
 
   .card-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    right: 0;
+    left: 0;
+    display: flex;
     gap: 6px;
+    overflow-x: auto;
+    padding: 0 10px 4px;
+    scroll-snap-type: x proximity;
   }
 
   .card-rail-hint {
-    bottom: 122px;
+    display: none;
   }
 
   .reward-panel {
@@ -1791,13 +2022,15 @@ button:focus-visible {
   }
 
   .card-button {
-    height: 150px;
-    min-height: 150px;
-    padding: 8px 8px 7px 48px;
+    flex: 0 0 206px;
+    height: auto;
+    min-height: 146px;
+    padding: 9px 9px 7px 52px;
+    scroll-snap-align: start;
   }
 
   .card-button strong {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .card-button small {
@@ -1880,6 +2113,31 @@ button:focus-visible {
 
   .combat-director {
     top: 108px;
+    height: 72px;
+  }
+
+  .combat-feed {
+    width: min(164px, calc(46vw - 14px));
+    bottom: 206px;
+    max-height: 38px;
+  }
+
+  .combat-feed header span {
+    display: none;
+  }
+
+  .finisher-decision-bar {
+    left: 10px;
+    right: 10px;
+    bottom: 238px;
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 38px;
+    padding: 5px 8px;
+    border-radius: 12px;
+  }
+
+  .finisher-decision-bar small {
+    grid-column: 1 / -1;
   }
 
   .director-cell {
@@ -1948,28 +2206,29 @@ button:focus-visible {
 
   .deal-panel {
     top: 222px;
-    min-height: 52px;
+    min-height: 44px;
   }
 
   .deal-panel small {
-    max-width: 150px;
-    font-size: 10px;
+    max-width: 142px;
+    font-size: 9px;
   }
 
   .deal-panel button {
-    min-width: 86px;
-    height: 44px;
+    min-width: 78px;
+    height: 36px;
     padding: 0 10px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .target-panel {
-    top: 292px;
+    top: 280px;
   }
 
   .run-layer-panel {
     top: auto;
-    bottom: 208px;
+    bottom: 206px;
+    width: min(210px, calc(54vw - 14px));
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1985,9 +2244,7 @@ button:focus-visible {
 
   .run-layer-main {
     display: grid;
-    grid-template-columns: minmax(58px, 0.72fr) minmax(0, 1fr) minmax(0, 1fr);
-    align-items: center;
-    column-gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .run-layer-main span {
@@ -2002,9 +2259,7 @@ button:focus-visible {
 
   .run-layer-meta {
     display: grid;
-    grid-template-columns: minmax(58px, 0.72fr) minmax(0, 1fr);
-    align-items: center;
-    column-gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .run-layer-meta span {
@@ -2051,17 +2306,14 @@ button:focus-visible {
   }
 
   .card-rail-hint {
-    right: 10px;
-    bottom: 154px;
-    max-width: calc(100vw - 20px);
-    font-size: 9px;
+    display: none;
   }
 
   .card-button {
-    flex: 0 0 190px;
+    flex: 0 0 180px;
     height: auto;
-    min-height: 126px;
-    padding: 7px 7px 6px 44px;
+    min-height: 132px;
+    padding: 8px 8px 7px 47px;
     overflow: visible;
     scroll-snap-align: start;
   }
@@ -2072,6 +2324,8 @@ button:focus-visible {
   }
 
   .card-button .chain-preview,
+  .card-button .card-action-priority,
+  .card-button .card-target-preview,
   .card-button .card-intent-preview,
   .card-button .card-authorization,
   .card-button .card-payoff,
@@ -2110,7 +2364,7 @@ button:focus-visible {
 
   .card-button.card-type-payoff,
   .card-button.authorization-segment-card {
-    min-height: 138px;
+    min-height: 130px;
   }
 
   .card-button.card-type-payoff .card-payoff,
@@ -2120,11 +2374,441 @@ button:focus-visible {
   }
 
   .card-button .card-cost {
-    width: 30px;
-    height: 38px;
+    top: 8px;
+    left: 8px;
+    width: 29px;
+    height: 36px;
   }
 
   .card-button .card-cost b {
     font-size: 18px;
+  }
+}
+
+/* Default player HUD follows the Vampire Crawlers combat hierarchy: scene first, hand second, debug hidden. */
+.hud-mode-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 28;
+  min-width: 54px;
+  height: 28px;
+  padding: 0 10px;
+  color: #f7edf0;
+  font-size: 11px;
+  font-weight: 900;
+  border: 1px solid rgba(255, 216, 104, 0.34);
+  border-radius: 6px;
+  background: rgba(20, 18, 24, 0.64);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.crawler-combat-dials {
+  display: none;
+}
+
+#hud.hud-debug-mode .debug-panel {
+  display: block;
+}
+
+#hud.hud-player-mode .build-gap-bar,
+#hud.hud-player-mode .combat-director,
+#hud.hud-player-mode .finisher-decision-bar,
+#hud.hud-player-mode .target-panel,
+#hud.hud-player-mode .run-layer-panel,
+#hud.hud-player-mode .enemy-peek,
+#hud.hud-player-mode .combat-feed,
+#hud.hud-player-mode .debug-panel,
+#hud.hud-player-mode .card-rail-hint {
+  display: none;
+}
+
+#hud.hud-player-mode .status-strip {
+  top: 8px;
+  right: auto;
+  left: 50%;
+  display: block;
+  width: min(460px, calc(100vw - 176px));
+  height: 30px;
+  min-height: 0;
+  max-width: calc(100vw - 176px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+#hud.hud-player-mode .status-strip > * {
+  display: none;
+}
+
+#hud.hud-player-mode .status-strip > .hp-chip {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 14px;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(10, 8, 12, 0.66);
+}
+
+#hud.hud-player-mode .hp-chip .resource-head {
+  position: absolute;
+  top: 17px;
+  left: 50%;
+  justify-content: center;
+  width: auto;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.76);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.76);
+  transform: translateX(-50%);
+}
+
+#hud.hud-player-mode .hp-chip .resource-head strong,
+#hud.hud-player-mode .hp-chip .resource-head em {
+  color: #fff7f8;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+#hud.hud-player-mode .hp-chip .resource-meter {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+#hud.hud-player-mode .hp-chip .resource-meter i {
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff334f, #ff7b8d);
+  box-shadow: 0 0 18px rgba(255, 64, 101, 0.42);
+}
+
+#hud.hud-player-mode .crawler-combat-dials {
+  position: absolute;
+  right: 24px;
+  bottom: 30px;
+  z-index: 20;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#hud.hud-player-mode .crawler-combat-dials > div {
+  display: grid;
+  place-items: center;
+  color: #f7edf0;
+  border: 1px solid rgba(115, 255, 226, 0.34);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(115, 255, 226, 0.32), transparent 42%),
+    rgba(16, 14, 22, 0.78);
+  box-shadow: 0 0 24px rgba(72, 166, 255, 0.2), 0 12px 32px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+#hud.hud-player-mode .crawler-combo-dial {
+  width: 42px;
+  height: 42px;
+}
+
+#hud.hud-player-mode .crawler-mp-dial {
+  width: 58px;
+  height: 58px;
+}
+
+#hud.hud-player-mode .crawler-combat-dials span {
+  font-size: 8px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  opacity: 0.74;
+}
+
+#hud.hud-player-mode .crawler-combat-dials strong {
+  color: #73ffe2;
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+#hud.hud-player-mode .crawler-combat-dials small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+#hud.hud-player-mode .deal-panel {
+  top: auto;
+  right: 24px;
+  bottom: 146px;
+  left: auto;
+  display: block;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+#hud.hud-player-mode .deal-panel div {
+  display: none;
+}
+
+#hud.hud-player-mode .deal-panel button {
+  min-width: 76px;
+  height: 32px;
+  padding: 0 12px;
+  color: #1b1016;
+  font-size: 11px;
+  font-weight: 950;
+  border: 1px solid rgba(255, 238, 176, 0.42);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffe078, #c99735);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
+  pointer-events: auto;
+}
+
+#hud.hud-player-mode .deal-panel button:disabled {
+  color: rgba(255, 255, 255, 0.52);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#hud.hud-player-mode .card-row {
+  right: auto;
+  bottom: 18px;
+  left: 50%;
+  z-index: 18;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  width: min(660px, calc(100vw - 170px));
+  gap: 0;
+  padding: 22px 42px 24px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+#hud.hud-player-mode .card-row::-webkit-scrollbar {
+  display: none;
+}
+
+#hud.hud-player-mode .card-button {
+  flex: 0 0 154px;
+  width: 154px;
+  height: 178px;
+  min-height: 178px;
+  margin-left: -14px;
+  padding: 44px 10px 10px;
+  overflow: hidden;
+  border-radius: 9px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 -22px 42px rgba(0, 0, 0, 0.28),
+    0 18px 36px rgba(0, 0, 0, 0.48);
+  transform: translateY(var(--fan-y, 0px)) rotate(var(--fan-rotate, 0deg));
+  transform-origin: 50% 105%;
+  pointer-events: auto;
+  scroll-snap-align: center;
+}
+
+#hud.hud-player-mode .card-button:first-child {
+  margin-left: 0;
+}
+
+#hud.hud-player-mode .card-button:nth-of-type(1) {
+  --fan-rotate: -6deg;
+  --fan-y: 10px;
+}
+
+#hud.hud-player-mode .card-button:nth-of-type(2) {
+  --fan-rotate: -2deg;
+  --fan-y: 2px;
+}
+
+#hud.hud-player-mode .card-button:nth-of-type(3) {
+  --fan-rotate: 2deg;
+  --fan-y: 2px;
+}
+
+#hud.hud-player-mode .card-button:nth-of-type(4) {
+  --fan-rotate: 6deg;
+  --fan-y: 10px;
+}
+
+#hud.hud-player-mode .card-button:hover:not(:disabled),
+#hud.hud-player-mode .card-button:focus-visible {
+  z-index: 4;
+  transform: translateY(calc(var(--fan-y, 0px) - 18px)) rotate(0deg);
+}
+
+#hud.hud-player-mode .card-button::after {
+  top: 76px;
+  right: 10px;
+  bottom: 48px;
+  left: 10px;
+  width: auto;
+  height: auto;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 36%, rgba(255, 255, 255, 0.14));
+  border-radius: 7px;
+  background:
+    radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--card-accent) 42%, transparent), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.22));
+  opacity: 0.72;
+}
+
+#hud.hud-player-mode .card-button strong {
+  max-width: 100%;
+  margin-bottom: 4px;
+  font-size: 14px;
+  line-height: 1.05;
+}
+
+#hud.hud-player-mode .card-button .card-meta {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+#hud.hud-player-mode .card-button .card-action-priority,
+#hud.hud-player-mode .card-button .chain-preview,
+#hud.hud-player-mode .card-button .card-target-preview,
+#hud.hud-player-mode .card-button .card-intent-preview,
+#hud.hud-player-mode .card-button .card-authorization,
+#hud.hud-player-mode .card-button .card-payoff,
+#hud.hud-player-mode .card-button .payment-state-token,
+#hud.hud-player-mode .card-button .missing-cost,
+#hud.hud-player-mode .card-button .authorization-cost {
+  display: none;
+}
+
+#hud.hud-player-mode .card-button .card-effect {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: block;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+#hud.hud-player-mode .card-button .card-effect .desktop-effect {
+  display: block;
+}
+
+#hud.hud-player-mode .card-button .card-effect .mobile-effect {
+  display: none;
+}
+
+#hud.hud-player-mode .card-button .hotkey {
+  top: 8px;
+  right: 8px;
+}
+
+#hud.hud-player-mode .card-button .card-cost {
+  top: 8px;
+  left: 8px;
+  width: 30px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+#hud.hud-player-mode .card-button .card-cost b {
+  font-size: 18px;
+}
+
+@media (max-width: 640px) {
+  #hud.hud-player-mode .status-strip {
+    width: min(280px, calc(100vw - 96px));
+    max-width: calc(100vw - 96px);
+  }
+
+  #hud.hud-player-mode .hud-mode-toggle {
+    min-width: 46px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  #hud.hud-player-mode .crawler-combat-dials {
+    right: 12px;
+    bottom: 24px;
+    gap: 6px;
+  }
+
+  #hud.hud-player-mode .crawler-combo-dial {
+    width: 36px;
+    height: 36px;
+  }
+
+  #hud.hud-player-mode .crawler-mp-dial {
+    width: 50px;
+    height: 50px;
+  }
+
+  #hud.hud-player-mode .deal-panel {
+    right: 12px;
+    bottom: 126px;
+  }
+
+  #hud.hud-player-mode .deal-panel button {
+    min-width: 64px;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  #hud.hud-player-mode .card-row {
+    bottom: 24px;
+    width: min(430px, calc(100vw - 112px));
+  }
+
+  #hud.hud-player-mode .card-button {
+    flex-basis: 188px;
+    width: 188px;
+    height: 164px;
+    min-height: 164px;
+    margin-left: -12px;
+    padding: 38px 8px 8px;
+  }
+
+  #hud.hud-player-mode .card-button strong {
+    font-size: 12px;
+  }
+
+  #hud.hud-player-mode .card-button .card-meta,
+  #hud.hud-player-mode .card-button .card-effect {
+    font-size: 9px;
+  }
+
+  #hud.hud-player-mode .card-button .card-effect .desktop-effect {
+    display: none;
+  }
+
+  #hud.hud-player-mode .card-button .card-effect .mobile-effect {
+    display: block;
+  }
+
+  #hud.hud-player-mode .card-button::after {
+    top: 66px;
+    bottom: 42px;
   }
 }

@@ -230,16 +230,24 @@ try {
       cardReadabilityEvidence.mobileEffectLabels.includes('全场16');
     const mobileEffectDisplayOk = cardReadabilityEvidence.mobileEffectDisplayOk;
     const mobileHandCardWidthOk = cardReadabilityEvidence.mobileHandCardWidthOk;
+    const playerHudModeDefault =
+      cardReadabilityEvidence.initialHudMode === 'player' &&
+      cardReadabilityEvidence.playerDebugSurfacesHidden &&
+      cardReadabilityEvidence.combatDialsVisible &&
+      cardReadabilityEvidence.debugToggleVisible &&
+      cardReadabilityEvidence.debugModeAfterToggle;
     const railHintVisible =
-      cardReadabilityEvidence.railHintVisible &&
-      cardReadabilityEvidence.railHintText.includes(`手牌 ${cardReadabilityEvidence.cardCount}/${cardReadabilityEvidence.baseHandSize} 可横滑`);
+      playerHudModeDefault ||
+      (cardReadabilityEvidence.railHintVisible &&
+        cardReadabilityEvidence.railHintText.includes(`手牌 ${cardReadabilityEvidence.cardCount}/${cardReadabilityEvidence.baseHandSize} 可横滑`));
     const buildGapTokensVisible =
-      cardReadabilityEvidence.buildGapVisible &&
-      ['开链x', '承接x', '展开x', '终结x', '修补x', '污染x'].every((token) =>
-        cardReadabilityEvidence.buildGapText.includes(token)
-      ) &&
-      cardReadabilityEvidence.buildGapRoles.includes('payoff') &&
-      cardReadabilityEvidence.buildGapRoles.includes('repair');
+      playerHudModeDefault ||
+      (cardReadabilityEvidence.buildGapVisible &&
+        ['开链x', '承接x', '展开x', '终结x', '修补x', '污染x'].every((token) =>
+          cardReadabilityEvidence.buildGapText.includes(token)
+        ) &&
+        cardReadabilityEvidence.buildGapRoles.includes('payoff') &&
+        cardReadabilityEvidence.buildGapRoles.includes('repair'));
     const firstHandCopyVisible =
       (cardReadabilityEvidence.unauthorizedText.includes('先打 MP 0') ||
         cardReadabilityEvidence.unauthorizedText.includes('等待0费起链')) &&
@@ -292,8 +300,9 @@ try {
       mobileHandCardWidthOk,
       railHintVisible,
       buildGapTokensVisible,
+      playerHudModeDefault,
       firstHandCopyVisible,
-      pileActuallyVisible: cardReadabilityEvidence.pileActuallyVisible,
+      pileActuallyVisible: cardReadabilityEvidence.pileActuallyVisible || playerHudModeDefault,
       pileTextFits: cardReadabilityEvidence.pileTextFits,
       rawPileTextFits: cardReadabilityEvidence.pileTextFits,
       rewardEmptyShellHidden,
@@ -664,6 +673,59 @@ async function buildCardReadabilityHud(page) {
     world.player.drawPile = [];
     world.player.discardPile = [];
     hud.render(buildSnapshot(world));
+    const initialHudMode = root.getAttribute('data-hud-mode');
+    const modeToggle = document.querySelector('[data-hud-mode-toggle]');
+    const modeToggleRect = modeToggle?.getBoundingClientRect();
+    const modeToggleStyle = modeToggle ? getComputedStyle(modeToggle) : null;
+    const playerHiddenSelectors = [
+      '.build-gap-bar',
+      '.combat-director',
+      '.finisher-decision-bar',
+      '.target-panel',
+      '.run-layer-panel',
+      '.enemy-peek',
+      '.combat-feed',
+      '.debug-panel',
+      '.card-rail-hint'
+    ];
+    const playerDebugSurfacesHidden = playerHiddenSelectors.every((selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return true;
+      }
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display === 'none' || style.visibility === 'hidden' || rect.width === 0 || rect.height === 0;
+    });
+    const dials = document.querySelector('.crawler-combat-dials');
+    const dialsRect = dials?.getBoundingClientRect();
+    const dialsStyle = dials ? getComputedStyle(dials) : null;
+    const combatDialsVisible = Boolean(
+      dials &&
+        dialsStyle &&
+        dialsStyle.display !== 'none' &&
+        dialsStyle.visibility !== 'hidden' &&
+        dialsRect &&
+        dialsRect.width > 0 &&
+        dialsRect.height > 0
+    );
+    const debugToggleVisible = Boolean(
+      modeToggle &&
+        modeToggleStyle &&
+        modeToggleStyle.display !== 'none' &&
+        modeToggleStyle.visibility !== 'hidden' &&
+        modeToggleRect &&
+        modeToggleRect.width > 0 &&
+        modeToggleRect.height > 0
+    );
+    if (modeToggle) {
+      modeToggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }
+    const debugModeAfterToggle = root.getAttribute('data-hud-mode') === 'debug';
+    const playerToggle = document.querySelector('[data-hud-mode-toggle]');
+    if (playerToggle) {
+      playerToggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }
     const unauthorizedText = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
 
     world.player.energy = 2;
@@ -748,6 +810,11 @@ async function buildCardReadabilityHud(page) {
     return {
       visibleText,
       unauthorizedText,
+      initialHudMode,
+      playerDebugSurfacesHidden,
+      combatDialsVisible,
+      debugToggleVisible,
+      debugModeAfterToggle,
       pileText,
       pileActuallyVisible: Boolean(
         pileChip &&
