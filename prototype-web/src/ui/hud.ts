@@ -2493,8 +2493,8 @@ export class Hud {
 
   private syncHudModeClass(): void {
     const rootWithClassList = this.root as HTMLElement & { classList?: DOMTokenList; dataset?: DOMStringMap };
+    rootWithClassList.classList?.add('hud-player-mode');
     rootWithClassList.classList?.toggle('hud-debug-mode', this.debugHudVisible);
-    rootWithClassList.classList?.toggle('hud-player-mode', !this.debugHudVisible);
     if (rootWithClassList.dataset) {
       rootWithClassList.dataset.hudMode = this.debugHudVisible ? 'debug' : 'player';
     }

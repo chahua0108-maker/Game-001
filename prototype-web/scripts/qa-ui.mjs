@@ -235,7 +235,9 @@ try {
       cardReadabilityEvidence.playerDebugSurfacesHidden &&
       cardReadabilityEvidence.combatDialsVisible &&
       cardReadabilityEvidence.debugToggleVisible &&
-      cardReadabilityEvidence.debugModeAfterToggle;
+      cardReadabilityEvidence.debugModeAfterToggle &&
+      cardReadabilityEvidence.debugBaseLayoutPreserved &&
+      cardReadabilityEvidence.debugInfoLayerVisible;
     const railHintVisible =
       playerHudModeDefault ||
       (cardReadabilityEvidence.railHintVisible &&
@@ -674,6 +676,42 @@ async function buildCardReadabilityHud(page) {
     world.player.discardPile = [];
     hud.render(buildSnapshot(world));
     const initialHudMode = root.getAttribute('data-hud-mode');
+    const rectFor = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return null;
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        x: Math.round(rect.x),
+        y: Math.round(rect.y),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      };
+    };
+    const visibleBox = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return false;
+      }
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.left >= -1 &&
+        rect.right <= window.innerWidth + 1 &&
+        rect.top >= -1 &&
+        rect.bottom <= window.innerHeight + 1
+      );
+    };
+    const playerShellRects = {
+      cardRow: rectFor('.card-row'),
+      dials: rectFor('.crawler-combat-dials'),
+      dealPanel: rectFor('.deal-panel')
+    };
     const modeToggle = document.querySelector('[data-hud-mode-toggle]');
     const modeToggleRect = modeToggle?.getBoundingClientRect();
     const modeToggleStyle = modeToggle ? getComputedStyle(modeToggle) : null;
@@ -722,6 +760,30 @@ async function buildCardReadabilityHud(page) {
       modeToggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
     const debugModeAfterToggle = root.getAttribute('data-hud-mode') === 'debug';
+    const debugKeepsPlayerClass = root.classList.contains('hud-player-mode') && root.classList.contains('hud-debug-mode');
+    const debugShellRects = {
+      cardRow: rectFor('.card-row'),
+      dials: rectFor('.crawler-combat-dials'),
+      dealPanel: rectFor('.deal-panel')
+    };
+    const closeRect = (before, after) =>
+      Boolean(
+        before &&
+          after &&
+          Math.abs(before.x - after.x) <= 4 &&
+          Math.abs(before.y - after.y) <= 4 &&
+          Math.abs(before.width - after.width) <= 4 &&
+          Math.abs(before.height - after.height) <= 4
+      );
+    const debugBaseLayoutPreserved =
+      debugKeepsPlayerClass &&
+      closeRect(playerShellRects.cardRow, debugShellRects.cardRow) &&
+      closeRect(playerShellRects.dials, debugShellRects.dials) &&
+      closeRect(playerShellRects.dealPanel, debugShellRects.dealPanel);
+    const debugInfoLayerVisible =
+      window.innerWidth <= 640
+        ? visibleBox('.combat-director')
+        : visibleBox('.combat-director') && visibleBox('.combat-feed') && visibleBox('.run-layer-panel');
     const playerToggle = document.querySelector('[data-hud-mode-toggle]');
     if (playerToggle) {
       playerToggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -815,6 +877,8 @@ async function buildCardReadabilityHud(page) {
       combatDialsVisible,
       debugToggleVisible,
       debugModeAfterToggle,
+      debugBaseLayoutPreserved,
+      debugInfoLayerVisible,
       pileText,
       pileActuallyVisible: Boolean(
         pileChip &&

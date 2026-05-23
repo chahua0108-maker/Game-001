@@ -2385,7 +2385,7 @@ button:focus-visible {
   }
 }
 
-/* Default player HUD follows the Vampire Crawlers combat hierarchy: scene first, hand second, debug hidden. */
+/* One Vampire Crawlers HUD shell: player layout is the base, debug only adds an information layer. */
 .hud-mode-toggle {
   position: absolute;
   top: 10px;
@@ -2410,19 +2410,15 @@ button:focus-visible {
   display: none;
 }
 
-#hud.hud-debug-mode .debug-panel {
-  display: block;
-}
-
-#hud.hud-player-mode .build-gap-bar,
-#hud.hud-player-mode .combat-director,
-#hud.hud-player-mode .finisher-decision-bar,
-#hud.hud-player-mode .target-panel,
-#hud.hud-player-mode .run-layer-panel,
-#hud.hud-player-mode .enemy-peek,
-#hud.hud-player-mode .combat-feed,
-#hud.hud-player-mode .debug-panel,
-#hud.hud-player-mode .card-rail-hint {
+#hud.hud-player-mode:not(.hud-debug-mode) .build-gap-bar,
+#hud.hud-player-mode:not(.hud-debug-mode) .combat-director,
+#hud.hud-player-mode:not(.hud-debug-mode) .finisher-decision-bar,
+#hud.hud-player-mode:not(.hud-debug-mode) .target-panel,
+#hud.hud-player-mode:not(.hud-debug-mode) .run-layer-panel,
+#hud.hud-player-mode:not(.hud-debug-mode) .enemy-peek,
+#hud.hud-player-mode:not(.hud-debug-mode) .combat-feed,
+#hud.hud-player-mode:not(.hud-debug-mode) .debug-panel,
+#hud.hud-player-mode:not(.hud-debug-mode) .card-rail-hint {
   display: none;
 }
 
@@ -2736,6 +2732,108 @@ button:focus-visible {
   font-size: 18px;
 }
 
+#hud.hud-debug-mode .hud-mode-toggle {
+  border-color: rgba(115, 255, 226, 0.56);
+  background: rgba(16, 38, 38, 0.72);
+}
+
+#hud.hud-debug-mode .combat-director {
+  top: 54px;
+  right: auto;
+  bottom: auto;
+  left: 10px;
+  z-index: 15;
+  display: grid;
+  width: min(420px, calc(100vw - 308px));
+  pointer-events: none;
+}
+
+#hud.hud-debug-mode .target-panel {
+  top: 196px;
+  right: auto;
+  bottom: auto;
+  left: 10px;
+  z-index: 15;
+  display: flex;
+}
+
+#hud.hud-debug-mode .finisher-decision-bar {
+  bottom: 226px;
+  z-index: 16;
+}
+
+#hud.hud-debug-mode .combat-feed {
+  top: 46px;
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  z-index: 15;
+  display: block;
+  width: 244px;
+  max-height: 74px;
+  overflow: hidden;
+}
+
+#hud.hud-debug-mode .run-layer-panel {
+  top: 128px;
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  z-index: 15;
+  display: grid;
+  width: 244px;
+}
+
+#hud.hud-debug-mode .build-gap-bar {
+  top: 222px;
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  z-index: 15;
+  display: flex;
+  width: 244px;
+  justify-content: flex-end;
+}
+
+#hud.hud-debug-mode .enemy-peek {
+  top: 254px;
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  z-index: 15;
+  display: grid;
+}
+
+#hud.hud-debug-mode .debug-panel {
+  top: auto;
+  right: 10px;
+  bottom: 226px;
+  left: auto;
+  z-index: 15;
+  display: block;
+  max-height: min(260px, calc(100vh - 460px));
+}
+
+#hud.hud-debug-mode .card-rail-hint {
+  right: calc(24px + 84px);
+  bottom: 150px;
+  z-index: 19;
+  display: block;
+  max-width: 240px;
+}
+
+#hud.hud-debug-mode .card-button .card-action-priority,
+#hud.hud-debug-mode .card-button .chain-preview,
+#hud.hud-debug-mode .card-button .card-target-preview,
+#hud.hud-debug-mode .card-button .card-intent-preview,
+#hud.hud-debug-mode .card-button .card-authorization,
+#hud.hud-debug-mode .card-button .card-payoff,
+#hud.hud-debug-mode .card-button .payment-state-token,
+#hud.hud-debug-mode .card-button .missing-cost,
+#hud.hud-debug-mode .card-button .authorization-cost {
+  display: none;
+}
+
 @media (max-width: 640px) {
   #hud.hud-player-mode .status-strip {
     width: min(280px, calc(100vw - 96px));
@@ -2810,5 +2908,36 @@ button:focus-visible {
   #hud.hud-player-mode .card-button::after {
     top: 66px;
     bottom: 42px;
+  }
+
+  #hud.hud-debug-mode .combat-director {
+    top: 48px;
+    right: 10px;
+    left: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: auto;
+    height: auto;
+    gap: 4px;
+  }
+
+  #hud.hud-debug-mode .director-cell {
+    position: static;
+    min-height: 38px;
+    padding: 5px 6px;
+  }
+
+  #hud.hud-debug-mode .director-cell em {
+    display: none;
+  }
+
+  #hud.hud-debug-mode .combat-feed,
+  #hud.hud-debug-mode .run-layer-panel,
+  #hud.hud-debug-mode .build-gap-bar,
+  #hud.hud-debug-mode .target-panel,
+  #hud.hud-debug-mode .enemy-peek,
+  #hud.hud-debug-mode .debug-panel,
+  #hud.hud-debug-mode .card-rail-hint {
+    display: none;
   }
 }
