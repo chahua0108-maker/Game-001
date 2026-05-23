@@ -2103,6 +2103,9 @@ export class Hud {
     const compactDeckLoopLabel = `抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length}`;
     const visibleDeckLoopLabel = `手${snapshot.player.hand.length}/${BASE_HAND_SIZE} ${compactDeckLoopLabel}`;
     const secondaryDeckLoopLabel = `消${snapshot.player.exhaustPile.length} 留${snapshot.player.retainedCards.length} 总${snapshot.player.deck.length}`;
+    const campaignDifficultyLabel = runLayer.difficultyBandLabel.split('·')[0]?.split('/')[0]?.trim() || activityLevelLabel;
+    const campaignNodeLabel = runLayer.nodeLabel.replace(/^节点\s*/, '');
+    const localAuthorizationLabel = authorization.active ? `+${authorization.amount}` : '0';
     const handHiddenCount = Math.max(0, snapshot.player.hand.length - 1);
     const handRailHintLabel =
       snapshot.player.hand.length > 1
@@ -2199,6 +2202,32 @@ export class Hud {
           <span>MP</span>
           <strong>${energyText}</strong>
           <small>${chainStarted ? `下张${nextChainCost}` : '起链0'}</small>
+        </div>
+      </section>
+
+      <section class="run-affix-panel local-affix-panel" aria-label="本局临时属性">
+        <header>
+          <span>本局临时</span>
+          <strong>${compactDeckLoopLabel}</strong>
+        </header>
+        <div class="affix-grid">
+          <span><b>手牌</b><em>${snapshot.player.hand.length}/${BASE_HAND_SIZE}</em></span>
+          <span><b>授权</b><em>${localAuthorizationLabel}</em></span>
+          <span><b>链路</b><em>${chainStarted ? chainRouteLabel : '待起链'}</em></span>
+          <span><b>构筑</b><em>${buildPlan.token}</em></span>
+        </div>
+      </section>
+
+      <section class="run-affix-panel campaign-affix-panel" aria-label="活动成长属性">
+        <header>
+          <span>活动成长</span>
+          <strong>LV ${snapshot.player.level}</strong>
+        </header>
+        <div class="affix-grid">
+          <span><b>XP</b><em>${snapshot.player.xp}/${snapshot.reward.xpThreshold}</em></span>
+          <span><b>牌组</b><em>${snapshot.player.deck.length}张</em></span>
+          <span><b>节点</b><em>${campaignNodeLabel}</em></span>
+          <span><b>难度</b><em>${campaignDifficultyLabel}</em></span>
         </div>
       </section>
 

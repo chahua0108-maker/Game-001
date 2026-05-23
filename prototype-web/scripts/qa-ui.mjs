@@ -33,6 +33,8 @@ const selectors = [
   '.enemy-peek-toggle',
   '.card-row',
   '.card-rail-hint',
+  '.run-affix-panel',
+  '.run-affix-panel em',
   '.card-button',
   '.card-button strong',
   '.card-cost',
@@ -237,7 +239,8 @@ try {
       cardReadabilityEvidence.debugToggleVisible &&
       cardReadabilityEvidence.debugModeAfterToggle &&
       cardReadabilityEvidence.debugBaseLayoutPreserved &&
-      cardReadabilityEvidence.debugInfoLayerVisible;
+      cardReadabilityEvidence.debugInfoLayerVisible &&
+      cardReadabilityEvidence.debugOverlayContainersDoNotOverlap;
     const railHintVisible =
       playerHudModeDefault ||
       (cardReadabilityEvidence.railHintVisible &&
@@ -724,7 +727,8 @@ async function buildCardReadabilityHud(page) {
       '.enemy-peek',
       '.combat-feed',
       '.debug-panel',
-      '.card-rail-hint'
+      '.card-rail-hint',
+      '.run-affix-panel'
     ];
     const playerDebugSurfacesHidden = playerHiddenSelectors.every((selector) => {
       const element = document.querySelector(selector);
@@ -783,7 +787,56 @@ async function buildCardReadabilityHud(page) {
     const debugInfoLayerVisible =
       window.innerWidth <= 640
         ? visibleBox('.combat-director')
-        : visibleBox('.combat-director') && visibleBox('.combat-feed') && visibleBox('.run-layer-panel');
+        : visibleBox('.combat-director') &&
+          visibleBox('.combat-feed') &&
+          visibleBox('.local-affix-panel') &&
+          visibleBox('.campaign-affix-panel') &&
+          !visibleBox('.run-layer-panel');
+    const debugOverlapSelectors = [
+      '.local-affix-panel',
+      '.campaign-affix-panel',
+      '.combat-director',
+      '.target-panel',
+      '.finisher-decision-bar',
+      '.combat-feed',
+      '.build-gap-bar',
+      '.enemy-peek',
+      '.debug-panel',
+      '.deal-panel',
+      '.crawler-combat-dials',
+      '.card-row'
+    ];
+    const debugVisibleRects = debugOverlapSelectors
+      .map((selector) => ({ selector, rect: visibleBox(selector) ? rectFor(selector) : null }))
+      .filter((item) => item.rect);
+    const overlapArea = (first, second) => {
+      const left = Math.max(first.x, second.x);
+      const right = Math.min(first.x + first.width, second.x + second.width);
+      const top = Math.max(first.y, second.y);
+      const bottom = Math.min(first.y + first.height, second.y + second.height);
+      return Math.max(0, right - left) * Math.max(0, bottom - top);
+    };
+    const debugOverlapPairs = [];
+    const playerCoreSelectors = new Set(['.deal-panel', '.crawler-combat-dials', '.card-row']);
+    for (let firstIndex = 0; firstIndex < debugVisibleRects.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < debugVisibleRects.length; secondIndex += 1) {
+        if (
+          playerCoreSelectors.has(debugVisibleRects[firstIndex].selector) &&
+          playerCoreSelectors.has(debugVisibleRects[secondIndex].selector)
+        ) {
+          continue;
+        }
+        const area = overlapArea(debugVisibleRects[firstIndex].rect, debugVisibleRects[secondIndex].rect);
+        if (area > 12) {
+          debugOverlapPairs.push({
+            a: debugVisibleRects[firstIndex].selector,
+            b: debugVisibleRects[secondIndex].selector,
+            area
+          });
+        }
+      }
+    }
+    const debugOverlayContainersDoNotOverlap = debugOverlapPairs.length === 0;
     const playerToggle = document.querySelector('[data-hud-mode-toggle]');
     if (playerToggle) {
       playerToggle.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -879,6 +932,8 @@ async function buildCardReadabilityHud(page) {
       debugModeAfterToggle,
       debugBaseLayoutPreserved,
       debugInfoLayerVisible,
+      debugOverlayContainersDoNotOverlap,
+      debugOverlapPairs,
       pileText,
       pileActuallyVisible: Boolean(
         pileChip &&
