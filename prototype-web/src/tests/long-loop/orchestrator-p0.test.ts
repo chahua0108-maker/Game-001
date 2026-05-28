@@ -71,6 +71,43 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(state.nextRunPreview.starterKitIds).toContain(p0CanonicalIds.starterKitStableChain);
   });
 
+  it('blocks fresh-profile purchase of stable chain until the item is visible', () => {
+    const state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-blocked-purchase' }));
+
+    const blockedPurchase = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: p0CanonicalIds.p0ShopItem
+    });
+
+    expect(blockedPurchase.profile.wallet).toEqual(state.profile.wallet);
+    expect(blockedPurchase.profile.achievements.unlockedIds).toEqual([]);
+    expect(blockedPurchase.profile.shop.purchasedItemIds).toEqual([]);
+    expect(blockedPurchase.profile.starter.unlockedStarterKitIds).toEqual([p0CanonicalIds.starterKitDefaultChain]);
+    expect(blockedPurchase.nextRunPreview.starterKitIds).not.toContain(p0CanonicalIds.starterKitStableChain);
+  });
+
+  it('does not replace an active run or advance sequence when startRun is called twice', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-double-start' }));
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    const activeRun = state.currentRun;
+    const nextRunSequence = state.profile.orchestrator.nextRunSequence;
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitStableChain
+    });
+
+    expect(state.currentRun).toEqual(activeRun);
+    expect(state.profile.orchestrator.nextRunSequence).toBe(nextRunSequence);
+    expect(state.runSequence).toBe(nextRunSequence);
+  });
+
   it('keeps blacksmith enhancements run-local instead of writing them to profile', () => {
     let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-run-local' }));
 

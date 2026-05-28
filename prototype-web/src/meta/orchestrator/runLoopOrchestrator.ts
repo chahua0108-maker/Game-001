@@ -34,6 +34,10 @@ export function createLongLoopState(profile: LongLoopProfile): LongLoopState {
 export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): LongLoopState {
   switch (event.type) {
     case 'start_run': {
+      if (state.currentRun?.status === 'active') {
+        return state;
+      }
+
       const runSequence = Math.max(1, state.runSequence);
       const profile = cloneProfile(state.profile);
       const currentRun: RunLoopRunState = {
@@ -90,7 +94,10 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
     }
 
     case 'purchase_shop_item': {
-      if (state.profile.shop.purchasedItemIds.includes(event.itemId)) {
+      if (
+        state.profile.shop.purchasedItemIds.includes(event.itemId) ||
+        !visibleShopItemIds(state.profile.achievements.unlockedIds).includes(event.itemId)
+      ) {
         return state;
       }
 
