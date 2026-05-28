@@ -16,8 +16,6 @@ import type {
 interface ProfileStoreLike {
   getSnapshot(): LongLoopProfile;
   setSnapshot(profile: LongLoopProfile): void;
-  getPhaseEvents?(): readonly LongLoopPhaseEvent[];
-  setPhaseEvents?(events: readonly LongLoopPhaseEvent[]): void;
 }
 
 export function createLongLoopState(profile: LongLoopProfile): LongLoopState {
@@ -27,16 +25,17 @@ export function createLongLoopState(profile: LongLoopProfile): LongLoopState {
     profile: cleanProfile,
     phase: 'hub_review',
     nextRunPreview: createRunStartSnapshot(cleanProfile),
-    phaseEvents: [],
-    settlementAppliedRunIds: [],
-    runSequence: 0
+    phaseEvents: clonePhaseEvents(cleanProfile.orchestrator.phaseEvents),
+    settlementAppliedRunIds: [...cleanProfile.orchestrator.settledRunIds],
+    runSequence: cleanProfile.orchestrator.nextRunSequence
   };
 }
 
 export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): LongLoopState {
   switch (event.type) {
     case 'start_run': {
-      const runSequence = state.runSequence + 1;
+      const runSequence = Math.max(1, state.runSequence);
+      const profile = cloneProfile(state.profile);
       const currentRun: RunLoopRunState = {
         id: `run-${runSequence}`,
         districtId: event.districtId,
@@ -44,24 +43,39 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
         status: 'active',
         runLocalEnhancementIds: []
       };
+      const phaseEvents = appendPhaseEvent(state.phaseEvents, { type: p0RunStartedEvent(event.districtId), runId: currentRun.id });
+
+      profile.orchestrator.nextRunSequence = runSequence + 1;
+      profile.orchestrator.phaseEvents = clonePhaseEvents(phaseEvents);
 
       return {
         ...state,
+        profile,
         phase: 'running',
         currentRun,
         settlementSummary: undefined,
-        runSequence,
-        phaseEvents: appendPhaseEvent(state.phaseEvents, { type: p0RunStartedEvent(event.districtId), runId: currentRun.id })
+        runSequence: runSequence + 1,
+        phaseEvents
       };
     }
 
     case 'settle_run': {
-      if (state.settlementAppliedRunIds.includes(event.runId)) {
+      if (!isActiveMatchingRun(state.currentRun, event) || state.settlementAppliedRunIds.includes(event.runId)) {
         return state;
       }
 
       const summary = projectSettlement(state.profile, event);
-      const profile = applySettlementRewards(state.profile, summary);
+      const nextSettlementAppliedRunIds = appendUnique(state.settlementAppliedRunIds, event.runId);
+      const phaseEvents = appendPhaseEvent(
+        state.phaseEvents,
+        { type: p0RunSettledEvent(event.districtId), runId: event.runId },
+        { type: 'p0.settlement.shown', runId: event.runId }
+      );
+      const profile = applySettlementRewards(state.profile, summary, {
+        phaseEvents,
+        settlementAppliedRunIds: nextSettlementAppliedRunIds,
+        runSequence: state.runSequence
+      });
 
       return {
         ...state,
@@ -70,12 +84,8 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
         currentRun: undefined,
         settlementSummary: summary,
         nextRunPreview: createRunStartSnapshot(profile, { districtId: event.districtId }),
-        settlementAppliedRunIds: [...state.settlementAppliedRunIds, event.runId],
-        phaseEvents: appendPhaseEvent(
-          state.phaseEvents,
-          { type: p0RunSettledEvent(event.districtId), runId: event.runId },
-          { type: 'p0.settlement.shown', runId: event.runId }
-        )
+        settlementAppliedRunIds: nextSettlementAppliedRunIds,
+        phaseEvents
       };
     }
 
@@ -94,16 +104,18 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
       }
 
       const nextRunPreview = createRunStartSnapshot(profile, { districtId: state.nextRunPreview.districtId });
+      const phaseEvents = appendPhaseEvent(
+        state.phaseEvents,
+        { type: 'p0.shop.item-purchased', itemId: event.itemId },
+        { type: 'p0.next-run-preview.changed', itemId: event.itemId }
+      );
+      profile.orchestrator.phaseEvents = clonePhaseEvents(phaseEvents);
 
       return {
         ...state,
         profile,
         nextRunPreview,
-        phaseEvents: appendPhaseEvent(
-          state.phaseEvents,
-          { type: 'p0.shop.item-purchased', itemId: event.itemId },
-          { type: 'p0.next-run-preview.changed', itemId: event.itemId }
-        )
+        phaseEvents
       };
     }
 
@@ -123,10 +135,15 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
 
     case 'reload_profile': {
       const profile = cloneProfile(event.profile);
+      const reloaded = createLongLoopState(profile);
+      const phaseEvents = appendPhaseEvent(reloaded.phaseEvents, { type: 'p0.profile-meta.reloaded' });
+      const reloadedProfile = cloneProfile(reloaded.profile);
+      reloadedProfile.orchestrator.phaseEvents = clonePhaseEvents(phaseEvents);
 
       return {
-        ...createLongLoopState(profile),
-        phaseEvents: appendPhaseEvent(state.phaseEvents, { type: 'p0.profile-meta.reloaded' })
+        ...reloaded,
+        profile: reloadedProfile,
+        phaseEvents
       };
     }
   }
@@ -134,30 +151,39 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
 
 export function createLongLoopOrchestrator(options: { readonly profileStore: ProfileStoreLike }): LongLoopOrchestrator {
   let state = createLongLoopState(options.profileStore.getSnapshot());
-  const storedPhaseEvents = options.profileStore.getPhaseEvents?.() ?? [];
 
-  if (storedPhaseEvents.length > 0) {
+  if (state.phaseEvents.length > 0) {
     state = {
       ...state,
-      phaseEvents: appendPhaseEvent(storedPhaseEvents, { type: 'p0.profile-meta.reloaded' })
+      phaseEvents: appendPhaseEvent(state.phaseEvents, { type: 'p0.profile-meta.reloaded' })
     };
-    options.profileStore.setPhaseEvents?.(state.phaseEvents);
+    const profile = cloneProfile(state.profile);
+    profile.orchestrator.phaseEvents = clonePhaseEvents(state.phaseEvents);
+    state = {
+      ...state,
+      profile
+    };
+    options.profileStore.setSnapshot(state.profile);
   }
 
   function commit(nextState: LongLoopState): void {
     state = nextState;
     options.profileStore.setSnapshot(state.profile);
-    options.profileStore.setPhaseEvents?.(state.phaseEvents);
   }
 
   return {
     startRun(input) {
       commit(advanceLongLoop(state, { type: 'start_run', ...input }));
-      return state.currentRun as RunLoopRunState;
+      return cloneRunState(state.currentRun as RunLoopRunState);
     },
     settleRun(input) {
+      const before = state;
       commit(advanceLongLoop(state, { type: 'settle_run', ...input }));
-      return state.settlementSummary as SettlementSummary;
+      if (state === before) {
+        throw new Error(`Cannot settle inactive run ${input.runId}`);
+      }
+
+      return cloneSettlementSummary(state.settlementSummary as SettlementSummary);
     },
     getShopState(): ShopStateSnapshot {
       return {
@@ -189,15 +215,23 @@ export function createLongLoopOrchestrator(options: { readonly profileStore: Pro
       return selectProfileMeta(state.profile);
     },
     getCurrentRunState() {
-      return state.currentRun;
+      return state.currentRun ? cloneRunState(state.currentRun) : undefined;
     },
     getPhaseEvents() {
-      return state.phaseEvents;
+      return clonePhaseEvents(state.phaseEvents);
     }
   };
 }
 
-function applySettlementRewards(profile: LongLoopProfile, summary: SettlementSummary): LongLoopProfile {
+function applySettlementRewards(
+  profile: LongLoopProfile,
+  summary: SettlementSummary,
+  orchestratorMeta: {
+    readonly phaseEvents: readonly LongLoopPhaseEvent[];
+    readonly settlementAppliedRunIds: readonly string[];
+    readonly runSequence: number;
+  }
+): LongLoopProfile {
   const nextProfile = cloneProfile(profile);
 
   nextProfile.wallet.softCurrency += summary.softCurrencyDelta;
@@ -210,11 +244,36 @@ function applySettlementRewards(profile: LongLoopProfile, summary: SettlementSum
     nextProfile.map.clearedDistrictIds = appendUnique(nextProfile.map.clearedDistrictIds, summary.districtId);
   }
 
+  nextProfile.orchestrator.settledRunIds = [...orchestratorMeta.settlementAppliedRunIds];
+  nextProfile.orchestrator.nextRunSequence = Math.max(1, orchestratorMeta.runSequence);
+  nextProfile.orchestrator.phaseEvents = clonePhaseEvents(orchestratorMeta.phaseEvents);
+
   return nextProfile;
 }
 
 function cloneProfile(profile: LongLoopProfile): LongLoopProfile {
   return structuredClone(profile) as LongLoopProfile;
+}
+
+function cloneRunState(runState: RunLoopRunState): RunLoopRunState {
+  return {
+    ...runState,
+    runLocalEnhancementIds: [...runState.runLocalEnhancementIds]
+  };
+}
+
+function cloneSettlementSummary(summary: SettlementSummary): SettlementSummary {
+  return {
+    ...summary,
+    achievementIds: [...summary.achievementIds],
+    uiStateIds: [...summary.uiStateIds],
+    unlockedFeatureGateIds: [...summary.unlockedFeatureGateIds],
+    visibleShopItemIds: [...summary.visibleShopItemIds]
+  };
+}
+
+function clonePhaseEvents(events: readonly LongLoopPhaseEvent[]): LongLoopPhaseEvent[] {
+  return events.map((event) => ({ ...event }));
 }
 
 function appendUnique<T>(values: readonly T[], ...nextValues: readonly T[]): T[] {
@@ -234,4 +293,13 @@ function p0RunStartedEvent(districtId: string): string {
 
 function p0RunSettledEvent(districtId: string): string {
   return districtId === 'D1' ? 'p0.d1.settled' : 'run.settled';
+}
+
+function isActiveMatchingRun(currentRun: RunLoopRunState | undefined, event: Extract<LongLoopEvent, { type: 'settle_run' }>): boolean {
+  return Boolean(
+    currentRun &&
+      currentRun.status === 'active' &&
+      currentRun.id === event.runId &&
+      currentRun.districtId === event.districtId
+  );
 }

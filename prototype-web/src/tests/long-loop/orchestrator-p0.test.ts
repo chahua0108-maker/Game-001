@@ -1,8 +1,38 @@
 import { describe, expect, it } from 'vitest';
 
 import { createDefaultProfile } from '../../meta/profile/createProfile';
+import { createProfileStore } from '../../meta/profile/profileStore';
+import { loadProfile, PROFILE_STORAGE_KEY, saveProfile } from '../../meta/profile/profileStorage';
 import { advanceLongLoop, createLongLoopState } from '../../meta/orchestrator/runLoopOrchestrator';
 import { p0CanonicalIds } from './testFixtures';
+
+class MemoryStorage implements Storage {
+  private values = new Map<string, string>();
+
+  get length(): number {
+    return this.values.size;
+  }
+
+  clear(): void {
+    this.values.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    return Array.from(this.values.keys())[index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+}
 
 describe('P0 run-loop orchestrator reducer', () => {
   it('settles D1 victory into hub review and projects a changed next run after first purchase', () => {
@@ -57,5 +87,120 @@ describe('P0 run-loop orchestrator reducer', () => {
 
     expect(state.currentRun?.runLocalEnhancementIds).toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
     expect(state.profile.runLocalPreview.cardEnhancements).toEqual([]);
+  });
+
+  it('does not grant settlement rewards without an active matching run', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-invalid-settle' }));
+
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: 'foreign-run',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    expect(state.profile.wallet.softCurrency).toBe(0);
+    expect(state.profile.wallet.metaGems).toBe(0);
+    expect(state.profile.achievements.unlockedIds).not.toContain(p0CanonicalIds.achievementClearD1);
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: 'foreign-run',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    expect(state.currentRun?.id).toBe('run-1');
+    expect(state.profile.wallet.softCurrency).toBe(0);
+    expect(state.profile.achievements.unlockedIds).not.toContain(p0CanonicalIds.achievementClearD1);
+  });
+
+  it('does not duplicate settlement rewards across export, load, and recreate state', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-idempotent' }));
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    const settledRunId = state.currentRun?.id ?? '';
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: settledRunId,
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    const settledProfile = state.profile;
+    const reloadedState = createLongLoopState(settledProfile);
+    const duplicateSettlement = advanceLongLoop(reloadedState, {
+      type: 'settle_run',
+      runId: settledRunId,
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    expect(duplicateSettlement.profile.wallet.softCurrency).toBe(settledProfile.wallet.softCurrency);
+    expect(duplicateSettlement.profile.wallet.metaGems).toBe(settledProfile.wallet.metaGems);
+    expect(duplicateSettlement.profile.achievements.unlockedIds).toEqual(settledProfile.achievements.unlockedIds);
+  });
+
+  it('starts a monotonic next run after reload instead of reusing a settled run id', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-monotonic' }));
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    const settledRunId = state.currentRun?.id ?? '';
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: settledRunId,
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    const reloadedState = createLongLoopState(state.profile);
+    const nextRunState = advanceLongLoop(reloadedState, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+
+    expect(nextRunState.currentRun?.id).not.toBe(settledRunId);
+    expect(nextRunState.currentRun?.id).toBe('run-2');
+  });
+
+  it('exports a profileStorage-compatible profile without undeclared side channels', () => {
+    const storage = new MemoryStorage();
+    const profileStore = createProfileStore({ profileId: 'orchestrator-p0-compatible-store' });
+    let state = createLongLoopState(profileStore.getSnapshot());
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+    profileStore.setSnapshot(state.profile);
+
+    const exportedProfile = profileStore.exportSnapshot();
+    expect(Object.keys(exportedProfile)).not.toContain('__longLoopPhaseEvents');
+
+    saveProfile(exportedProfile, { storage });
+    const rawSavedProfile = JSON.parse(storage.getItem(PROFILE_STORAGE_KEY) ?? '{}');
+    expect(Object.keys(rawSavedProfile)).not.toContain('__longLoopPhaseEvents');
+    expect(loadProfile({ storage }).orchestrator.settledRunIds).toContain('run-1');
   });
 });

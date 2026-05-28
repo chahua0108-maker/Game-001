@@ -87,6 +87,14 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
 
   profile.runLocalPreview.cardEnhancements = [];
 
+  const orchestrator = recordValue(source.orchestrator);
+  profile.orchestrator.settledRunIds = uniqueStrings(orchestrator?.settledRunIds, profile.orchestrator.settledRunIds);
+  profile.orchestrator.nextRunSequence = Math.max(
+    1,
+    Math.floor(numberValue(orchestrator?.nextRunSequence, profile.orchestrator.nextRunSequence))
+  );
+  profile.orchestrator.phaseEvents = phaseEvents(orchestrator?.phaseEvents);
+
   profile.version = CURRENT_PROFILE_VERSION;
   return profile;
 }
@@ -139,6 +147,11 @@ export function sanitizeProfileForSave(profile: LongLoopProfile): LongLoopProfil
       cardEnhancements: [],
       gemSocketBoundary: 'not_persisted',
       rerollResultBoundary: 'not_persisted'
+    },
+    orchestrator: {
+      settledRunIds: [...profile.orchestrator.settledRunIds],
+      nextRunSequence: Math.max(1, Math.floor(profile.orchestrator.nextRunSequence)),
+      phaseEvents: phaseEvents(profile.orchestrator.phaseEvents)
     }
   };
 }
@@ -164,6 +177,26 @@ function numberRecord(value: unknown): Record<string, number> {
   return Object.fromEntries(
     Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === 'number')
   );
+}
+
+function phaseEvents(value: unknown): LongLoopProfile['orchestrator']['phaseEvents'] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.type !== 'string' || entry.type.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        type: entry.type,
+        ...(typeof entry.runId === 'string' ? { runId: entry.runId } : {}),
+        ...(typeof entry.itemId === 'string' ? { itemId: entry.itemId } : {})
+      }
+    ];
+  });
 }
 
 function upgradeRankRecord(value: unknown): Record<string, number> {

@@ -65,6 +65,11 @@ export function createDefaultProfile(options: CreateProfileOptions = {}): LongLo
       cardEnhancements: [],
       gemSocketBoundary: 'not_persisted',
       rerollResultBoundary: 'not_persisted'
+    },
+    orchestrator: {
+      settledRunIds: [],
+      nextRunSequence: 1,
+      phaseEvents: []
     }
   };
 }

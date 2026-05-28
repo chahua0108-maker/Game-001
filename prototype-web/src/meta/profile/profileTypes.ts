@@ -90,6 +90,18 @@ export interface ProfileRunLocalPreview {
   rerollResultBoundary: 'not_persisted';
 }
 
+export interface ProfileOrchestratorPhaseEvent {
+  type: string;
+  runId?: string;
+  itemId?: string;
+}
+
+export interface ProfileOrchestratorMeta {
+  settledRunIds: string[];
+  nextRunSequence: number;
+  phaseEvents: ProfileOrchestratorPhaseEvent[];
+}
+
 export interface LongLoopProfile {
   version: ProfileVersion;
   profileId: string;
@@ -104,6 +116,7 @@ export interface LongLoopProfile {
   relicArcanaGem: ProfileRelicArcanaGem;
   featureGates: ProfileFeatureGates;
   runLocalPreview: ProfileRunLocalPreview;
+  orchestrator: ProfileOrchestratorMeta;
 }
 
 export interface CreateProfileOptions {
