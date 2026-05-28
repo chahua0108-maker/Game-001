@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { longLoopConfig } from '../../config/data/longLoopConfig';
 import { createDefaultProfile } from '../../meta/profile/createProfile';
 import { createProfileStore } from '../../meta/profile/profileStore';
 import { loadProfile, PROFILE_STORAGE_KEY, saveProfile } from '../../meta/profile/profileStorage';
@@ -10,6 +11,15 @@ import { p0CanonicalIds } from './testFixtures';
 const blacksmithRaiseLevelPermitId = 'blacksmith_raise_level_permit';
 const blacksmithRedSocketPermitId = 'blacksmith_red_socket_permit';
 const blacksmithRaiseLevelServiceId = 'blacksmith.raise_level';
+
+function shopItemPrice(itemId: string): number {
+  const item = longLoopConfig.shopItems.find((entry) => entry.id === itemId);
+  if (!item) {
+    throw new Error(`Missing shop item ${itemId}`);
+  }
+
+  return item.price;
+}
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -91,6 +101,23 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(blockedPurchase.nextRunPreview.starterKitIds).not.toContain(p0CanonicalIds.starterKitStableChain);
   });
 
+  it('blocks visible purchases when soft currency is insufficient without mutating profile', () => {
+    const profile = createDefaultProfile({ profileId: 'orchestrator-p0-insufficient-currency' });
+    profile.achievements.unlockedIds.push('chain_certified');
+    const state = {
+      ...createLongLoopState(profile),
+      phase: 'settlement_review' as const
+    };
+    const beforeProfile = structuredClone(state.profile);
+
+    const blockedPurchase = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: p0CanonicalIds.p0ShopItem
+    });
+
+    expect(blockedPurchase.profile).toEqual(beforeProfile);
+  });
+
   it('blocks fresh-profile purchase of blacksmith permits until feature gates are unlocked', () => {
     let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-blocked-blacksmith' }));
 
@@ -133,6 +160,7 @@ describe('P0 run-loop orchestrator reducer', () => {
 
     expect(state.profile.shop.purchasedItemIds).toContain(blacksmithRaiseLevelPermitId);
     expect(state.profile.achievements.unlockedIds).toContain(p0CanonicalIds.achievementFirstPurchase);
+    expect(state.profile.wallet.softCurrency).toBe(100 - shopItemPrice(blacksmithRaiseLevelPermitId));
   });
 
   it('persists blacksmith permit and service state across profileStore export and reload', () => {
@@ -156,6 +184,7 @@ describe('P0 run-loop orchestrator reducer', () => {
     });
     profileStore.setSnapshot(state.profile);
 
+    expect(state.profile.wallet.softCurrency).toBe(100 - shopItemPrice(blacksmithRaiseLevelPermitId));
     expect(state.profile.blacksmith.purchasedPermitIds).toContain(blacksmithRaiseLevelPermitId);
     expect(state.profile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
     expect(selectProfileMeta(state.profile).purchasedBlacksmithPermitIds).toContain(blacksmithRaiseLevelPermitId);
@@ -164,6 +193,38 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(reloadedProfile.blacksmith.purchasedPermitIds).toContain(blacksmithRaiseLevelPermitId);
     expect(reloadedProfile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
     expect(selectProfileMeta(reloadedProfile).purchasedBlacksmithPermitIds).toContain(blacksmithRaiseLevelPermitId);
+  });
+
+  it('deducts starter purchase price once and keeps next-run preview behavior', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-starter-price' }));
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    const settledCurrency = state.profile.wallet.softCurrency;
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: p0CanonicalIds.p0ShopItem
+    });
+    const currencyAfterFirstPurchase = state.profile.wallet.softCurrency;
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: p0CanonicalIds.p0ShopItem
+    });
+
+    expect(currencyAfterFirstPurchase).toBe(settledCurrency - shopItemPrice(p0CanonicalIds.p0ShopItem));
+    expect(state.profile.wallet.softCurrency).toBe(currencyAfterFirstPurchase);
+    expect(state.profile.shop.purchasedItemIds.filter((id) => id === p0CanonicalIds.p0ShopItem)).toHaveLength(1);
+    expect(state.nextRunPreview.starterKitIds).toContain(p0CanonicalIds.starterKitStableChain);
   });
 
   it('blocks purchase while a run is active even when an item would otherwise be visible', () => {

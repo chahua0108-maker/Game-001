@@ -1,3 +1,5 @@
+import { longLoopConfig } from '../../config/data/longLoopConfig';
+import type { ShopItemConfig } from '../../config/schema/definitions';
 import { selectProfileMeta } from '../profile/profileSelectors';
 import type { LongLoopProfile } from '../profile/profileTypes';
 import { createRunStartSnapshot } from './runStartSnapshot';
@@ -100,15 +102,19 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
     }
 
     case 'purchase_shop_item': {
+      const shopItem = shopItemById(event.itemId);
       if (
         state.phase !== 'settlement_review' ||
+        !shopItem ||
         state.profile.shop.purchasedItemIds.includes(event.itemId) ||
-        !visibleShopItemIds(state.profile).includes(event.itemId)
+        !visibleShopItemIds(state.profile).includes(event.itemId) ||
+        state.profile.wallet.softCurrency < shopItem.price
       ) {
         return state;
       }
 
       const profile = cloneProfile(state.profile);
+      profile.wallet.softCurrency -= shopItem.price;
       profile.shop.purchasedItemIds = appendUnique(profile.shop.purchasedItemIds, event.itemId);
       profile.achievements.unlockedIds = appendUnique(profile.achievements.unlockedIds, 'first_purchase');
 
@@ -294,6 +300,10 @@ function clonePhaseEvents(events: readonly LongLoopPhaseEvent[]): LongLoopPhaseE
 
 function appendUnique<T>(values: readonly T[], ...nextValues: readonly T[]): T[] {
   return [...new Set([...values, ...nextValues])];
+}
+
+function shopItemById(itemId: string): ShopItemConfig | undefined {
+  return (longLoopConfig.shopItems as readonly ShopItemConfig[]).find((item) => item.id === itemId);
 }
 
 function applyBlacksmithPermitPurchase(profile: LongLoopProfile, itemId: string): void {
