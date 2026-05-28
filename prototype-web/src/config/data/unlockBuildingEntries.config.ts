@@ -5,7 +5,7 @@ export const unlockBuildingEntries = [
     id: 'building.blacksmith',
     name: 'Blacksmith',
     targetSystem: 'blacksmithServices',
-    targetId: 'blacksmith.sharpen',
+    targetId: 'blacksmith.raise_level',
     unlockRuleId: 'unlock.building.blacksmith'
   },
   {

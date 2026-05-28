@@ -16,5 +16,11 @@ export const featureGates = [
     name: 'Blacksmith',
     defaultState: 'locked',
     unlockRuleIds: ['unlock.feature.blacksmith']
+  },
+  {
+    id: 'feature.blacksmith_reroll',
+    name: 'Blacksmith Reroll',
+    defaultState: 'locked',
+    unlockRuleIds: ['unlock.feature.blacksmith_reroll']
   }
 ] as const satisfies readonly FeatureGateConfig[];

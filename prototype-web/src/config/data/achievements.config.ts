@@ -2,18 +2,23 @@ import type { AchievementConfig } from '../schema/definitions';
 
 export const achievements = [
   {
-    id: 'achievement.completed_first_run',
+    id: 'first_run_completed',
     name: 'Completed First Run',
     condition: 'Finish any crawler run once.'
   },
   {
-    id: 'achievement.cleared_first_boss',
-    name: 'Cleared First Boss',
-    condition: 'Defeat the first route boss.'
+    id: 'clear_d1',
+    name: 'Clear D1',
+    condition: 'Clear the first district route.'
   },
   {
-    id: 'achievement.bought_first_upgrade',
-    name: 'Bought First Upgrade',
-    condition: 'Buy any permanent upgrade.'
+    id: 'chain_certified',
+    name: 'Chain Certified',
+    condition: 'Complete a run with a certified stable chain.'
+  },
+  {
+    id: 'first_purchase',
+    name: 'First Purchase',
+    condition: 'Buy any P0 permit from the shop.'
   }
 ] as const satisfies readonly AchievementConfig[];

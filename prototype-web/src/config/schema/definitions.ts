@@ -79,9 +79,13 @@ export interface AchievementConfig extends NamedConfigEntry<AchievementId> {
 }
 
 export interface First3HoursUnlockMatrixEntry {
-  readonly id: string;
-  readonly hour: 1 | 2 | 3;
+  readonly trigger: string;
+  readonly mapNode: MapNodeId | 'none' | 'unchanged';
+  readonly featureGate: FeatureGateId | 'none' | 'unchanged';
   readonly achievement: AchievementId | 'none' | 'unchanged';
+  readonly uiState: string;
+  readonly nextGoal: string;
+  readonly visibility: 'hidden' | 'preview' | 'visible';
   readonly unlockRuleIds: readonly UnlockRuleId[];
 }
 
@@ -109,6 +113,7 @@ export interface BlacksmithServiceConfig extends NamedConfigEntry<BlacksmithServ
 }
 
 export interface PermanentUpgradeConfig extends NamedConfigEntry<PermanentUpgradeId> {
+  readonly effectType: 'choice_space' | 'service_unlock' | 'permit_stock';
   readonly maxRank: number;
   readonly gemCost: number;
   readonly unlockRuleIds?: readonly UnlockRuleId[];

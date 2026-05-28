@@ -2,15 +2,15 @@ import type { StarterKitConfig } from '../schema/definitions';
 
 export const starterKits = [
   {
-    id: 'starter.blood_runner',
-    name: 'Blood Runner Kit',
+    id: 'default_chain',
+    name: 'Default Chain',
     crawlerId: 'crawler.blood_runner',
-    shopItemIds: ['shop.blood_vial']
+    shopItemIds: ['blacksmith_raise_level_permit']
   },
   {
-    id: 'starter.iron_monk',
-    name: 'Iron Monk Kit',
+    id: 'stable_chain',
+    name: 'Stable Chain',
     crawlerId: 'crawler.iron_monk',
-    shopItemIds: ['shop.iron_token']
+    shopItemIds: ['starter_stable_chain', 'blacksmith_reroll_permit']
   }
 ] as const satisfies readonly StarterKitConfig[];

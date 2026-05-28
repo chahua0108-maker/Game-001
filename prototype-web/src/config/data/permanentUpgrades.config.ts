@@ -2,16 +2,19 @@ import type { PermanentUpgradeConfig } from '../schema/definitions';
 
 export const permanentUpgrades = [
   {
-    id: 'upgrade.max_health',
-    name: 'Max Health',
-    maxRank: 5,
-    gemCost: 20,
-    unlockRuleIds: ['unlock.permanentUpgrade.max_health']
+    id: 'unlock_blacksmith_reroll_service',
+    name: 'Unlock Blacksmith Reroll Service',
+    effectType: 'service_unlock',
+    maxRank: 1,
+    gemCost: 30,
+    unlockRuleIds: ['unlock.permanentUpgrade.blacksmith_reroll']
   },
   {
-    id: 'upgrade.starting_gold',
-    name: 'Starting Gold',
-    maxRank: 3,
-    gemCost: 15
+    id: 'unlock_stable_chain_choices',
+    name: 'Unlock Stable Chain Choices',
+    effectType: 'choice_space',
+    maxRank: 1,
+    gemCost: 25,
+    unlockRuleIds: ['unlock.shop.starter_stable_chain']
   }
 ] as const satisfies readonly PermanentUpgradeConfig[];

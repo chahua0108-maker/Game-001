@@ -23,6 +23,16 @@ const expectedTableKeys = [
   'unlockRules'
 ] as const satisfies readonly LongLoopTableKey[];
 
+const canonicalP0AchievementIds = ['chain_certified', 'clear_d1', 'first_purchase', 'first_run_completed'];
+const lockedP0ShopItemIds = [
+  'blacksmith_raise_level_permit',
+  'blacksmith_red_socket_permit',
+  'blacksmith_reroll_permit',
+  'starter_stable_chain'
+];
+const rawPermanentUpgradeTokens = ['hp', 'health', 'attack', 'max_mp', 'max mp', 'mp'];
+const requiredMatrixFields = ['trigger', 'mapNode', 'featureGate', 'achievement', 'uiState', 'nextGoal', 'visibility'];
+
 type ValidatorInput = Parameters<typeof validateLongLoopConfig>[0];
 
 function asValidatorInput(config: unknown): ValidatorInput {
@@ -50,6 +60,43 @@ describe('long-loop config contract', () => {
 
     if (shouldPrintTableCounts()) {
       console.log(`Long-loop config table counts: ${JSON.stringify(result.tableCounts)}`);
+    }
+  });
+
+  it('uses the approved first 3 hours unlock matrix fixed fields', () => {
+    expect(Object.keys(longLoopConfig.first3HoursUnlockMatrix[0])).toEqual(
+      expect.arrayContaining(requiredMatrixFields)
+    );
+
+    for (const field of requiredMatrixFields) {
+      const { [field]: _removedField, ...entryWithoutField } = asValidatorInput(
+        longLoopConfig.first3HoursUnlockMatrix[0]
+      ) as Record<string, unknown>;
+      const result = validateLongLoopConfig(asValidatorInput({
+        ...longLoopConfig,
+        first3HoursUnlockMatrix: [entryWithoutField]
+      }));
+
+      expect(result.errors).toContain(`first3HoursUnlockMatrix[0].${field} is required`);
+    }
+  });
+
+  it('uses the canonical P0 achievement ids from the approved plan', () => {
+    expect(longLoopConfig.achievements.map((achievement) => achievement.id).sort()).toEqual(canonicalP0AchievementIds);
+  });
+
+  it('uses the locked P0 shop and starter ids from the approved plan', () => {
+    expect(longLoopConfig.shopItems.map((item) => item.id).sort()).toEqual(lockedP0ShopItemIds);
+    expect(longLoopConfig.starterKits.map((kit) => kit.id).sort()).toEqual(['default_chain', 'stable_chain']);
+  });
+
+  it('does not define raw HP, attack, or max MP permanent upgrades', () => {
+    for (const upgrade of longLoopConfig.permanentUpgrades) {
+      const searchable = `${upgrade.id} ${upgrade.name} ${upgrade.effectType}`.toLowerCase();
+
+      for (const token of rawPermanentUpgradeTokens) {
+        expect(searchable, upgrade.id).not.toContain(token);
+      }
     }
   });
 

@@ -6,56 +6,79 @@ export const unlockRules = [
     name: 'Elite Route Unlock',
     targetSystem: 'mapNodes',
     targetId: 'map.elite_fork',
-    requiresAchievements: ['achievement.completed_first_run']
+    requiresAchievements: ['first_run_completed']
   },
   {
-    id: 'unlock.shop.blood_vial',
-    name: 'Blood Vial Shop Unlock',
+    id: 'unlock.shop.starter_stable_chain',
+    name: 'Stable Chain Starter Unlock',
     targetSystem: 'shopItems',
-    targetId: 'shop.blood_vial',
-    requiresFeatureGates: ['feature.shop_inventory']
+    targetId: 'starter_stable_chain',
+    requiresAchievements: ['chain_certified']
   },
   {
     id: 'unlock.feature.blacksmith',
     name: 'Blacksmith Feature Unlock',
     targetSystem: 'featureGates',
     targetId: 'feature.blacksmith',
-    requiresAchievements: ['achievement.completed_first_run']
+    requiresAchievements: ['first_run_completed']
   },
   {
-    id: 'unlock.blacksmith.sharpen',
-    name: 'Sharpen Service Unlock',
+    id: 'unlock.feature.blacksmith_reroll',
+    name: 'Blacksmith Reroll Feature Unlock',
+    targetSystem: 'featureGates',
+    targetId: 'feature.blacksmith_reroll',
+    requiresAchievements: ['first_purchase']
+  },
+  {
+    id: 'unlock.blacksmith.raise_level',
+    name: 'Raise Level Service Unlock',
     targetSystem: 'blacksmithServices',
-    targetId: 'blacksmith.sharpen',
+    targetId: 'blacksmith.raise_level',
     requiresFeatureGates: ['feature.blacksmith']
+  },
+  {
+    id: 'unlock.blacksmith.red_socket',
+    name: 'Red Socket Service Unlock',
+    targetSystem: 'blacksmithServices',
+    targetId: 'blacksmith.red_socket',
+    requiresAchievements: ['clear_d1'],
+    requiresFeatureGates: ['feature.blacksmith']
+  },
+  {
+    id: 'unlock.blacksmith.reroll',
+    name: 'Reroll Service Unlock',
+    targetSystem: 'blacksmithServices',
+    targetId: 'blacksmith.reroll',
+    requiresAchievements: ['first_purchase'],
+    requiresFeatureGates: ['feature.blacksmith_reroll']
+  },
+  {
+    id: 'unlock.permanentUpgrade.blacksmith_reroll',
+    name: 'Reroll Permanent Upgrade Unlock',
+    targetSystem: 'permanentUpgrades',
+    targetId: 'unlock_blacksmith_reroll_service',
+    requiresAchievements: ['first_purchase']
   },
   {
     id: 'unlock.relic.ash_compass',
     name: 'Ash Compass Unlock',
     targetSystem: 'relics',
     targetId: 'relic.ash_compass',
-    requiresAchievements: ['achievement.cleared_first_boss']
+    requiresAchievements: ['clear_d1']
   },
   {
     id: 'unlock.arcana.blood_pact',
     name: 'Blood Pact Unlock',
     targetSystem: 'arcana',
     targetId: 'arcana.blood_pact',
-    requiresAchievements: ['achievement.completed_first_run']
+    requiresAchievements: ['chain_certified']
   },
   {
     id: 'unlock.crawler.iron_monk',
     name: 'Iron Monk Unlock',
     targetSystem: 'crawlers',
     targetId: 'crawler.iron_monk',
-    requiresAchievements: ['achievement.completed_first_run']
-  },
-  {
-    id: 'unlock.permanentUpgrade.max_health',
-    name: 'Max Health Upgrade Unlock',
-    targetSystem: 'permanentUpgrades',
-    targetId: 'upgrade.max_health',
-    requiresAchievements: ['achievement.bought_first_upgrade']
+    requiresAchievements: ['clear_d1']
   },
   {
     id: 'unlock.building.blacksmith',

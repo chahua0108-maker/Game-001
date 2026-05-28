@@ -79,6 +79,10 @@ function getTable(config: ConfigRecord, key: LongLoopTableKey): readonly IdEntry
 
 function validateDuplicateIds(config: ConfigRecord, errors: string[]): void {
   for (const key of longLoopTableKeys) {
+    if (key === 'first3HoursUnlockMatrix') {
+      continue;
+    }
+
     const seen = new Set<string>();
     getTable(config, key).forEach((entry, index) => {
       if (!entry.id) {
@@ -99,17 +103,48 @@ function validateMatrix(
   errors: string[]
 ): void {
   const matrix = getTable(config, 'first3HoursUnlockMatrix') as readonly {
+    readonly trigger?: string;
+    readonly mapNode?: string;
+    readonly featureGate?: string;
     readonly achievement?: string;
+    readonly uiState?: string;
+    readonly nextGoal?: string;
+    readonly visibility?: string;
     readonly unlockRuleIds?: readonly string[];
   }[];
 
   matrix.forEach((entry, index) => {
+    validateRequiredString(entry.trigger, `first3HoursUnlockMatrix[${index}].trigger`, errors);
+    validateMatrixReference(
+      entry.mapNode,
+      idSets.mapNodes,
+      `first3HoursUnlockMatrix[${index}].mapNode`,
+      'map node',
+      errors
+    );
+    validateMatrixReference(
+      entry.featureGate,
+      idSets.featureGates,
+      `first3HoursUnlockMatrix[${index}].featureGate`,
+      'feature gate',
+      errors
+    );
+
     const achievement = entry.achievement;
-    if (
-      typeof achievement !== 'string' ||
-      (!specialMatrixAchievementValues.has(achievement) && !idSets.achievements.has(achievement))
-    ) {
+    if (!validateRequiredString(achievement, `first3HoursUnlockMatrix[${index}].achievement`, errors)) {
+      return;
+    }
+    if (!specialMatrixAchievementValues.has(achievement) && !idSets.achievements.has(achievement)) {
       errors.push(`first3HoursUnlockMatrix[${index}].achievement must be an achievement id, none, or unchanged`);
+    }
+
+    validateRequiredString(entry.uiState, `first3HoursUnlockMatrix[${index}].uiState`, errors);
+    validateRequiredString(entry.nextGoal, `first3HoursUnlockMatrix[${index}].nextGoal`, errors);
+    if (!validateRequiredString(entry.visibility, `first3HoursUnlockMatrix[${index}].visibility`, errors)) {
+      return;
+    }
+    if (!['hidden', 'preview', 'visible'].includes(entry.visibility)) {
+      errors.push(`first3HoursUnlockMatrix[${index}].visibility must be hidden, preview, or visible`);
     }
 
     validateReferences(
@@ -121,6 +156,26 @@ function validateMatrix(
       { required: true, nonEmpty: true }
     );
   });
+}
+
+function validateMatrixReference(
+  value: unknown,
+  validIds: ReadonlySet<string>,
+  path: string,
+  label: string,
+  errors: string[]
+): void {
+  if (!validateRequiredString(value, path, errors)) {
+    return;
+  }
+
+  if (specialMatrixAchievementValues.has(value)) {
+    return;
+  }
+
+  if (!validIds.has(value)) {
+    errors.push(`${path} references missing ${label} ${value}`);
+  }
 }
 
 function validateShopItems(
