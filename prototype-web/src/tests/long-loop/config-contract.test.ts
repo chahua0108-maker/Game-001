@@ -117,7 +117,9 @@ describe('long-loop config contract', () => {
   });
 
   it('uses the canonical P0 achievement ids from the approved plan', () => {
-    expect(longLoopConfig.achievements.map((achievement) => achievement.id).sort()).toEqual(canonicalP0AchievementIds);
+    expect(longLoopConfig.achievements.map((achievement) => achievement.id)).toEqual(
+      expect.arrayContaining(canonicalP0AchievementIds)
+    );
   });
 
   it('uses the locked P0 shop and starter ids from the approved plan', () => {

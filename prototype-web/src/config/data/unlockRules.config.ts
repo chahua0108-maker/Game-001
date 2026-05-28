@@ -2,6 +2,27 @@ import type { UnlockRuleConfig } from '../schema/definitions';
 
 export const unlockRules = [
   {
+    id: 'unlock.map.d2',
+    name: 'D2 Unlock',
+    targetSystem: 'mapNodes',
+    targetId: 'd2',
+    requiresAchievements: ['clear_d1']
+  },
+  {
+    id: 'unlock.map.d3',
+    name: 'D3 Unlock',
+    targetSystem: 'mapNodes',
+    targetId: 'd3',
+    requiresAchievements: ['clear_d2']
+  },
+  {
+    id: 'unlock.map.d4',
+    name: 'D4 Pollution Preview Unlock',
+    targetSystem: 'mapNodes',
+    targetId: 'd4',
+    requiresAchievements: ['build_survived_d3']
+  },
+  {
     id: 'unlock.map.elite_route',
     name: 'Elite Route Unlock',
     targetSystem: 'mapNodes',

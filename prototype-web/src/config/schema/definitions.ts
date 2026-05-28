@@ -56,9 +56,11 @@ export interface NamedConfigEntry<TId extends string> {
 }
 
 export interface MapNodeConfig extends NamedConfigEntry<MapNodeId> {
-  readonly tier: 0 | 1 | 2 | 3;
-  readonly nodeType: 'start' | 'combat' | 'elite' | 'shop' | 'event' | 'boss';
+  readonly tier: number;
+  readonly nodeType: 'start' | 'combat' | 'elite' | 'shop' | 'event' | 'boss' | 'pressure';
   readonly unlockRuleIds?: readonly UnlockRuleId[];
+  readonly stageGoalPressure?: 'mini_boss_marker' | 'elite_marker' | 'boss_marker' | 'pollution_preview' | 'reaper_preview';
+  readonly p0PreviewState?: 'playable' | 'condition_visible' | 'locked_preview';
 }
 
 export interface FeatureGateConfig extends NamedConfigEntry<FeatureGateId> {
