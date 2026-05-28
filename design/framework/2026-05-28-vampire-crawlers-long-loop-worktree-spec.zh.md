@@ -640,7 +640,7 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 -> 自评缺口和下一轮 loop item
 ```
 
-每个 worktree 小组默认不是单 agent 串行开发，而是一个并行 agent 编队。常规组分配 5 个 agent，复杂组可扩到 6 个。主线程负责 PM、规格、合并顺序、交叉验收和风险仲裁，不承担每组的重体力实现。
+每个 worktree 小组默认不是单 agent 串行开发，而是一个并行 agent 编队。默认分配 3 个 agent，复杂组视情况扩到 4-6 个，硬上限为 6 个。主线程负责 PM、规格、合并顺序、交叉验收和风险仲裁，不承担每组的重体力实现。
 
 ### 12.0 并行 Agent 编队规则
 
@@ -660,7 +660,7 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 - 架构、跨系统边界、长期路线和疑难失败使用最高级/高推理模型。
 - 明确实现、局部测试、机械迁移使用 coding-optimized 模型。
 - 浏览器巡检、截图整理、文案溢出检查和重复 QA 可以使用更快、更低成本模型。
-- 同一组内最多 5-6 个 agent 并行；超过 6 个必须拆成两个 worktree 或两个阶段，避免主线程无法审查。
+- 同一组内默认 3 个 agent 并行；超过 3 个必须说明复杂度理由，超过 6 个必须拆成两个 worktree 或两个阶段，避免主线程无法审查。
 - agent 不共享隐式上下文；每个 agent 的 prompt 必须包含写入范围、禁止事项、验收证据和当前阶段目标。
 - 每组必须有一个架构师职责，不允许只有实现 worker。
 - 每组至少有一个测试/QA 职责，不允许只交代码。
@@ -669,15 +669,15 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 
 | Worktree 类型 | Agent 数 | 必备角色 | 可选角色 |
 | --- | ---: | --- | --- |
-| Config / Luban | 6 | System Architect、Implementation、Test、Integration Reviewer、Gameplay/Product、QA | 工具链 spike 专家 |
-| Profile / Save | 5 | System Architect、Implementation、Test、QA、Integration Reviewer | Migration 专家 |
-| Orchestrator | 6 | System Architect、Gameplay/Product、Implementation、Contract Test、Integration Reviewer、QA | 状态机审查专家 |
-| Map / Feature Gates | 5 | System Architect、Gameplay/Product、Implementation、Test、QA | D4/D10 平衡审查 |
-| Shop / Economy | 5 | System Architect、Gameplay/Product、Implementation、Test、QA | 经济平衡审查 |
-| Blacksmith / Deck Services | 5 | System Architect、Implementation、Test、Gameplay/Product、Integration Reviewer | 卡牌平衡审查 |
-| Achievements / Unlocks | 5 | System Architect、Gameplay/Product、Implementation、Test、QA | 数据完整性审查 |
-| UI IA | 6 | UX/Product、Implementation、Browser QA、Mobile QA、Integration Reviewer、System Architect | 文案/可读性审查 |
-| Integration QA | 5 | QA Lead、Browser QA、Sim Test、Regression Reviewer、PM Reporter | 性能/cleanup 审查 |
+| Config / Luban | 3-6 | System Architect、Implementation、Test | Integration Reviewer、Gameplay/Product、工具链 spike、QA |
+| Profile / Save | 3-5 | System Architect、Implementation、Test | QA、Integration Reviewer、Migration 专家 |
+| Orchestrator | 4-6 | System Architect、Gameplay/Product、Implementation、Contract Test | Integration Reviewer、QA、状态机审查专家 |
+| Map / Feature Gates | 3-5 | System Architect、Gameplay/Product、Implementation | Test、QA、D4/D10 平衡审查 |
+| Shop / Economy | 3-5 | System Architect、Gameplay/Product、Implementation | Test、QA、经济平衡审查 |
+| Blacksmith / Deck Services | 3-5 | System Architect、Implementation、Test | Gameplay/Product、Integration Reviewer、卡牌平衡审查 |
+| Achievements / Unlocks | 3-5 | System Architect、Gameplay/Product、Implementation | Test、QA、数据完整性审查 |
+| UI IA | 4-6 | UX/Product、Implementation、Browser QA | Mobile QA、Integration Reviewer、System Architect、文案/可读性审查 |
+| Integration QA | 3-5 | QA Lead、Browser QA、Sim Test | Regression Reviewer、PM Reporter、性能/cleanup 审查 |
 
 每个小组的最终回报必须包含：
 
