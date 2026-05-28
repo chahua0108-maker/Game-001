@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import * as ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const forbiddenRuntimeImports = [
@@ -25,11 +26,31 @@ function runtimeSource(): string {
 }
 
 function importSpecifiers(source: string): readonly string[] {
-  const fromImports = Array.from(source.matchAll(/\bimport(?:\s+type)?[\s\S]*?\sfrom\s+['"]([^'"]+)['"]/g), (match) => match[1]);
-  const sideEffectImports = Array.from(source.matchAll(/\bimport\s+['"]([^'"]+)['"]/g), (match) => match[1]);
-  const dynamicImports = Array.from(source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g), (match) => match[1]);
+  const sourceFile = ts.createSourceFile('runtime-import-scan.ts', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const specifiers: string[] = [];
 
-  return [...fromImports, ...sideEffectImports, ...dynamicImports];
+  function visit(node: ts.Node): void {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      specifiers.push(node.moduleSpecifier.text);
+    }
+
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      const [moduleSpecifier] = node.arguments;
+
+      if (
+        moduleSpecifier &&
+        (ts.isStringLiteral(moduleSpecifier) || ts.isNoSubstitutionTemplateLiteral(moduleSpecifier))
+      ) {
+        specifiers.push(moduleSpecifier.text);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+
+  return specifiers;
 }
 
 describe('combat runtime boundary', () => {
@@ -42,6 +63,7 @@ describe('combat runtime boundary', () => {
       const orchestrator = import(
         '../../meta/orchestrator/longLoopOrchestrator'
       );
+      const profile = import(\`../../meta/profile/templateStore\`);
     `;
 
     expect(importSpecifiers(source)).toEqual(
@@ -49,9 +71,22 @@ describe('combat runtime boundary', () => {
         '../../meta/profile/profileStore',
         '../meta/systems/shop/register',
         '../../meta/systems/achievements',
-        '../../meta/orchestrator/longLoopOrchestrator'
+        '../../meta/orchestrator/longLoopOrchestrator',
+        '../../meta/profile/templateStore'
       ])
     );
+  });
+
+  it('ignores forbidden import text inside comments and strings', () => {
+    const source = `
+      // import { createProfileStore } from '../../meta/profile/profileStore';
+      /* import '../meta/systems/shop/register'; */
+
+      const commentedDynamicImport = "await import('../../meta/systems/achievements')";
+      const example = "import('../../meta/orchestrator/longLoopOrchestrator')";
+    `;
+
+    expect(importSpecifiers(source)).toEqual([]);
   });
 
   it('does not import meta profile, shop, achievements, or orchestrator systems', () => {
