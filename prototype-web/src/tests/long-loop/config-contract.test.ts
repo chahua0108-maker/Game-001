@@ -127,6 +127,20 @@ describe('long-loop config contract', () => {
     expect(result.errors).toContain('starterKits[0].crawlerId is required');
   });
 
+  it('rejects crawlers that reference a missing starter kit', () => {
+    const result = validateLongLoopConfig({
+      ...longLoopConfig,
+      crawlers: [
+        {
+          ...longLoopConfig.crawlers[0],
+          starterKitId: 'starter.missing'
+        }
+      ]
+    });
+
+    expect(result.errors).toContain('crawlers[0].starterKitId references missing starter kit starter.missing');
+  });
+
   it('rejects missing or non-array first 3 hours matrix unlock rule ids without throwing', () => {
     const { unlockRuleIds: _unlockRuleIds, ...matrixEntryWithoutRules } = longLoopConfig.first3HoursUnlockMatrix[0];
     const missingResult = validateLongLoopConfig(asValidatorInput({

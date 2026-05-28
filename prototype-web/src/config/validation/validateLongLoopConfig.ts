@@ -46,6 +46,7 @@ export function validateLongLoopConfig(config: ConfigRecord): LongLoopConfigVali
   validateDuplicateIds(config, errors);
   validateMatrix(config, idSets, errors);
   validateShopItems(config, idSets, errors);
+  validateCrawlers(config, idSets, errors);
   validateStarterKits(config, idSets, errors);
   validateUnlockRules(config, idSets, tableCounts, errors);
   validateUnlockBuildingEntries(config, idSets, tableCounts, errors);
@@ -180,6 +181,25 @@ function validateStarterKits(
       required: true,
       nonEmpty: true
     });
+  });
+}
+
+function validateCrawlers(
+  config: ConfigRecord,
+  idSets: Record<LongLoopTableKey, ReadonlySet<string>>,
+  errors: string[]
+): void {
+  const crawlers = getTable(config, 'crawlers') as readonly {
+    readonly starterKitId?: string;
+  }[];
+
+  crawlers.forEach((crawler, index) => {
+    if (!validateRequiredString(crawler.starterKitId, `crawlers[${index}].starterKitId`, errors)) {
+      return;
+    }
+    if (!idSets.starterKits.has(crawler.starterKitId)) {
+      errors.push(`crawlers[${index}].starterKitId references missing starter kit ${crawler.starterKitId}`);
+    }
   });
 }
 
