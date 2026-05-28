@@ -27,11 +27,33 @@ function runtimeSource(): string {
 function importSpecifiers(source: string): readonly string[] {
   const fromImports = Array.from(source.matchAll(/\bimport(?:\s+type)?[\s\S]*?\sfrom\s+['"]([^'"]+)['"]/g), (match) => match[1]);
   const sideEffectImports = Array.from(source.matchAll(/\bimport\s+['"]([^'"]+)['"]/g), (match) => match[1]);
+  const dynamicImports = Array.from(source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g), (match) => match[1]);
 
-  return [...fromImports, ...sideEffectImports];
+  return [...fromImports, ...sideEffectImports, ...dynamicImports];
 }
 
 describe('combat runtime boundary', () => {
+  it('scans static, side-effect, and dynamic import specifiers', () => {
+    const source = `
+      import { createProfileStore } from '../../meta/profile/profileStore';
+      import '../meta/systems/shop/register';
+
+      const achievements = await import('../../meta/systems/achievements');
+      const orchestrator = import(
+        '../../meta/orchestrator/longLoopOrchestrator'
+      );
+    `;
+
+    expect(importSpecifiers(source)).toEqual(
+      expect.arrayContaining([
+        '../../meta/profile/profileStore',
+        '../meta/systems/shop/register',
+        '../../meta/systems/achievements',
+        '../../meta/orchestrator/longLoopOrchestrator'
+      ])
+    );
+  });
+
   it('does not import meta profile, shop, achievements, or orchestrator systems', () => {
     const runtimeImports = importSpecifiers(runtimeSource());
 
