@@ -6,6 +6,9 @@ import { loadProfile, PROFILE_STORAGE_KEY, saveProfile } from '../../meta/profil
 import { advanceLongLoop, createLongLoopState } from '../../meta/orchestrator/runLoopOrchestrator';
 import { p0CanonicalIds } from './testFixtures';
 
+const blacksmithRaiseLevelPermitId = 'blacksmith_raise_level_permit';
+const blacksmithRedSocketPermitId = 'blacksmith_red_socket_permit';
+
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
 
@@ -84,6 +87,70 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(blockedPurchase.profile.shop.purchasedItemIds).toEqual([]);
     expect(blockedPurchase.profile.starter.unlockedStarterKitIds).toEqual([p0CanonicalIds.starterKitDefaultChain]);
     expect(blockedPurchase.nextRunPreview.starterKitIds).not.toContain(p0CanonicalIds.starterKitStableChain);
+  });
+
+  it('blocks fresh-profile purchase of blacksmith permits until feature gates are unlocked', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-blocked-blacksmith' }));
+
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: blacksmithRaiseLevelPermitId
+    });
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: blacksmithRedSocketPermitId
+    });
+
+    expect(state.profile.shop.purchasedItemIds).toEqual([]);
+    expect(state.profile.achievements.unlockedIds).toEqual([]);
+    expect(state.profile.featureGates.unlockedIds).not.toContain(p0CanonicalIds.featureBlacksmith);
+  });
+
+  it('allows blacksmith permit purchase during settlement review after D1 unlocks blacksmith', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-blacksmith-purchase' }));
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    expect(state.phase).toBe('settlement_review');
+    expect(state.settlementSummary?.visibleShopItemIds).toContain(blacksmithRaiseLevelPermitId);
+
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: blacksmithRaiseLevelPermitId
+    });
+
+    expect(state.profile.shop.purchasedItemIds).toContain(blacksmithRaiseLevelPermitId);
+    expect(state.profile.achievements.unlockedIds).toContain(p0CanonicalIds.achievementFirstPurchase);
+  });
+
+  it('blocks purchase while a run is active even when an item would otherwise be visible', () => {
+    const profile = createDefaultProfile({ profileId: 'orchestrator-p0-running-purchase' });
+    profile.featureGates.unlockedIds.push(p0CanonicalIds.featureBlacksmith);
+    let state = createLongLoopState(profile);
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: blacksmithRaiseLevelPermitId
+    });
+
+    expect(state.phase).toBe('running');
+    expect(state.profile.shop.purchasedItemIds).toEqual([]);
+    expect(state.profile.achievements.unlockedIds).toEqual([]);
   });
 
   it('does not replace an active run or advance sequence when startRun is called twice', () => {

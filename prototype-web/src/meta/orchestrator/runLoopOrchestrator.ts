@@ -95,8 +95,9 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
 
     case 'purchase_shop_item': {
       if (
+        state.phase !== 'settlement_review' ||
         state.profile.shop.purchasedItemIds.includes(event.itemId) ||
-        !visibleShopItemIds(state.profile.achievements.unlockedIds).includes(event.itemId)
+        !visibleShopItemIds(state.profile).includes(event.itemId)
       ) {
         return state;
       }
@@ -194,7 +195,7 @@ export function createLongLoopOrchestrator(options: { readonly profileStore: Pro
     },
     getShopState(): ShopStateSnapshot {
       return {
-        visibleItemIds: visibleShopItemIds(state.profile.achievements.unlockedIds),
+        visibleItemIds: visibleShopItemIds(state.profile),
         purchasedItemIds: [...state.profile.shop.purchasedItemIds]
       };
     },

@@ -1,5 +1,10 @@
+import { longLoopConfig } from '../../config/data/longLoopConfig';
+import type { ShopItemConfig } from '../../config/schema/definitions';
+import type { ShopItemId } from '../../config/schema/ids';
 import type { LongLoopProfile } from '../profile/profileTypes';
 import type { SettlementInput, SettlementSummary } from './orchestratorTypes';
+
+type ShopEligibilityProfile = Pick<LongLoopProfile, 'achievements' | 'featureGates'>;
 
 export function projectSettlement(profile: LongLoopProfile, input: SettlementInput): SettlementSummary {
   if (input.outcome === 'failed') {
@@ -10,7 +15,7 @@ export function projectSettlement(profile: LongLoopProfile, input: SettlementInp
       achievementIds: [],
       uiStateIds: ['settlement'],
       unlockedFeatureGateIds: [],
-      visibleShopItemIds: visibleShopItemIds(profile.achievements.unlockedIds),
+      visibleShopItemIds: visibleShopItemIds(profile),
       softCurrencyDelta: 0,
       metaGemDelta: 0
     };
@@ -27,23 +32,27 @@ export function projectSettlement(profile: LongLoopProfile, input: SettlementInp
     achievementIds,
     uiStateIds: ['settlement', 'unlock_toast', 'blacksmith_available', 'shop_inventory'],
     unlockedFeatureGateIds: ['feature.blacksmith'],
-    visibleShopItemIds: visibleShopItemIds([...profile.achievements.unlockedIds, ...achievementIds]),
+    visibleShopItemIds: visibleShopItemIds({
+      achievements: {
+        unlockedIds: [...profile.achievements.unlockedIds, ...achievementIds]
+      },
+      featureGates: {
+        unlockedIds: [...profile.featureGates.unlockedIds, 'feature.blacksmith']
+      }
+    }),
     softCurrencyDelta: 100,
     metaGemDelta: 1
   };
 }
 
-export function visibleShopItemIds(achievementIds: readonly string[]): readonly string[] {
-  const achievements = new Set(achievementIds);
-  const visibleIds = ['blacksmith_raise_level_permit', 'blacksmith_red_socket_permit'];
+export function visibleShopItemIds(profile: ShopEligibilityProfile): readonly ShopItemId[] {
+  const achievements = new Set(profile.achievements.unlockedIds);
+  const featureGates = new Set(profile.featureGates.unlockedIds);
 
-  if (achievements.has('chain_certified')) {
-    visibleIds.push('starter_stable_chain');
-  }
+  const shopItems: readonly ShopItemConfig[] = longLoopConfig.shopItems;
 
-  if (achievements.has('first_purchase')) {
-    visibleIds.push('blacksmith_reroll_permit');
-  }
-
-  return visibleIds;
+  return shopItems
+    .filter((item) => (item.requiresAchievementIds ?? []).every((id) => achievements.has(id)))
+    .filter((item) => (item.requiresFeatureGateIds ?? []).every((id) => featureGates.has(id)))
+    .map((item) => item.id);
 }
