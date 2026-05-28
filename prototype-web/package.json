@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:sim": "vitest run src/tests/sim",
     "test:ui": "vitest run src/tests/ui",
+    "validate:long-loop-config": "node scripts/validate-long-loop-config.mjs",
     "qa:ui": "node scripts/qa-ui.mjs",
     "qa:similarity": "node scripts/qa-similarity.mjs",
     "qa:lifecycle": "node scripts/qa-lifecycle.mjs"
