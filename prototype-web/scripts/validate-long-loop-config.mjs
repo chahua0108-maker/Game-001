@@ -1,45 +1,28 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-
-import { build } from 'esbuild';
+import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname);
-const outdir = await mkdtemp(join(tmpdir(), 'long-loop-config-'));
-const outfile = join(outdir, 'validate-long-loop-config.mjs');
+const vitestEntrypoint = resolve(projectRoot, 'node_modules/vitest/vitest.mjs');
 
-try {
-  await build({
-    stdin: {
-      contents: `
-        import { longLoopConfig } from './src/config/data/longLoopConfig';
-        import { validateLongLoopConfig } from './src/config/validation/validateLongLoopConfig';
-
-        const result = validateLongLoopConfig(longLoopConfig);
-
-        if (result.errors.length > 0) {
-          console.error('Long-loop config validation failed:');
-          for (const error of result.errors) {
-            console.error('- ' + error);
-          }
-          process.exitCode = 1;
-        } else {
-          console.log('Long-loop config validation passed.');
-          console.log(JSON.stringify({ tableCounts: result.tableCounts }, null, 2));
-        }
-      `,
-      loader: 'ts',
-      resolveDir: projectRoot
+const child = spawn(
+  process.execPath,
+  [vitestEntrypoint, 'run', 'src/tests/long-loop/config-contract.test.ts', '--run'],
+  {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      LONG_LOOP_CONFIG_PRINT_COUNTS: '1'
     },
-    bundle: true,
-    format: 'esm',
-    platform: 'node',
-    outfile,
-    logLevel: 'silent'
-  });
+    stdio: 'inherit'
+  }
+);
 
-  await import(pathToFileURL(outfile).href);
-} finally {
-  await rm(outdir, { recursive: true, force: true });
-}
+child.on('exit', (code, signal) => {
+  if (signal) {
+    console.error(`Long-loop config validation terminated by ${signal}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  process.exitCode = code ?? 1;
+});

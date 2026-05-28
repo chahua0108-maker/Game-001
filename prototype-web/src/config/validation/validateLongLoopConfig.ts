@@ -116,7 +116,8 @@ function validateMatrix(
       idSets.unlockRules,
       `first3HoursUnlockMatrix[${index}].unlockRuleIds`,
       'unlock rule',
-      errors
+      errors,
+      { required: true, nonEmpty: true }
     );
   });
 }
@@ -134,7 +135,10 @@ function validateShopItems(
   }[];
 
   shopItems.forEach((item, index) => {
-    if (item.categoryId && !idSets.collectionCategories.has(item.categoryId)) {
+    if (!validateRequiredString(item.categoryId, `shopItems[${index}].categoryId`, errors)) {
+      return;
+    }
+    if (!idSets.collectionCategories.has(item.categoryId)) {
       errors.push(`shopItems[${index}].categoryId references missing collection category ${item.categoryId}`);
     }
     validateReferences(
@@ -166,10 +170,16 @@ function validateStarterKits(
   }[];
 
   starterKits.forEach((kit, index) => {
-    if (kit.crawlerId && !idSets.crawlers.has(kit.crawlerId)) {
+    if (!validateRequiredString(kit.crawlerId, `starterKits[${index}].crawlerId`, errors)) {
+      return;
+    }
+    if (!idSets.crawlers.has(kit.crawlerId)) {
       errors.push(`starterKits[${index}].crawlerId references missing crawler ${kit.crawlerId}`);
     }
-    validateReferences(kit.shopItemIds, idSets.shopItems, `starterKits[${index}].shopItemIds`, 'shop item', errors);
+    validateReferences(kit.shopItemIds, idSets.shopItems, `starterKits[${index}].shopItemIds`, 'shop item', errors, {
+      required: true,
+      nonEmpty: true
+    });
   });
 }
 
@@ -219,7 +229,10 @@ function validateUnlockBuildingEntries(
 
   entries.forEach((entry, index) => {
     validateTarget(`unlockBuildingEntries[${index}]`, entry.targetSystem, entry.targetId, idSets, tableCounts, errors);
-    if (entry.unlockRuleId && !idSets.unlockRules.has(entry.unlockRuleId)) {
+    if (!validateRequiredString(entry.unlockRuleId, `unlockBuildingEntries[${index}].unlockRuleId`, errors)) {
+      return;
+    }
+    if (!idSets.unlockRules.has(entry.unlockRuleId)) {
       errors.push(`unlockBuildingEntries[${index}].unlockRuleId references missing unlock rule ${entry.unlockRuleId}`);
     }
   });
@@ -270,17 +283,43 @@ function validateTarget(
 }
 
 function validateReferences(
-  refs: readonly string[] | undefined,
+  refs: unknown,
   validIds: ReadonlySet<string>,
   path: string,
   label: string,
-  errors: string[]
+  errors: string[],
+  options: { readonly required?: boolean; readonly nonEmpty?: boolean } = {}
 ): void {
-  refs?.forEach((ref, index) => {
+  if (refs === undefined || refs === null) {
+    if (options.required) {
+      errors.push(`${path} must be a non-empty array`);
+    }
+    return;
+  }
+
+  if (!Array.isArray(refs)) {
+    errors.push(`${path} must be ${options.required || options.nonEmpty ? 'a non-empty array' : 'an array'}`);
+    return;
+  }
+
+  if (options.nonEmpty && refs.length === 0) {
+    errors.push(`${path} must be a non-empty array`);
+    return;
+  }
+
+  refs.forEach((ref, index) => {
     if (!validIds.has(ref)) {
       errors.push(`${path}[${index}] references missing ${label} ${ref}`);
     }
   });
+}
+
+function validateRequiredString(value: unknown, path: string, errors: string[]): value is string {
+  if (typeof value !== 'string' || value.length === 0) {
+    errors.push(`${path} is required`);
+    return false;
+  }
+  return true;
 }
 
 function isUnlockTargetTableKey(value: string): value is UnlockTargetTableKey {

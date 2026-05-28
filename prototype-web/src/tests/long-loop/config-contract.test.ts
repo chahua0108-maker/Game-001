@@ -23,6 +23,20 @@ const expectedTableKeys = [
   'unlockRules'
 ] as const satisfies readonly LongLoopTableKey[];
 
+type ValidatorInput = Parameters<typeof validateLongLoopConfig>[0];
+
+function asValidatorInput(config: unknown): ValidatorInput {
+  return config as ValidatorInput;
+}
+
+function shouldPrintTableCounts(): boolean {
+  const maybeProcess = globalThis as typeof globalThis & {
+    readonly process?: { readonly env?: Record<string, string | undefined> };
+  };
+
+  return maybeProcess.process?.env?.LONG_LOOP_CONFIG_PRINT_COUNTS === '1';
+}
+
 describe('long-loop config contract', () => {
   it('keeps every target-state system backed by an independent config table', () => {
     const result = validateLongLoopConfig(longLoopConfig);
@@ -32,6 +46,10 @@ describe('long-loop config contract', () => {
 
     for (const key of expectedTableKeys) {
       expect(result.tableCounts[key], key).toBeGreaterThan(0);
+    }
+
+    if (shouldPrintTableCounts()) {
+      console.log(`Long-loop config table counts: ${JSON.stringify(result.tableCounts)}`);
     }
   });
 
@@ -85,6 +103,101 @@ describe('long-loop config contract', () => {
         'shopItems[0].requiresFeatureGateIds[0] references missing feature gate feature.missing',
         'shopItems[0].requiresAchievementIds[0] references missing achievement achievement.missing',
         'shopItems[0].unlockRuleIds[0] references missing unlock rule unlock.missing'
+      ])
+    );
+  });
+
+  it('rejects shop items without a required category id', () => {
+    const { categoryId: _categoryId, ...shopItemWithoutCategory } = longLoopConfig.shopItems[0];
+    const result = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      shopItems: [shopItemWithoutCategory]
+    }));
+
+    expect(result.errors).toContain('shopItems[0].categoryId is required');
+  });
+
+  it('rejects starter kits without a required crawler id', () => {
+    const { crawlerId: _crawlerId, ...starterKitWithoutCrawler } = longLoopConfig.starterKits[0];
+    const result = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      starterKits: [starterKitWithoutCrawler]
+    }));
+
+    expect(result.errors).toContain('starterKits[0].crawlerId is required');
+  });
+
+  it('rejects missing or non-array first 3 hours matrix unlock rule ids without throwing', () => {
+    const { unlockRuleIds: _unlockRuleIds, ...matrixEntryWithoutRules } = longLoopConfig.first3HoursUnlockMatrix[0];
+    const missingResult = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      first3HoursUnlockMatrix: [matrixEntryWithoutRules]
+    }));
+
+    expect(missingResult.errors).toContain('first3HoursUnlockMatrix[0].unlockRuleIds must be a non-empty array');
+    expect(() =>
+      validateLongLoopConfig(asValidatorInput({
+        ...longLoopConfig,
+        first3HoursUnlockMatrix: [
+          {
+            ...longLoopConfig.first3HoursUnlockMatrix[0],
+            unlockRuleIds: 'unlock.map.elite_route'
+          }
+        ]
+      }))
+    ).not.toThrow();
+
+    const malformedResult = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      first3HoursUnlockMatrix: [
+        {
+          ...longLoopConfig.first3HoursUnlockMatrix[0],
+          unlockRuleIds: 'unlock.map.elite_route'
+        }
+      ]
+    }));
+
+    expect(malformedResult.errors).toContain('first3HoursUnlockMatrix[0].unlockRuleIds must be a non-empty array');
+  });
+
+  it('rejects unlock building entries without a required unlock rule id', () => {
+    const { unlockRuleId: _unlockRuleId, ...entryWithoutRule } = longLoopConfig.unlockBuildingEntries[0];
+    const result = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      unlockBuildingEntries: [entryWithoutRule]
+    }));
+
+    expect(result.errors).toContain('unlockBuildingEntries[0].unlockRuleId is required');
+  });
+
+  it('does not throw on malformed array-like reference fields', () => {
+    const malformedConfig = {
+      ...longLoopConfig,
+      shopItems: [
+        {
+          ...longLoopConfig.shopItems[0],
+          requiresFeatureGateIds: { 0: 'feature.shop_inventory', length: 1 },
+          requiresAchievementIds: 'achievement.completed_first_run',
+          unlockRuleIds: 42
+        }
+      ],
+      starterKits: [
+        {
+          ...longLoopConfig.starterKits[0],
+          shopItemIds: { 0: 'shop.blood_vial', length: 1 }
+        }
+      ]
+    };
+
+    expect(() => validateLongLoopConfig(asValidatorInput(malformedConfig))).not.toThrow();
+
+    const result = validateLongLoopConfig(asValidatorInput(malformedConfig));
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        'shopItems[0].requiresFeatureGateIds must be an array',
+        'shopItems[0].requiresAchievementIds must be an array',
+        'shopItems[0].unlockRuleIds must be an array',
+        'starterKits[0].shopItemIds must be a non-empty array'
       ])
     );
   });
