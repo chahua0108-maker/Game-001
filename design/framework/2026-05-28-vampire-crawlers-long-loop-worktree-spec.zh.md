@@ -186,9 +186,38 @@ P0 明确不做：
 
 这是第一合并点。职责是建立可被所有组依赖的最小稳定合同，不做巨型框架。
 
+本模块必须满足“每个系统有独立配置表逻辑”的要求。Map、Shop、Blacksmith、Achievements、Unlock Building、Crawler、Starter Kit、Relic、Arcana、Gem、Permanent Upgrade、Feature Gate 都不得共享一张杂糅的大表；每个系统必须有自己的表、引用校验和只读 query service。
+
+#### 9.1.1 Luban 配表候选
+
+`focus-creative-games/luban` 是候选配表工具。官方资料显示它支持 Excel/CSV/JSON/XML/YAML/Lua 等源数据，支持 TypeScript/JavaScript 代码生成，支持 JSON/binary 等数据导出，并且有 `code_typescript_json,data_json` 生成组合。它适合作为 Game-001 的专业配表生成层。
+
+P0 不直接把 Luban 当成既定实现，而是要求 Config Architect 先做一次 Luban spike：
+
+```text
+输入：最小 map node + feature gate + shop item + achievement + starter kit + unlock matrix 表
+生成：TypeScript 类型/读取代码 + JSON 数据
+验证：Vite/Vitest 能 import 或加载生成产物；引用校验能挡住错误 ID
+输出：是否正式采用 Luban，以及 fallback 方案
+```
+
+采用 Luban 的前提：
+
+- 能在 macOS 本地用可复现命令生成 TypeScript + JSON。
+- 生成物能被 `prototype-web` 的 Vite/TypeScript 流水线消费。
+- 每个系统保持独立表，不被工具结构反向合并成巨型表。
+- 生成命令能进入 npm script 或 tools script，并在 CI/worker worktree 中重复运行。
+- 生成产物目录、手写 adapter、schema 源文件边界清楚。
+
+如果 Luban spike 失败，fallback 是保留手写 TypeScript config + Vitest validator，但字段和表边界必须保持与 Luban 方案兼容，避免后续迁移重写系统逻辑。
+
 建议文件边界：
 
 ```text
+prototype-web/config/luban/Defines/**
+prototype-web/config/luban/Datas/**
+prototype-web/config/luban/luban.conf
+prototype-web/src/generated/config/**
 prototype-web/src/config/schema/ids.ts
 prototype-web/src/config/schema/definitions.ts
 prototype-web/src/config/data/cards.config.ts
@@ -218,6 +247,24 @@ P0 需要迁移或镜像到 config 的内容：
 - map nodes、feature gates、shop items、achievements、unlock rules。
 - 路线候选、路线文案、路线 modifier、奖励倾向。
 - Blacksmith 的 run-local 服务规则和 gem 默认数值。
+
+每个系统的独立配置表至少包括：
+
+| 系统 | 配置表 | 关键字段 |
+| --- | --- | --- |
+| Feature Gates | `feature_gates` | `featureId`、`defaultState`、`unlockRuleId`、`visibility`、`debugOverride` |
+| Unlock Rules | `unlock_rules` | `unlockRuleId`、`trigger`、`conditions`、`rewardPatch`、`targetFeatureIds` |
+| First 3 Hours Matrix | `first3_hours_unlock_matrix` | `trigger`、`mapNodeId`、`featureGateId`、`achievementId`、`uiState`、`nextGoal`、`visibility` |
+| Map Stages | `map_nodes` | `mapNodeId`、`stageId`、`difficultyTier`、`pressureType`、`unlockRuleId`、`nextNodeIds` |
+| Crawler | `crawlers` | `crawlerId`、`starterKitIds`、`passivePreview`、`unlockRuleId`、`visibility` |
+| Starter Kit | `starter_kits` | `starterKitId`、`deckEntries`、`openingHandBias`、`unlockRuleId` |
+| Shop | `shop_items` | `shopItemId`、`category`、`price`、`currencyId`、`servicePermitId`、`unlockRuleId` |
+| Blacksmith | `blacksmith_services` | `serviceId`、`effectType`、`runLocal`、`targetCardTags`、`requiresPermitId` |
+| Achievements | `achievements` | `achievementId`、`trackedEvent`、`threshold`、`rewardPatch`、`visibility` |
+| Relic / Arcana | `relics`、`arcana` | `id`、`effectPreview`、`runModifierId`、`unlockRuleId`、`visibility` |
+| Gem | `gems` | `gemId`、`color`、`effectType`、`value`、`unlockRuleId` |
+| Permanent Upgrades | `permanent_upgrades` | `upgradeId`、`upgradeType`、`choiceSpaceEffect`、`unlockRuleId`、`maxRank` |
+| Collection | `collection_entries` | `entryId`、`kind`、`sourceId`、`seenTrigger`、`conditionText` |
 
 暂时保留在代码里的内容：
 
@@ -597,7 +644,7 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 
 | Worktree | 输入 | 输出 | 玩家可见闭环 | 最少迭代 | 证据 |
 | --- | --- | --- | --- | ---: | --- |
-| Config | 现有 cards/enemies/activity/reward、目标态系统、unlock matrix | schema、loader、validator、services、fixture | 所有 UI/系统状态来自同一 config | 3 | 引用完整性、matrix 行为、无硬编码解锁 diff |
+| Config | 现有 cards/enemies/activity/reward、目标态系统、unlock matrix、Luban spike | schema、loader、validator、services、fixture、生成链路裁决 | 所有 UI/系统状态来自同一 config | 3 | 引用完整性、matrix 行为、Luban PoC 或 fallback、无硬编码解锁 diff |
 | Contract Tests | P0/P1/P2 目标态和验收矩阵 | 跨组红灯测试和共享 fixture | 先定义玩家两局旅程，再让模块接入 | 2 | `long-loop-e2e`、orchestrator、unlock matrix tests |
 | Profile | settlement、shop transaction、achievement patch | profile version、currency、unlocks、purchase、seen records | reload 后 Hub 恢复“我解锁了什么、下一步是什么” | 3 | profile dump、reload browser QA、run-local 不保留 |
 | Orchestrator | profile、map、shop、achievement、run summary | 局外状态机和 run start/settlement adapter | D1 后回 Hub，下一目标和下一局入口清楚 | 3 | 状态机测试、非法跳转拒绝、两局 E2E |
@@ -613,6 +660,7 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 职责：
 
 - 定义 config schema。
+- 评估并验证 Luban TypeScript + JSON 生成链路。
 - 建立 loader、validator、readonly services。
 - 提供旧数据兼容导出。
 - 建立 `first3HoursUnlockMatrix.config.ts`。
@@ -620,8 +668,11 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 写入范围：
 
 ```text
+prototype-web/config/luban/**
+prototype-web/src/generated/config/**
 prototype-web/src/config/**
 prototype-web/src/tests/config/**
+prototype-web/scripts/generate-config*
 prototype-web/src/data/* 兼容导出，必要时
 ```
 
@@ -630,6 +681,8 @@ prototype-web/src/data/* 兼容导出，必要时
 - 不改 combat runtime。
 - 不一次性迁移所有逻辑。
 - 不引入完整框架。
+- 不把所有系统合并到一张配置表。
+- Luban spike 未通过前，不强迫下游依赖不可复现的生成产物。
 
 ### 12.2 Contract Tests
 
@@ -789,6 +842,22 @@ P3 聚焦：
 ## 14. 测试计划
 
 必须先写或补齐以下测试。
+
+### 14.0 Config / Luban Spike
+
+```text
+prototype-web/src/tests/config/config-schema.test.ts
+prototype-web/src/tests/config/config-generation-boundary.test.ts
+```
+
+验证：
+
+- 每个系统有独立配置表和独立 query service。
+- Luban spike 能生成 TypeScript + JSON，或明确记录 fallback 原因。
+- 生成物或 fallback config 能被 Vite/Vitest 消费。
+- 引用错误的 map node、feature gate、shop item、achievement、starter kit、relic、arcana、gem 会失败。
+- P0 未实装系统也有 locked preview/backlog contract。
+- 任何模块不得绕过 config 硬写解锁顺序。
 
 ### 14.1 Contract
 
