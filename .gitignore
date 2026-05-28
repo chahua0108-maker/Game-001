@@ -17,6 +17,7 @@ coverage/
 **/coverage/
 .vite/
 **/.vite/
+.worktrees/
 
 # Logs and temporary files.
 *.log
