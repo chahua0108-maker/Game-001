@@ -13,6 +13,12 @@ import type {
   ShopStateSnapshot
 } from './orchestratorTypes';
 
+const blacksmithPermitServiceIds: Record<string, string> = {
+  blacksmith_raise_level_permit: 'blacksmith.raise_level',
+  blacksmith_red_socket_permit: 'blacksmith.red_socket',
+  blacksmith_reroll_permit: 'blacksmith.reroll'
+};
+
 interface ProfileStoreLike {
   getSnapshot(): LongLoopProfile;
   setSnapshot(profile: LongLoopProfile): void;
@@ -110,6 +116,8 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
         profile.starter.unlockedStarterKitIds = appendUnique(profile.starter.unlockedStarterKitIds, 'stable_chain');
         profile.collection.seenIds = appendUnique(profile.collection.seenIds, event.itemId);
       }
+
+      applyBlacksmithPermitPurchase(profile, event.itemId);
 
       const nextRunPreview = createRunStartSnapshot(profile, { districtId: state.nextRunPreview.districtId });
       const phaseEvents = appendPhaseEvent(
@@ -286,6 +294,16 @@ function clonePhaseEvents(events: readonly LongLoopPhaseEvent[]): LongLoopPhaseE
 
 function appendUnique<T>(values: readonly T[], ...nextValues: readonly T[]): T[] {
   return [...new Set([...values, ...nextValues])];
+}
+
+function applyBlacksmithPermitPurchase(profile: LongLoopProfile, itemId: string): void {
+  const serviceId = blacksmithPermitServiceIds[itemId];
+  if (!serviceId) {
+    return;
+  }
+
+  profile.blacksmith.purchasedPermitIds = appendUnique(profile.blacksmith.purchasedPermitIds, itemId);
+  profile.blacksmith.unlockedServiceIds = appendUnique(profile.blacksmith.unlockedServiceIds, serviceId);
 }
 
 function appendPhaseEvent(

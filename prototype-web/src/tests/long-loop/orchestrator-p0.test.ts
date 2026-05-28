@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultProfile } from '../../meta/profile/createProfile';
 import { createProfileStore } from '../../meta/profile/profileStore';
 import { loadProfile, PROFILE_STORAGE_KEY, saveProfile } from '../../meta/profile/profileStorage';
+import { selectProfileMeta } from '../../meta/profile/profileSelectors';
 import { advanceLongLoop, createLongLoopState } from '../../meta/orchestrator/runLoopOrchestrator';
 import { p0CanonicalIds } from './testFixtures';
 
 const blacksmithRaiseLevelPermitId = 'blacksmith_raise_level_permit';
 const blacksmithRedSocketPermitId = 'blacksmith_red_socket_permit';
+const blacksmithRaiseLevelServiceId = 'blacksmith.raise_level';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -131,6 +133,37 @@ describe('P0 run-loop orchestrator reducer', () => {
 
     expect(state.profile.shop.purchasedItemIds).toContain(blacksmithRaiseLevelPermitId);
     expect(state.profile.achievements.unlockedIds).toContain(p0CanonicalIds.achievementFirstPurchase);
+  });
+
+  it('persists blacksmith permit and service state across profileStore export and reload', () => {
+    const profileStore = createProfileStore({ profileId: 'orchestrator-p0-blacksmith-reload' });
+    let state = createLongLoopState(profileStore.getSnapshot());
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: blacksmithRaiseLevelPermitId
+    });
+    profileStore.setSnapshot(state.profile);
+
+    expect(state.profile.blacksmith.purchasedPermitIds).toContain(blacksmithRaiseLevelPermitId);
+    expect(state.profile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
+    expect(selectProfileMeta(state.profile).purchasedBlacksmithPermitIds).toContain(blacksmithRaiseLevelPermitId);
+
+    const reloadedProfile = createProfileStore({ snapshot: profileStore.exportSnapshot() }).getSnapshot();
+    expect(reloadedProfile.blacksmith.purchasedPermitIds).toContain(blacksmithRaiseLevelPermitId);
+    expect(reloadedProfile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
+    expect(selectProfileMeta(reloadedProfile).purchasedBlacksmithPermitIds).toContain(blacksmithRaiseLevelPermitId);
   });
 
   it('blocks purchase while a run is active even when an item would otherwise be visible', () => {
