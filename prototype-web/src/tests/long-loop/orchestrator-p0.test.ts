@@ -5,7 +5,7 @@ import { createDefaultProfile } from '../../meta/profile/createProfile';
 import { createProfileStore } from '../../meta/profile/profileStore';
 import { loadProfile, PROFILE_STORAGE_KEY, saveProfile } from '../../meta/profile/profileStorage';
 import { selectProfileMeta } from '../../meta/profile/profileSelectors';
-import { advanceLongLoop, createLongLoopState } from '../../meta/orchestrator/runLoopOrchestrator';
+import { advanceLongLoop, createLongLoopOrchestrator, createLongLoopState } from '../../meta/orchestrator/runLoopOrchestrator';
 import { p0CanonicalIds } from './testFixtures';
 
 const blacksmithRaiseLevelPermitId = 'blacksmith_raise_level_permit';
@@ -269,9 +269,43 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(state.runSequence).toBe(nextRunSequence);
   });
 
-  it('keeps blacksmith enhancements run-local instead of writing them to profile', () => {
-    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-run-local' }));
+  it('blocks run-local blacksmith enhancement before the matching permit or service is unlocked', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-run-local-blocked' }));
 
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'apply_run_local_blacksmith_enhancement',
+      runId: state.currentRun?.id ?? '',
+      enhancementId: p0CanonicalIds.runLocalBlacksmithEnhancement
+    });
+
+    expect(state.currentRun?.runLocalEnhancementIds).not.toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
+    expect(state.nextRunPreview.runLocalEnhancementIds).not.toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
+    expect(state.profile.runLocalPreview.cardEnhancements).toEqual([]);
+  });
+
+  it('applies run-local blacksmith enhancement after buying the matching permit', () => {
+    let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-run-local-permitted' }));
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+    state = advanceLongLoop(state, {
+      type: 'purchase_shop_item',
+      itemId: blacksmithRaiseLevelPermitId
+    });
     state = advanceLongLoop(state, {
       type: 'start_run',
       districtId: p0CanonicalIds.districtD1,
@@ -285,6 +319,53 @@ describe('P0 run-loop orchestrator reducer', () => {
 
     expect(state.currentRun?.runLocalEnhancementIds).toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
     expect(state.profile.runLocalPreview.cardEnhancements).toEqual([]);
+  });
+
+  it('returns explicit public shop purchase results for success and rejected commands', () => {
+    const profileStore = createProfileStore({ profileId: 'orchestrator-p0-purchase-results' });
+    const orchestrator = createLongLoopOrchestrator({ profileStore });
+
+    expect(orchestrator.purchaseShopItem({ itemId: p0CanonicalIds.p0ShopItem })).toMatchObject({
+      ok: false,
+      itemId: p0CanonicalIds.p0ShopItem
+    });
+
+    const run = orchestrator.startRun({
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    orchestrator.settleRun({
+      runId: run.id,
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+
+    expect(orchestrator.purchaseShopItem({ itemId: 'blacksmith_reroll_permit' })).toEqual({
+      ok: false,
+      itemId: 'blacksmith_reroll_permit',
+      reason: 'not_visible'
+    });
+
+    const success = orchestrator.purchaseShopItem({ itemId: blacksmithRaiseLevelPermitId });
+    expect(success).toMatchObject({
+      ok: true,
+      itemId: blacksmithRaiseLevelPermitId
+    });
+    if (!success.ok) {
+      throw new Error(`Expected blacksmith permit purchase to succeed, got ${success.reason}`);
+    }
+    expect(success.achievementIds).toContain(p0CanonicalIds.achievementFirstPurchase);
+
+    expect(orchestrator.purchaseShopItem({ itemId: blacksmithRaiseLevelPermitId })).toEqual({
+      ok: false,
+      itemId: blacksmithRaiseLevelPermitId,
+      reason: 'already_purchased'
+    });
+    expect(orchestrator.purchaseShopItem({ itemId: blacksmithRedSocketPermitId })).toEqual({
+      ok: false,
+      itemId: blacksmithRedSocketPermitId,
+      reason: 'insufficient_currency'
+    });
   });
 
   it('does not grant settlement rewards without an active matching run', () => {

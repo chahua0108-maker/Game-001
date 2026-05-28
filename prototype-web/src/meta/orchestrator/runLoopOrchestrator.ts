@@ -12,6 +12,7 @@ import type {
   NextRunSnapshot,
   RunLoopRunState,
   SettlementSummary,
+  ShopPurchaseFailureReason,
   ShopStateSnapshot
 } from './orchestratorTypes';
 
@@ -19,6 +20,21 @@ const blacksmithPermitServiceIds: Record<string, string> = {
   blacksmith_raise_level_permit: 'blacksmith.raise_level',
   blacksmith_red_socket_permit: 'blacksmith.red_socket',
   blacksmith_reroll_permit: 'blacksmith.reroll'
+};
+
+const blacksmithEnhancementRequirements: Record<string, { readonly permitId: string; readonly serviceId: string }> = {
+  blacksmith_raise_level: {
+    permitId: 'blacksmith_raise_level_permit',
+    serviceId: 'blacksmith.raise_level'
+  },
+  blacksmith_red_socket: {
+    permitId: 'blacksmith_red_socket_permit',
+    serviceId: 'blacksmith.red_socket'
+  },
+  blacksmith_reroll: {
+    permitId: 'blacksmith_reroll_permit',
+    serviceId: 'blacksmith.reroll'
+  }
 };
 
 interface ProfileStoreLike {
@@ -102,17 +118,12 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
     }
 
     case 'purchase_shop_item': {
-      const shopItem = shopItemById(event.itemId);
-      if (
-        state.phase !== 'settlement_review' ||
-        !shopItem ||
-        state.profile.shop.purchasedItemIds.includes(event.itemId) ||
-        !visibleShopItemIds(state.profile).includes(event.itemId) ||
-        state.profile.wallet.softCurrency < shopItem.price
-      ) {
+      const rejectionReason = shopPurchaseRejectionReason(state, event.itemId);
+      if (rejectionReason) {
         return state;
       }
 
+      const shopItem = shopItemById(event.itemId) as ShopItemConfig;
       const profile = cloneProfile(state.profile);
       profile.wallet.softCurrency -= shopItem.price;
       profile.shop.purchasedItemIds = appendUnique(profile.shop.purchasedItemIds, event.itemId);
@@ -142,7 +153,11 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
     }
 
     case 'apply_run_local_blacksmith_enhancement': {
-      if (!state.currentRun || state.currentRun.id !== event.runId) {
+      if (
+        !state.currentRun ||
+        state.currentRun.id !== event.runId ||
+        !canApplyBlacksmithEnhancement(state.profile, event.enhancementId)
+      ) {
         return state;
       }
 
@@ -217,11 +232,21 @@ export function createLongLoopOrchestrator(options: { readonly profileStore: Pro
       return createRunStartSnapshot(state.profile, input);
     },
     purchaseShopItem(input) {
+      const rejectionReason = shopPurchaseRejectionReason(state, input.itemId);
+      if (rejectionReason) {
+        return {
+          ok: false,
+          itemId: input.itemId,
+          reason: rejectionReason
+        };
+      }
+
       const before = state.profile.achievements.unlockedIds;
       commit(advanceLongLoop(state, { type: 'purchase_shop_item', itemId: input.itemId }));
       const addedAchievementIds = state.profile.achievements.unlockedIds.filter((id) => !before.includes(id));
 
       return {
+        ok: true,
         itemId: input.itemId,
         achievementIds: addedAchievementIds
       };
@@ -306,6 +331,31 @@ function shopItemById(itemId: string): ShopItemConfig | undefined {
   return (longLoopConfig.shopItems as readonly ShopItemConfig[]).find((item) => item.id === itemId);
 }
 
+function shopPurchaseRejectionReason(state: LongLoopState, itemId: string): ShopPurchaseFailureReason | undefined {
+  if (state.phase !== 'settlement_review') {
+    return 'not_settlement_review';
+  }
+
+  const shopItem = shopItemById(itemId);
+  if (!shopItem) {
+    return 'unknown_item';
+  }
+
+  if (state.profile.shop.purchasedItemIds.includes(itemId)) {
+    return 'already_purchased';
+  }
+
+  if (!visibleShopItemIds(state.profile).includes(itemId)) {
+    return 'not_visible';
+  }
+
+  if (state.profile.wallet.softCurrency < shopItem.price) {
+    return 'insufficient_currency';
+  }
+
+  return undefined;
+}
+
 function applyBlacksmithPermitPurchase(profile: LongLoopProfile, itemId: string): void {
   const serviceId = blacksmithPermitServiceIds[itemId];
   if (!serviceId) {
@@ -314,6 +364,18 @@ function applyBlacksmithPermitPurchase(profile: LongLoopProfile, itemId: string)
 
   profile.blacksmith.purchasedPermitIds = appendUnique(profile.blacksmith.purchasedPermitIds, itemId);
   profile.blacksmith.unlockedServiceIds = appendUnique(profile.blacksmith.unlockedServiceIds, serviceId);
+}
+
+function canApplyBlacksmithEnhancement(profile: LongLoopProfile, enhancementId: string): boolean {
+  const requirement = blacksmithEnhancementRequirements[enhancementId];
+  if (!requirement) {
+    return false;
+  }
+
+  return (
+    profile.blacksmith.purchasedPermitIds.includes(requirement.permitId) ||
+    profile.blacksmith.unlockedServiceIds.includes(requirement.serviceId)
+  );
 }
 
 function appendPhaseEvent(

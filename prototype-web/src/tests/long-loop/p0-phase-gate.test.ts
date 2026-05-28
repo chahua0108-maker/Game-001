@@ -38,8 +38,9 @@ describe('P0 long-loop phase gate', () => {
     const previewBeforePurchase = orchestrator.previewNextRun({ districtId: p0CanonicalIds.districtD1 });
     const purchase = orchestrator.purchaseShopItem({ itemId: p0CanonicalIds.p0ShopItem });
 
+    expect(purchase.ok).toBe(true);
     expect(purchase.itemId).toBe(p0CanonicalIds.p0ShopItem);
-    expect(purchase.achievementIds).toContain(p0CanonicalIds.achievementFirstPurchase);
+    expect(purchase.ok ? purchase.achievementIds : []).toContain(p0CanonicalIds.achievementFirstPurchase);
 
     const previewAfterPurchase = orchestrator.previewNextRun({ districtId: p0CanonicalIds.districtD1 });
     expect(previewAfterPurchase).not.toEqual(previewBeforePurchase);

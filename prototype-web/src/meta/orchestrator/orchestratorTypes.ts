@@ -54,6 +54,25 @@ export interface LongLoopPhaseEvent {
   readonly itemId?: ShopItemId;
 }
 
+export type ShopPurchaseFailureReason =
+  | 'not_settlement_review'
+  | 'unknown_item'
+  | 'already_purchased'
+  | 'not_visible'
+  | 'insufficient_currency';
+
+export type ShopPurchaseResult =
+  | {
+      readonly ok: true;
+      readonly itemId: ShopItemId;
+      readonly achievementIds: readonly AchievementId[];
+    }
+  | {
+      readonly ok: false;
+      readonly itemId: ShopItemId;
+      readonly reason: ShopPurchaseFailureReason;
+    };
+
 export interface LongLoopState {
   readonly profile: LongLoopProfile;
   readonly phase: LongLoopPhase;
@@ -77,7 +96,7 @@ export interface LongLoopOrchestrator {
   settleRun(input: SettlementInput): SettlementSummary;
   getShopState(): ShopStateSnapshot;
   previewNextRun(input?: { readonly districtId?: DistrictId }): NextRunSnapshot;
-  purchaseShopItem(input: { readonly itemId: ShopItemId }): { readonly itemId: ShopItemId; readonly achievementIds: readonly AchievementId[] };
+  purchaseShopItem(input: { readonly itemId: ShopItemId }): ShopPurchaseResult;
   applyRunLocalBlacksmithEnhancement(input: { readonly runId: string; readonly enhancementId: string }): void;
   getProfileMeta(): ProfileMetaSnapshot;
   getCurrentRunState(): RunLoopRunState | undefined;
