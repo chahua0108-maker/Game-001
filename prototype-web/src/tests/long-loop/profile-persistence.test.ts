@@ -226,4 +226,27 @@ describe('long-loop profile persistence', () => {
     expect(loadedProfile.map.unlockedNodeIds).toEqual(['map.start']);
     expect(loadedProfile.featureGates.unlockedIds).toEqual(['feature.map_branching', 'feature.shop_inventory']);
   });
+
+  it('preserves default selected starter and crawler unlocks when saved arrays are malformed or empty', () => {
+    const storage = new MemoryStorage();
+
+    storage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        starter: {
+          selectedStarterKitId: 'default_chain',
+          unlockedStarterKitIds: [],
+          selectedCrawlerId: 'crawler.blood_runner',
+          unlockedCrawlerIds: [null, 9, {}]
+        }
+      })
+    );
+
+    const loadedProfile = loadProfile({ storage });
+
+    expect(loadedProfile.starter.selectedStarterKitId).toBe('default_chain');
+    expect(loadedProfile.starter.unlockedStarterKitIds).toContain('default_chain');
+    expect(loadedProfile.starter.selectedCrawlerId).toBe('crawler.blood_runner');
+    expect(loadedProfile.starter.unlockedCrawlerIds).toContain('crawler.blood_runner');
+  });
 });

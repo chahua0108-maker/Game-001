@@ -41,10 +41,13 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
   profile.starter.selectedStarterKitId = stringValue(starter?.selectedStarterKitId, profile.starter.selectedStarterKitId);
   profile.starter.unlockedStarterKitIds = uniqueStrings(
     starter?.unlockedStarterKitIds,
-    profile.starter.unlockedStarterKitIds
+    profile.starter.unlockedStarterKitIds,
+    { preserveFallbackWhenEmpty: true }
   );
   profile.starter.selectedCrawlerId = stringValue(starter?.selectedCrawlerId, profile.starter.selectedCrawlerId);
-  profile.starter.unlockedCrawlerIds = uniqueStrings(starter?.unlockedCrawlerIds, profile.starter.unlockedCrawlerIds);
+  profile.starter.unlockedCrawlerIds = uniqueStrings(starter?.unlockedCrawlerIds, profile.starter.unlockedCrawlerIds, {
+    preserveFallbackWhenEmpty: true
+  });
 
   const blacksmith = recordValue(source.blacksmith);
   profile.blacksmith.purchasedPermitIds = uniqueStrings(
