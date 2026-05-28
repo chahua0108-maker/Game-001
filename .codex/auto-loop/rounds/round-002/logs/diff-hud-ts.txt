@@ -1,0 +1,281 @@
+diff --git a/prototype-web/src/ui/hud.ts b/prototype-web/src/ui/hud.ts
+index 98f2b05..2d5ca63 100644
+--- a/prototype-web/src/ui/hud.ts
++++ b/prototype-web/src/ui/hud.ts
+@@ -45,40 +45,41 @@ export type HudRunLayerState = {
+ export type HudPressureTimelineState = {
+   previousPressureLabel: string;
+   buildProblemLabel: string;
+   nextRouteConsequenceLabel: string;
+   active: boolean;
+ };
+ 
+ export type HudRouteChoiceRead = {
+   id: string;
+   label: string;
+   nodeLabel: string;
+   modifierToken: string;
+   rewardToken: string;
+   riskToken: string;
+   costToken: string;
+   pollutionToken: string;
+   tone: 'safe' | 'risk' | 'neutral';
+   disabled: boolean;
+   disabledReason: string | null;
+   preview: string;
++  responseHint: string | null;
+ };
+ 
+ export type HudCardPaymentRead = {
+   playable: boolean;
+   usesAuthorization: boolean;
+   missingMP: number;
+   reason: string;
+   costLabel: string;
+ };
+ 
+ export type HudCardPaymentStatusToken = {
+   label: string;
+   className: 'missing-cost' | 'authorization-cost';
+ };
+ 
+ export type HudCardPaymentVisualState =
+   | 'normal-payable'
+   | 'authorization-payable'
+   | 'missing-mp'
+   | 'chain-break-playable'
+@@ -283,54 +284,54 @@ function activityDifficultyBandLabel(levelId: string | null, maxNode: number | n
+     return `低压 · ${nodeLabel}`;
+   }
+ 
+   if (levelId === 'd3') {
+     return `中级 · ${nodeLabel}`;
+   }
+ 
+   return '初级/低压/中级节点长度可继承查看';
+ }
+ 
+ function settlementProgressionDetail(currentLevelId: string | null, nextLevelLabel: string | null): string | null {
+   if (currentLevelId === 'd1' && nextLevelLabel === 'D2') {
+     return '继承 D1 牌组与基础属性；保留牌组/XP/升级，重置手牌/战场/路线';
+   }
+ 
+   if (currentLevelId === 'd2' && nextLevelLabel === 'D3') {
+     return '继承 D1-D2 构筑；保留牌组/XP/升级，重置手牌/战场/路线';
+   }
+ 
+   if (currentLevelId === 'd3') {
+-    return '核心三局已打通，进入 D4 前说明：污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
++    return '核心三局已打通，进入 D4 前说明：污染是不接链状态牌；高压会塞弃牌堆，抽到会挤掉 0-1-2；用清污染/净化抽牌或打出消耗处理';
+   }
+ 
+   return null;
+ }
+ 
+ function pollutionPrimerLabel(snapshot: GameSnapshot, routeChoices: HudRouteChoiceRead[]): string | null {
+   const source = snapshot as HudRunSnapshot;
+   const activity = toRunRecord(source.activity);
+   const currentLevelId = firstString(activity?.currentLevelId);
+   const hasPollutionRoute = routeChoices.some((choice) => choice.pollutionToken.includes('污染') && choice.pollutionToken !== '无污染');
+ 
+   if (currentLevelId === 'd4' || hasPollutionRoute) {
+-    return '污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
++    return '污染=不接链状态牌；高压塞弃牌堆，抽到会挤掉 0-1-2；用清污染/净化抽牌或打出消耗处理';
+   }
+ 
+   return null;
+ }
+ 
+ function settlementGrowthSummary(snapshot: GameSnapshot): string | null {
+   const source = snapshot as HudRunSnapshot;
+   const run = toRunRecord(source.run);
+   const activity = toRunRecord(source.activity);
+   const currentDeckCount = Array.isArray(snapshot.player?.deck) ? snapshot.player.deck.length : null;
+   const rewardHistory = firstArray(run?.rewardHistory, run?.rewards, run?.rewardLog);
+   const addedCount = rewardHistory.length;
+   const carryover = toRunRecord(activity?.carryover);
+   const carriedDeck = firstArray(carryover?.deck);
+   const previousDeckCount =
+     carriedDeck.length > 0 ? carriedDeck.length : currentDeckCount !== null ? Math.max(0, currentDeckCount - addedCount) : null;
+ 
+   const parts = [
+     `本局新增${addedCount}张`,
+     currentDeckCount !== null && previousDeckCount !== null ? `牌组 ${previousDeckCount}->${currentDeckCount}` : null,
+@@ -626,79 +627,91 @@ function routeChoiceRead(value: unknown, currentHp: number | null = null): HudRo
+   const rewardBranch = firstString(record.rewardBranchHint, context?.rewardBranchHint);
+   const preview = sanitizePlayerFacingText(firstString(record.preview, context?.preview, record.description) ?? `${label} · 下一战`);
+   const kind = routeChoiceKind(record, context, id, label);
+   const routePressure = toRunRecord(firstValue(record.routePressure, context?.routePressure, record.pressure, context?.pressure));
+   const entryDamage = firstNumber(routePressure?.entryDamage, routePressure?.hpCost, routePressure?.damage);
+   const addsPollution = firstBoolean(routePressure?.addsPollution, routePressure?.pollution, routePressure?.addsStaticOverload);
+   const disabledReason = routeDisabledReason(kind, currentHp, entryDamage);
+ 
+   return {
+     id,
+     label,
+     nodeLabel: fromNode !== null && toNode !== null ? `${fromNode}->${toNode}` : '下一节点',
+     modifierToken: routeModifierToken(modifierId),
+     rewardToken: routeRewardToken(rewardBranch),
+     riskToken: routeRiskToken(kind),
+     costToken: routeCostToken(kind, preview, entryDamage),
+     pollutionToken: routePollutionToken(kind, preview, addsPollution),
+     tone: routeTone(kind),
+     disabled: Boolean(disabledReason),
+     disabledReason,
+-    preview
++    preview,
++    responseHint: routePollutionResponseHint(kind, preview, addsPollution)
+   };
+ }
+ 
+ function routeDisabledReason(kind: string, currentHp: number | null, entryDamage: number | null): string | null {
+   if (kind !== 'elite-pressure' || currentHp === null || entryDamage === null || entryDamage <= 0) {
+     return null;
+   }
+ 
+   return currentHp <= entryDamage ? 'HP不足，选择会阵亡' : null;
+ }
+ 
+ function routeChoicesSummary(routeChoices: HudRouteChoiceRead[]): string {
+   return routeChoices
+     .slice(0, 2)
+     .map(routeSummaryLabel)
+     .join(' | ');
+ }
+ 
+ function routeSummaryLabel(choice: HudRouteChoiceRead): string {
+   if (choice.tone === 'safe') {
+     return `${routeSummaryRiskToken(choice)}下战修补/${choice.modifierToken}/非即时回血`;
+   }
+ 
+   if (choice.tone === 'risk') {
+     return `${routeSummaryRiskToken(choice)}${choice.modifierToken}/${choice.costToken}/${choice.pollutionToken}`;
+   }
+ 
+   return `${routeSummaryRiskToken(choice)}${choice.modifierToken}/${choice.rewardToken}`;
+ }
+ 
+ function routeButtonRewardDetail(choice: HudRouteChoiceRead): string {
+   if (choice.tone === 'safe') {
+     return `${choice.modifierToken} · ${choice.rewardToken} · 下战修补 · 非即时回血`;
+   }
+ 
+   return `${choice.modifierToken} · ${choice.rewardToken}`;
+ }
+ 
++function routePollutionResponseHint(kind: string, preview: string, addsPollution: boolean | null): string | null {
++  const hasPollutionPressure =
++    kind === 'elite-pressure' && (addsPollution === true || (addsPollution === null && preview.includes('污染')));
++
++  if (!hasPollutionPressure) {
++    return null;
++  }
++
++  return '应对：清污染/净化抽牌/打出状态消耗';
++}
++
+ function routeSummaryRiskToken(choice: HudRouteChoiceRead): string {
+   if (choice.tone === 'safe') {
+     return '安全';
+   }
+ 
+   if (choice.tone === 'risk') {
+     return '高风险';
+   }
+ 
+   return '路线';
+ }
+ 
+ function routeChoiceKind(record: RunRecord, context: RunRecord | null, id: string, label: string): string {
+   const explicit = firstString(record.kind, context?.kind);
+   if (explicit) {
+     return explicit;
+   }
+ 
+   const modifierId = firstString(record.modifierId, context?.modifierId);
+   const rewardBranch = firstString(record.rewardBranchHint, context?.rewardBranchHint);
+@@ -2196,41 +2209,41 @@ export class Hud {
+         ${
+           isDeal
+             ? '<button type="button" data-deal aria-label="发牌进入玩家出牌阶段">发牌</button>'
+             : isSettlement
+               ? `<button type="button" ${settlementAction.attr} aria-label="${settlementAction.aria}">${settlementAction.label}</button>`
+             : `<button type="button" data-end-turn aria-label="${endTurnTitle}" title="${endTurnTitle}" ${canEndTurn ? '' : 'disabled'}>${endTurnLabel}</button>`
+         }
+       </section>
+ 
+       <section class="target-panel ${selectedTarget ? 'target-locked' : 'target-random'}" aria-label="目标选择">
+         <strong>目标</strong>
+         <span>${selectedTarget ? enemyShortLabel(selectedTarget) : defaultTarget ? `默认${enemyShortLabel(defaultTarget)}` : '无前排'}</span>
+       </section>
+ 
+       <section class="run-layer-panel" aria-label="路线层">
+         <div class="run-layer-main">
+           <span>${runLayer.title}</span>
+           <strong>${runLayer.nodeLabel}</strong>
+           <em>${runLayer.campaignLabel}</em>
+           <small>${runLayer.difficultyBandLabel} · ${runLayer.buildProblemLabel}</small>
+-          ${pollutionPrimer ? `<small>${pollutionPrimer}</small>` : ''}
++          ${pollutionPrimer ? `<small class="pollution-primer">${pollutionPrimer}</small>` : ''}
+         </div>
+         <div class="run-layer-meta" aria-label="下一战继承">
+           <span>${runLayer.nextTitle}</span>
+           <strong>${runLayer.nextState}</strong>
+           <em>${runLayer.nextDetail}</em>
+         </div>
+       </section>
+ 
+       <section class="enemy-peek ${this.enemyInfoVisible ? 'enemy-info-visible' : ''}" aria-label="前排目标按钮">
+         <button
+           type="button"
+           class="enemy-peek-toggle"
+           data-enemy-toggle
+           aria-expanded="${this.enemyInfoVisible}"
+         title="${this.enemyInfoVisible ? '隐藏前排怪物信息' : '显示第一排怪物信息与目标按钮'}"
+         >
+           ${this.enemyInfoVisible ? '隐藏前排' : `前排显影 ${livingFrontEnemies}`}
+         </button>
+         ${
+           this.enemyInfoVisible
+@@ -2477,40 +2490,41 @@ export class Hud {
+       return '';
+     }
+ 
+     return `
+       <div class="route-choices" aria-label="下一战路线选择">
+         ${routeChoices
+           .map(
+             (choice) => `
+               <button
+                 class="route-choice"
+                 data-route-tone="${choice.tone}"
+                 type="button"
+                 data-route-choice-id="${choice.id}"
+                 ${choice.disabled ? 'disabled' : ''}
+                 title="${choice.label} · ${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken} · ${routeButtonRewardDetail(choice)}。${choice.preview}"
+               >
+                 <span>${choice.nodeLabel}</span>
+                 <strong>${choice.label}</strong>
+                 <small>${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}</small>
+                 <small>${routeButtonRewardDetail(choice)}</small>
++                ${choice.responseHint ? `<small class="route-response-hint">${choice.responseHint}</small>` : ''}
+                 ${choice.disabledReason ? `<small>${choice.disabledReason} · 不可选</small>` : ''}
+                 <em>${choice.preview}</em>
+               </button>
+             `
+           )
+           .join('')}
+       </div>
+     `;
+   }
+ 
+   private cardCostLabel(card: CardDefinition): string {
+     return `MP ${card.cost}`;
+   }
+ 
+   private cardChainRead(
+     card: CardDefinition,
+     snapshot: GameSnapshot
+   ): HudCardChainRead {
+     return hudCardChainRead(card, snapshot);
+   }

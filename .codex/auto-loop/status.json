@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "stopped",
+  "message": "Runner finished with status=stopped.",
+  "workspace": "/Users/roc/Game-001",
+  "loopDir": "/Users/roc/Game-001/.codex/auto-loop",
+  "stateStatus": "stopped",
+  "stateRound": 3,
+  "currentRound": null,
+  "maxRounds": 5,
+  "targetScore": 95,
+  "coreScore": 95,
+  "gateStatus": "passed",
+  "continue": false,
+  "lastCommit": "c13d88d",
+  "roundDir": null,
+  "pid": null,
+  "startedAt": null,
+  "updatedAt": "2026-05-22T16:56:09.660Z"
+}

@@ -1,0 +1,27 @@
+ M prototype-web/src/style.css
+ M prototype-web/src/tests/ui/hud-target-selection.test.ts
+ M prototype-web/src/ui/hud.ts
+?? .codex/auto-loop.failed-20260522-101404/handoff.md
+?? .codex/auto-loop.failed-20260522-101404/next-prompt.md
+?? .codex/auto-loop.failed-20260522-101404/rounds/round-001/events.jsonl
+?? .codex/auto-loop.failed-20260522-101404/rounds/round-001/prompt.md
+?? .codex/auto-loop.failed-20260522-101404/state.json
+?? .codex/auto-loop.failed-20260522-235606/handoff.md
+?? .codex/auto-loop.failed-20260522-235606/next-prompt.md
+?? .codex/auto-loop.failed-20260522-235606/rounds/round-001/events.jsonl
+?? .codex/auto-loop.failed-20260522-235606/rounds/round-001/prompt.md
+?? .codex/auto-loop.failed-20260522-235606/state.json
+?? .codex/auto-loop/handoff.md
+?? .codex/auto-loop/next-prompt.md
+?? .codex/auto-loop/rounds/round-001/events.jsonl
+?? .codex/auto-loop/rounds/round-001/prompt.md
+?? .codex/auto-loop/rounds/round-002/logs/git-status-after-worker.txt
+?? .codex/auto-loop/rounds/round-002/logs/git-status.txt
+?? .codex/auto-loop/rounds/round-002/logs/hud-render-1940-2230.txt
+?? .codex/auto-loop/rounds/round-002/logs/hud-route-state-420-650.txt
+?? .codex/auto-loop/rounds/round-002/logs/hud-tests-d4-1120-1305.txt
+?? .codex/auto-loop/rounds/round-002/logs/round-002.diff
+?? .codex/auto-loop/rounds/round-002/logs/route-css-1050-1158.txt
+?? .codex/auto-loop/rounds/round-002/logs/runtime-pollution-600-820.txt
+?? .codex/auto-loop/rounds/round-002/prompt.md
+?? .codex/auto-loop/state.json

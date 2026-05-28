@@ -1,0 +1,18 @@
+## main...origin/main [ahead 1]
+?? .codex/auto-loop.failed-20260522-101404/handoff.md
+?? .codex/auto-loop.failed-20260522-101404/next-prompt.md
+?? .codex/auto-loop.failed-20260522-101404/rounds/round-001/events.jsonl
+?? .codex/auto-loop.failed-20260522-101404/rounds/round-001/prompt.md
+?? .codex/auto-loop.failed-20260522-101404/state.json
+?? .codex/auto-loop.failed-20260522-235606/handoff.md
+?? .codex/auto-loop.failed-20260522-235606/next-prompt.md
+?? .codex/auto-loop.failed-20260522-235606/rounds/round-001/events.jsonl
+?? .codex/auto-loop.failed-20260522-235606/rounds/round-001/prompt.md
+?? .codex/auto-loop.failed-20260522-235606/state.json
+?? .codex/auto-loop/handoff.md
+?? .codex/auto-loop/next-prompt.md
+?? .codex/auto-loop/rounds/round-001/events.jsonl
+?? .codex/auto-loop/rounds/round-001/prompt.md
+?? .codex/auto-loop/rounds/round-002/logs/git-status.txt
+?? .codex/auto-loop/rounds/round-002/prompt.md
+?? .codex/auto-loop/state.json

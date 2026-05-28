@@ -1,0 +1,4 @@
+ prototype-web/src/style.css                        | 14 ++++++++++++++
+ .../src/tests/ui/hud-target-selection.test.ts      | 19 +++++++++++++------
+ prototype-web/src/ui/hud.ts                        | 22 ++++++++++++++++++----
+ 3 files changed, 45 insertions(+), 10 deletions(-)

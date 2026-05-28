@@ -1,0 +1,165 @@
+diff --git a/prototype-web/src/style.css b/prototype-web/src/style.css
+index a3c2be8..6724aa7 100644
+--- a/prototype-web/src/style.css
++++ b/prototype-web/src/style.css
+@@ -758,6 +758,14 @@ button {
+   color: rgba(255, 216, 223, 0.78);
+ }
+ 
++.run-layer-main .pollution-primer {
++  white-space: normal;
++  display: -webkit-box;
++  overflow: hidden;
++  -webkit-box-orient: vertical;
++  -webkit-line-clamp: 2;
++}
++
+ .run-layer-meta {
+   border-color: rgba(255, 216, 104, 0.34);
+   background: rgba(42, 34, 26, 0.62);
+@@ -1142,6 +1150,12 @@ button {
+   color: #fff2b8;
+ }
+ 
++.route-choice .route-response-hint {
++  color: #73ffe2;
++  white-space: normal;
++  overflow-wrap: anywhere;
++}
++
+ .reward-card em,
+ .route-choice em {
+   margin-top: 10px;
+diff --git a/prototype-web/src/tests/ui/hud-target-selection.test.ts b/prototype-web/src/tests/ui/hud-target-selection.test.ts
+index b6de1d2..3b088d0 100644
+--- a/prototype-web/src/tests/ui/hud-target-selection.test.ts
++++ b/prototype-web/src/tests/ui/hud-target-selection.test.ts
+@@ -548,7 +548,8 @@ describe('HUD run and meta layer labels', () => {
+         tone: 'safe',
+         disabled: false,
+         disabledReason: null,
+-        preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。'
++        preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。',
++        responseHint: null
+       },
+       {
+         id: 'run-1-node-1-to-2-elite-pressure',
+@@ -562,7 +563,8 @@ describe('HUD run and meta layer labels', () => {
+         tone: 'risk',
+         disabled: false,
+         disabledReason: null,
+-        preview: '下一战临时信用额度 +1，更容易打出终结牌。'
++        preview: '下一战临时信用额度 +1，更容易打出终结牌。',
++        responseHint: null
+       }
+     ]);
+ 
+@@ -1139,7 +1141,9 @@ describe('HUD run and meta layer labels', () => {
+     expect.soft(repairButton).toContain('非即时回血');
+     expect.soft(eliteButton).toMatch(/风险|贪心/);
+     expect.soft(eliteButton).toContain('-2 HP / 污染');
+-    expect.soft(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
++    expect.soft(root.innerHTML).toContain('污染=不接链状态牌');
++    expect.soft(root.innerHTML).toContain('抽到会挤掉 0-1-2');
++    expect.soft(root.innerHTML).toContain('应对：清污染/净化抽牌/打出状态消耗');
+     expect.soft(routeSummary).toMatch(/下战修补\/复核\+1\/非即时回血[\s\S]*高风险MP\+1\/-2 HP\/\+污染/);
+   });
+ 
+@@ -1290,7 +1294,9 @@ describe('HUD run and meta layer labels', () => {
+       addEventListener: () => undefined
+     } as unknown as HTMLElement;
+     new Hud(root, () => undefined).render(snapshot);
+-    expect(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
++    expect(root.innerHTML).toContain('污染=不接链状态牌');
++    expect(root.innerHTML).toContain('抽到会挤掉 0-1-2');
++    expect(root.innerHTML).toContain('用清污染/净化抽牌或打出消耗处理');
+   });
+ 
+   it('splits victory continue and failure retry settlement actions into distinct intents', () => {
+@@ -1560,8 +1566,9 @@ describe('HUD run and meta layer labels', () => {
+     } as unknown as GameSnapshot);
+     expect(root.innerHTML).toContain('核心三局已打通');
+     expect(root.innerHTML).toContain('进入 D4 前说明');
+-    expect(root.innerHTML).toContain('污染牌会进弃牌堆');
+-    expect(root.innerHTML).toContain('清污染奖励可处理');
++    expect(root.innerHTML).toContain('污染是不接链状态牌');
++    expect(root.innerHTML).toContain('抽到会挤掉 0-1-2');
++    expect(root.innerHTML).toContain('用清污染/净化抽牌或打出消耗处理');
+     expect(root.innerHTML).toContain('进入 D4');
+   });
+ });
+diff --git a/prototype-web/src/ui/hud.ts b/prototype-web/src/ui/hud.ts
+index 98f2b05..2d5ca63 100644
+--- a/prototype-web/src/ui/hud.ts
++++ b/prototype-web/src/ui/hud.ts
+@@ -62,6 +62,7 @@ export type HudRouteChoiceRead = {
+   disabled: boolean;
+   disabledReason: string | null;
+   preview: string;
++  responseHint: string | null;
+ };
+ 
+ export type HudCardPaymentRead = {
+@@ -300,7 +301,7 @@ function settlementProgressionDetail(currentLevelId: string | null, nextLevelLab
+   }
+ 
+   if (currentLevelId === 'd3') {
+-    return '核心三局已打通，进入 D4 前说明：污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
++    return '核心三局已打通，进入 D4 前说明：污染是不接链状态牌；高压会塞弃牌堆，抽到会挤掉 0-1-2；用清污染/净化抽牌或打出消耗处理';
+   }
+ 
+   return null;
+@@ -313,7 +314,7 @@ function pollutionPrimerLabel(snapshot: GameSnapshot, routeChoices: HudRouteChoi
+   const hasPollutionRoute = routeChoices.some((choice) => choice.pollutionToken.includes('污染') && choice.pollutionToken !== '无污染');
+ 
+   if (currentLevelId === 'd4' || hasPollutionRoute) {
+-    return '污染牌会进弃牌堆，之后会抽到；清污染奖励可处理';
++    return '污染=不接链状态牌；高压塞弃牌堆，抽到会挤掉 0-1-2；用清污染/净化抽牌或打出消耗处理';
+   }
+ 
+   return null;
+@@ -643,7 +644,8 @@ function routeChoiceRead(value: unknown, currentHp: number | null = null): HudRo
+     tone: routeTone(kind),
+     disabled: Boolean(disabledReason),
+     disabledReason,
+-    preview
++    preview,
++    responseHint: routePollutionResponseHint(kind, preview, addsPollution)
+   };
+ }
+ 
+@@ -682,6 +684,17 @@ function routeButtonRewardDetail(choice: HudRouteChoiceRead): string {
+   return `${choice.modifierToken} · ${choice.rewardToken}`;
+ }
+ 
++function routePollutionResponseHint(kind: string, preview: string, addsPollution: boolean | null): string | null {
++  const hasPollutionPressure =
++    kind === 'elite-pressure' && (addsPollution === true || (addsPollution === null && preview.includes('污染')));
++
++  if (!hasPollutionPressure) {
++    return null;
++  }
++
++  return '应对：清污染/净化抽牌/打出状态消耗';
++}
++
+ function routeSummaryRiskToken(choice: HudRouteChoiceRead): string {
+   if (choice.tone === 'safe') {
+     return '安全';
+@@ -2213,7 +2226,7 @@ export class Hud {
+           <strong>${runLayer.nodeLabel}</strong>
+           <em>${runLayer.campaignLabel}</em>
+           <small>${runLayer.difficultyBandLabel} · ${runLayer.buildProblemLabel}</small>
+-          ${pollutionPrimer ? `<small>${pollutionPrimer}</small>` : ''}
++          ${pollutionPrimer ? `<small class="pollution-primer">${pollutionPrimer}</small>` : ''}
+         </div>
+         <div class="run-layer-meta" aria-label="下一战继承">
+           <span>${runLayer.nextTitle}</span>
+@@ -2494,6 +2507,7 @@ export class Hud {
+                 <strong>${choice.label}</strong>
+                 <small>${choice.riskToken} · ${choice.costToken} · ${choice.pollutionToken}</small>
+                 <small>${routeButtonRewardDetail(choice)}</small>
++                ${choice.responseHint ? `<small class="route-response-hint">${choice.responseHint}</small>` : ''}
+                 ${choice.disabledReason ? `<small>${choice.disabledReason} · 不可选</small>` : ''}
+                 <em>${choice.preview}</em>
+               </button>

@@ -1,0 +1,109 @@
+  gap: 10px;
+}
+
+.route-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reward-card,
+.route-choice {
+  --card-accent: #ff6b6b;
+  display: grid;
+  min-height: 138px;
+  padding: 12px;
+  color: #fff7f8;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 36%, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+  cursor: pointer;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--card-accent) 18%, rgba(24, 18, 28, 0.94)), rgba(26, 19, 30, 0.94)),
+    rgba(18, 16, 22, 0.9);
+}
+
+.reward-card {
+  grid-template-rows: auto auto auto 1fr;
+}
+
+.route-choice {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  min-height: 116px;
+  border-color: rgba(255, 216, 104, 0.3);
+  background:
+    linear-gradient(165deg, rgba(56, 45, 20, 0.92), rgba(22, 21, 28, 0.94)),
+    rgba(18, 16, 22, 0.9);
+}
+
+.reward-card:hover,
+.route-choice:hover {
+  border-color: rgba(115, 255, 226, 0.72);
+  transform: translateY(-2px);
+}
+
+.reward-card span,
+.reward-card strong,
+.reward-card small,
+.reward-card em,
+.route-choice span,
+.route-choice strong,
+.route-choice small,
+.route-choice em {
+  display: block;
+}
+
+.reward-card span,
+.route-choice span {
+  color: #73ffe2;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.route-choice span {
+  color: #ffe078;
+}
+
+.reward-card strong,
+.route-choice strong {
+  margin-top: 8px;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reward-card small,
+.route-choice small {
+  margin-top: 8px;
+  color: #ffd8df;
+  font-size: 11px;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-choice small {
+  color: #fff2b8;
+}
+
+.reward-card em,
+.route-choice em {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.route-choice em {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;

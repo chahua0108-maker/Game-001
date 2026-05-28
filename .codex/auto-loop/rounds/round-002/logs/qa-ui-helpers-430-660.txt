@@ -1,0 +1,231 @@
+  return false;
+}
+
+async function usableButton(page, selector) {
+  return await page
+    .locator(selector)
+    .first()
+    .evaluate((button) => {
+      const rect = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      return (
+        !button.disabled &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.left >= -1 &&
+        rect.right <= window.innerWidth + 1 &&
+        rect.top >= -1 &&
+        rect.bottom <= window.innerHeight + 1
+      );
+    })
+    .catch(() => false);
+}
+
+async function buildPaperTopdeckHud(page) {
+  return await page.evaluate(async () => {
+    const [{ createInitialWorld }, { tickWorld }, { buildSnapshot }, { Hud }] = await Promise.all([
+      import('/src/sim/world.ts'),
+      import('/src/sim/runtime.ts'),
+      import('/src/sim/snapshot.ts'),
+      import('/src/ui/hud.ts')
+    ]);
+
+    document.body.innerHTML = '<div id="hud"></div>';
+    const root = document.querySelector('#hud');
+    const hud = new Hud(root, () => {});
+    const world = createInitialWorld();
+    tickWorld(world, [{ type: 'advance-time', deltaSeconds: 0.016, traceId: 'qa-deal' }]);
+
+    for (const enemy of Object.values(world.enemies)) {
+      enemy.hp = 50;
+      enemy.maxHp = 50;
+    }
+
+    world.player.hand = ['debt_hook', 'redline_cut', 'paper_shatter'];
+    world.player.drawPile = ['spark_tap', 'severance_burst', 'wild_gap_key'];
+    world.player.discardPile = [];
+    tickWorld(world, [{ type: 'play-card', cardId: 'debt_hook', targetId: 'enemy-1', traceId: 'qa-0' }]);
+    tickWorld(world, [{ type: 'play-card', cardId: 'redline_cut', targetId: 'enemy-2', traceId: 'qa-1' }]);
+    tickWorld(world, [{ type: 'play-card', cardId: 'paper_shatter', traceId: 'qa-paper' }]);
+
+    hud.render(buildSnapshot(world));
+
+    const topdeckIndex = world.debug.events.findIndex(
+      (event) => event.traceId === 'qa-paper' && event.type === 'PayoffTopdecked'
+    );
+    const handDealtIndex = world.debug.events.findIndex(
+      (event) => event.traceId === 'qa-paper' && event.type === 'HandDealt'
+    );
+    const topdeck = world.debug.events[topdeckIndex] ?? null;
+    const handDealt = world.debug.events[handDealtIndex] ?? null;
+    const feedText = document.querySelector('.combat-feed')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+
+    return {
+      topdeck,
+      handDealt,
+      topdeckIndex,
+      handDealtIndex,
+      feedText,
+      hand: [...world.player.hand],
+      drawPile: [...world.player.drawPile]
+    };
+  });
+}
+
+async function buildWildExtensionHud(page) {
+  return await page.evaluate(async () => {
+    const [{ createInitialWorld }, { tickWorld }, { buildSnapshot }, { Hud }] = await Promise.all([
+      import('/src/sim/world.ts'),
+      import('/src/sim/runtime.ts'),
+      import('/src/sim/snapshot.ts'),
+      import('/src/ui/hud.ts')
+    ]);
+
+    document.body.innerHTML = '<div id="hud"></div>';
+    const root = document.querySelector('#hud');
+    const hud = new Hud(root, () => {});
+    const world = createInitialWorld();
+    tickWorld(world, [{ type: 'advance-time', deltaSeconds: 0.016, traceId: 'qa-wild-deal' }]);
+
+    for (const enemy of Object.values(world.enemies)) {
+      enemy.hp = 200;
+      enemy.maxHp = 200;
+    }
+
+    world.player.maxEnergy = 4;
+    world.player.energy = 4;
+    world.player.hand = ['debt_hook', 'redline_cut', 'row_cleave', 'wild_gap_key', 'severance_burst'];
+    world.player.drawPile = [];
+    world.player.discardPile = [];
+
+    tickWorld(world, [{ type: 'play-card', cardId: 'debt_hook', targetId: 'enemy-1', traceId: 'qa-wild-0' }]);
+    tickWorld(world, [{ type: 'play-card', cardId: 'redline_cut', targetId: 'enemy-2', traceId: 'qa-wild-1' }]);
+    tickWorld(world, [{ type: 'play-card', cardId: 'row_cleave', traceId: 'qa-wild-2' }]);
+    tickWorld(world, [{ type: 'play-card', cardId: 'wild_gap_key', targetId: 'enemy-3', traceId: 'qa-wild-3' }]);
+
+    hud.render(buildSnapshot(world));
+
+    const extended = world.debug.events.find((event) => event.traceId === 'qa-wild-3' && event.type === 'ChainExtended') ?? null;
+    const extendedCardPlayed =
+      world.debug.events.find((event) => event.traceId === 'qa-wild-3' && event.type === 'CardPlayed') ?? null;
+    const visibleText = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const chainPreviews = Array.from(document.querySelectorAll('.chain-preview')).map((item) =>
+      item.textContent?.replace(/\s+/g, ' ').trim()
+    );
+
+    return {
+      extended,
+      extendedCardPlayed,
+      visibleText,
+      chainPreviews,
+      hand: [...world.player.hand],
+      energy: world.player.energy,
+      tempAuthorizationMP: world.player.tempAuthorizationMP,
+      chain: { ...world.chain }
+    };
+  });
+}
+
+async function buildActivityCarryoverHud(page) {
+  return await page.evaluate(async () => {
+    const [{ createInitialActivityState }, { createInitialWorld }, { tickWorld }, { buildSnapshot }, { Hud }] =
+      await Promise.all([
+        import('/src/sim/activity.ts'),
+        import('/src/sim/world.ts'),
+        import('/src/sim/runtime.ts'),
+        import('/src/sim/snapshot.ts'),
+        import('/src/ui/hud.ts')
+      ]);
+
+    function forceFinalRewardReady(world, choices) {
+      world.run.currentNode = world.run.maxNodes;
+      world.fsm.gameFlow = 'Reward';
+      world.reward = {
+        ...world.reward,
+        choices: [...choices],
+        candidateCardPool: [...choices],
+        pending: true,
+        source: 'level-up'
+      };
+    }
+
+    document.body.innerHTML = '<div id="hud"></div>';
+    const root = document.querySelector('#hud');
+    const hud = new Hud(root, () => {});
+    let world = createInitialWorld(1, createInitialActivityState());
+
+    forceFinalRewardReady(world, ['severance_burst', 'wild_gap_key', 'blood_reclaim']);
+    tickWorld(world, [{ type: 'select-reward', cardId: 'severance_burst', traceId: 'qa-activity-d1-reward' }]);
+    hud.render(buildSnapshot(world));
+    const settlementText = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+
+    world = tickWorld(world, [{ type: 'continue-activity', traceId: 'qa-activity-continue-d2' }]);
+    hud.render(buildSnapshot(world));
+    const d2Text = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const d2RunLayerText = document.querySelector('.run-layer-panel')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const d2LevelId = world.activity?.currentLevelId ?? null;
+
+    forceFinalRewardReady(world, ['wild_gap_key', 'blood_reclaim', 'pulse_draw']);
+    tickWorld(world, [{ type: 'select-reward', cardId: 'wild_gap_key', traceId: 'qa-activity-d2-midrun-reward' }]);
+    world = tickWorld(world, [{ type: 'restart-current-level', traceId: 'qa-activity-restart-d2' }]);
+    hud.render(buildSnapshot(world));
+    const restartText = document.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    const restartLevelId = world.activity?.currentLevelId ?? null;
+
+    return {
+      settlementText,
+      d2Text,
+      d2RunLayerText,
+      d2LevelId,
+      restartText,
+      restartLevelId,
+      deck: [...world.player.deck],
+      maxEnergy: world.player.maxEnergy
+    };
+  });
+}
+
+async function buildCardReadabilityHud(page) {
+  return await page.evaluate(async () => {
+    const [{ createInitialWorld }, { buildSnapshot }, { Hud }, { BASE_HAND_SIZE }] = await Promise.all([
+      import('/src/sim/world.ts'),
+      import('/src/sim/snapshot.ts'),
+      import('/src/ui/hud.ts'),
+      import('/src/sim/constants.ts')
+    ]);
+
+    document.body.innerHTML = '<div id="hud"></div>';
+    const root = document.querySelector('#hud');
+    const hud = new Hud(root, () => {});
+    const world = createInitialWorld();
+
+    world.fsm.gameFlow = 'PlayerTurn';
+    world.player.maxEnergy = 3;
+    world.player.energy = 0;
+    world.player.tempAuthorizationMP = 0;
+    world.player.lastPlayedCost = null;
+    world.player.costChainMultiplier = 1;
+    world.chain.playedCosts = [];
+    world.chain.lastCost = null;
+    world.chain.nextExpectedCost = 0;
+    world.chain.multiplier = 1;
+    world.chain.broken = false;
+    world.player.hand = [
+      'debt_hook',
+      'row_cleave',
+      'clearance_order',
+      'wild_gap_key',
+      'static_overload',
+      'last_light_cache',
+      'silt_purge',
+      'severance_burst'
+    ];
+    world.player.deck = [
+      'debt_hook',
+      'redline_cut',
+      'row_cleave',
+      'wild_gap_key',
+      'static_overload',
+      'last_light_cache',

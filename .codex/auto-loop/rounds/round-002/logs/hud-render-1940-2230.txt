@@ -1,0 +1,291 @@
+    const nextLevelLabel = firstString(activityPreview?.nextLevelLabel);
+    const settlementWon = isSettlement && snapshot.run?.status === 'victory';
+    const settlementDetail = settlementWon ? settlementProgressionDetail(firstString(activityPreview?.currentLevelId), nextLevelLabel) : null;
+    const settlementGrowth = settlementWon ? settlementGrowthSummary(snapshot) : null;
+    const settlementAction = settlementWon && nextLevelLabel
+      ? {
+          attr: 'data-continue-activity',
+          label: `进入 ${nextLevelLabel}`,
+          aria: `进入下一难度 ${nextLevelLabel}`
+        }
+      : {
+          attr: 'data-restart-current-level',
+          label: `重试 ${activityLevelLabel.split(' ')[0] ?? '本局'}`,
+          aria: `重试当前难度 ${activityLevelLabel}`
+        };
+    const hpFill = Math.max(0, Math.min(100, (snapshot.player.hp / snapshot.player.maxHp) * 100));
+    const energyFill = Math.max(0, Math.min(100, (snapshot.player.energy / snapshot.player.maxEnergy) * 100));
+    const energyText = Number.isInteger(snapshot.player.energy) ? snapshot.player.energy.toFixed(0) : snapshot.player.energy.toFixed(1);
+    const authorization = hudAuthorizationState(snapshot);
+    const runLayer = hudRunLayerState(snapshot);
+    const buildPlan = hudBuildPlanState(snapshot);
+    const buildGap = hudBuildGapState(snapshot);
+    const routeChoiceMarkup = this.renderRouteChoices(runLayer.routeChoices);
+    const pollutionPrimer = pollutionPrimerLabel(snapshot, runLayer.routeChoices);
+    const latestRuleLabels = latestRules
+      .map((rule) => this.ruleFeedbackLabel(rule.ruleId, rule.passed))
+      .filter((label): label is string => Boolean(label));
+    const latestFailedLabels = latestFailed
+      .map((item) => this.failedConditionLabel(item.conditionId, item.reason))
+      .filter((label): label is string => Boolean(label));
+    const latestOperationLabels = [
+      ...latestCommands.map((command) => this.commandFeedbackLabel(command.type)),
+      ...latestTrace.map((trace) => this.traceFeedbackLabel(trace.label))
+    ]
+      .filter((label): label is string => Boolean(label))
+      .slice(0, 6);
+    const chainStarted = snapshot.player.lastPlayedCost !== null;
+    const nextChainCost = chainStarted ? snapshot.player.lastPlayedCost! + 1 : 0;
+    const nextChainMultiplier = chainStarted ? snapshot.player.costChainMultiplier + 1 : 1;
+    const chainRouteLabel = this.chainRouteLabel(snapshot);
+    const chainHint = chainStarted ? `下张 MP ${nextChainCost} x${nextChainMultiplier}` : '等待0费起链';
+    const frontEnemySlots = Array.from({ length: ENEMY_COLUMNS }, (_, slot) =>
+      snapshot.enemies.find((enemy) => enemy.alive && enemy.slot === slot)
+    );
+    const livingFrontEnemies = frontEnemySlots.filter(Boolean).length;
+    const flowLabel =
+      snapshot.fsm.gameFlow === 'Deal'
+        ? '回合开始'
+        : snapshot.fsm.gameFlow === 'PlayerTurn'
+          ? '玩家出牌'
+          : snapshot.fsm.gameFlow === 'EnemyAttack'
+            ? '怪物攻击'
+        : snapshot.fsm.gameFlow === 'EnemyRefill'
+          ? '怪物补位'
+          : snapshot.fsm.gameFlow === 'Reward'
+            ? '战后奖励'
+          : snapshot.fsm.gameFlow === 'Settlement'
+            ? '游戏结束'
+            : snapshot.fsm.gameFlow === 'RouteSelect'
+              ? '路线选择'
+            : snapshot.fsm.gameFlow;
+    const activeEnemies = snapshot.enemies.filter((enemy) => enemy.alive);
+    const frontThreatEnemies = activeEnemies.filter((enemy) => enemy.slot >= 0 && enemy.slot < ENEMY_COLUMNS);
+    const priorityThreat = [...frontThreatEnemies].sort((left, right) => left.hp - right.hp)[0];
+    const enemyIntent = this.enemyIntentSummary(snapshot);
+    const unresolvedIntentLabel =
+      enemyIntent.totalDamage > 0
+        ? `回合损${enemyIntent.totalDamage}`
+        : activeEnemies.length > 0
+          ? '结束回合安全'
+          : '清场安全';
+    const playableCount = snapshot.player.hand.filter((cardId) => {
+      const card = cards[cardId];
+      return isPlayerTurn && hudCardPaymentRead(card, snapshot).playable;
+    }).length;
+    const playableVerbs = Array.from(
+      new Set(
+        snapshot.player.hand
+          .filter((cardId) => isPlayerTurn && hudCardPaymentRead(cards[cardId], snapshot).playable)
+          .map((cardId) => cards[cardId].verb)
+      )
+    ).slice(0, 4);
+    const burstCardsReady = snapshot.player.hand.some((cardId) => {
+      const card = cards[cardId];
+      return isPlayerTurn && card.targets === 'all-enemies' && hudCardPaymentRead(card, snapshot).playable;
+    });
+    const burstRecentlyFired = snapshot.lastBurstTick !== null && snapshot.tick - snapshot.lastBurstTick <= 8;
+    const nearClear = activeEnemies.length > 0 && activeEnemies.length <= 3;
+    const directorState = burstRecentlyFired
+      ? 'burst-fired'
+      : burstCardsReady
+        ? 'burst-ready'
+        : nearClear
+          ? 'near-clear'
+          : '';
+    const threatLabel =
+      frontThreatEnemies.length > 0
+        ? `${frontThreatEnemies.length} 前排压线`
+        : activeEnemies.length > 0
+          ? `${activeEnemies.length} 后排压上`
+          : '清场窗口';
+    const threatDetail = priorityThreat
+      ? `${enemyDisplayName(priorityThreat)} HP ${priorityThreat.hp}/${priorityThreat.maxHp}`
+      : activeEnemies.length > 0
+        ? '下一波正在补位'
+        : '回收节奏，准备下一轮';
+    const actionLabel = isPlayerTurn
+      ? playableCount > 0
+        ? burstCardsReady
+          ? `${playableCount} 可支付 · 终结可打`
+          : `${playableCount} 可支付 · ${chainStarted ? `接 MP ${nextChainCost}` : '先打 MP 0'}`
+        : '无可支付牌'
+      : flowLabel;
+    const payoffPreview = this.payoffPreviewLabel(snapshot);
+    const finisherDecision = this.finisherDecisionState(snapshot);
+    const handCountLabel = `手 ${snapshot.player.hand.length}/${BASE_HAND_SIZE}`;
+    const deckLoopLabel = `总 ${snapshot.player.deck.length} · 抽 ${snapshot.player.drawPile.length} · 弃 ${snapshot.player.discardPile.length} · ${handCountLabel} · 消 ${snapshot.player.exhaustPile.length} · 留 ${snapshot.player.retainedCards.length}`;
+    const compactDeckLoopLabel = `抽${snapshot.player.drawPile.length} 弃${snapshot.player.discardPile.length}`;
+    const visibleDeckLoopLabel = `手${snapshot.player.hand.length}/${BASE_HAND_SIZE} ${compactDeckLoopLabel}`;
+    const secondaryDeckLoopLabel = `消${snapshot.player.exhaustPile.length} 留${snapshot.player.retainedCards.length} 总${snapshot.player.deck.length}`;
+    const handHiddenCount = Math.max(0, snapshot.player.hand.length - 1);
+    const handRailHintLabel =
+      snapshot.player.hand.length > 1
+        ? `手牌 ${snapshot.player.hand.length}/${BASE_HAND_SIZE} 可横滑 · 还有${handHiddenCount}张`
+        : `手牌 ${snapshot.player.hand.length}/${BASE_HAND_SIZE}`;
+    const hasRewardChoices = Boolean(snapshot.reward.pending && snapshot.reward.choices.length > 0);
+    const canEndTurn = canHudEndTurn(snapshot.fsm.gameFlow);
+    const endTurnTitle = isPlayerTurn ? `结束当前玩家回合；${unresolvedIntentLabel}` : '当前不是玩家出牌阶段';
+    const endTurnLabel = enemyIntent.totalDamage > 0 ? `结束-${enemyIntent.totalDamage}` : '结束回合';
+    const emptyHandText = isDeal
+        ? '回合开始，先发牌。'
+      : isSettlement
+        ? settlementWon
+          ? '本关完成，进入下一难度。'
+          : '你已阵亡，点击重试。'
+        : snapshot.fsm.gameFlow === 'Reward'
+        ? '战后奖励选择中。'
+        : isPlayerTurn
+        ? '手牌已空，点击结束回合。'
+        : '等待回合阶段结算。';
+
+    const markup = `
+      <section class="status-strip" aria-label="状态">
+        <div class="resource-chip hp-chip ${playerHitClass}" style="--fill: ${hpFill}%">
+          <span class="resource-head">
+            <strong>HP</strong>
+            <em>${snapshot.player.hp.toFixed(0)} / ${snapshot.player.maxHp}</em>
+          </span>
+          <span class="resource-meter" aria-hidden="true"><i></i></span>
+        </div>
+        <div class="resource-chip mp-chip" style="--fill: ${energyFill}%">
+          <span class="resource-head">
+            <strong>MP</strong>
+            <em>${energyText} / ${snapshot.player.maxEnergy}</em>
+          </span>
+          <span class="resource-meter" aria-hidden="true"><i></i></span>
+        </div>
+        <div class="status-chip authorization-chip ${authorization.active ? 'active' : ''}" title="${authorization.detail}">
+          <strong>${authorization.label}</strong>
+          <span>${authorization.active ? '本回合' : '待解锁'}</span>
+          <em>${authorization.active ? '只付3费终结牌' : '0->1->2'}</em>
+        </div>
+        <div class="status-chip xp-chip">
+          <strong>LV ${snapshot.player.level}</strong>
+          <span>XP ${snapshot.player.xp} / ${snapshot.reward.xpThreshold}</span>
+        </div>
+        <div class="status-chip chain-chip ${chainStarted ? 'active' : ''}">
+          <strong>链路</strong>
+          <span>${chainRouteLabel}</span>
+          <em>${chainHint}</em>
+        </div>
+        <div class="status-chip build-plan-chip ${buildPlan.active ? 'active' : ''}" title="${buildPlan.reason}">
+          <strong>构筑</strong>
+          <span>${buildPlan.token}</span>
+          <em>${buildPlan.reason}</em>
+        </div>
+        <div class="status-chip intent-chip ${enemyIntent.totalDamage > 0 ? 'danger' : ''}">
+          <strong>意图</strong>
+          <span>${enemyIntent.totalDamage > 0 ? `-${enemyIntent.totalDamage} HP` : '安全'}</span>
+          <em>${enemyIntent.detail}</em>
+        </div>
+        <div class="status-chip phase-chip">
+          <strong>阶段</strong>
+          <span>R${snapshot.round} ${flowLabel}</span>
+        </div>
+        <div class="status-chip pile-chip" title="${deckLoopLabel}" data-base-hand-size="${BASE_HAND_SIZE}">
+          <strong>牌堆</strong>
+          <span>${visibleDeckLoopLabel}</span>
+          <em>${secondaryDeckLoopLabel}</em>
+        </div>
+        <button type="button" data-restart-current-level>重试</button>
+      </section>
+
+      <section
+        class="build-gap-bar ${buildGap.primaryGap ? 'has-gap' : 'stable'}"
+        aria-label="构筑缺口"
+        title="${buildGap.summary}"
+      >
+        ${buildGap.tokens
+          .map(
+            (token) =>
+              `<span class="build-gap-token ${token.active ? 'active' : ''}" data-build-gap-role="${token.role}" data-build-gap-count="${token.count}" data-build-gap-desired="${token.desired}">${token.label}</span>`
+          )
+          .join('')}
+      </section>
+
+      <section class="combat-director chain-director ${directorState}" aria-label="出牌决策">
+        <div class="director-cell director-chain">
+          <span>本回合链路</span>
+          <strong>${chainRouteLabel}</strong>
+          <em>${chainHint}</em>
+        </div>
+        <div class="director-cell director-action">
+          <span>下张费用</span>
+          <strong>${chainStarted ? `MP ${nextChainCost}` : 'MP 0'}</strong>
+          <em>${actionLabel}</em>
+        </div>
+        <div class="director-cell director-intent">
+          <span>敌意图</span>
+          <strong>${enemyIntent.totalDamage > 0 ? `回合损${enemyIntent.totalDamage}` : threatLabel}</strong>
+          <em>${enemyIntent.detail || threatDetail}</em>
+        </div>
+        <div class="director-cell director-payoff">
+          <span>终结</span>
+          <strong>${payoffPreview.title}</strong>
+          <em>${payoffPreview.detail}</em>
+        </div>
+      </section>
+
+      ${
+        finisherDecision
+          ? `<section class="finisher-decision-bar ${finisherDecision.mode}" aria-label="终结决策条" data-finisher-window="${finisherDecision.mode}" style="position: sticky; bottom: 0; z-index: 12;">
+              <span>终结决策</span>
+              <strong>${finisherDecision.primary}</strong>
+              <em>${finisherDecision.secondary}</em>
+              <small>${finisherDecision.detail}</small>
+            </section>`
+          : ''
+      }
+
+      <section class="deal-panel" aria-label="发牌与回合操作">
+        <div>
+          <span>回合 ${snapshot.round}</span>
+          <strong>${flowLabel}</strong>
+          <small>${
+            isDeal
+              ? '点击发牌'
+                : isSettlement
+                  ? '本局已结束'
+              : snapshot.fsm.gameFlow === 'Reward'
+                ? compactDeckLoopLabel
+              : isPlayerTurn
+                ? `${unresolvedIntentLabel} · 可出牌 ${playableCount}`
+                : '怪物正在结算'
+          }</small>
+        </div>
+        ${
+          isDeal
+            ? '<button type="button" data-deal aria-label="发牌进入玩家出牌阶段">发牌</button>'
+            : isSettlement
+              ? `<button type="button" ${settlementAction.attr} aria-label="${settlementAction.aria}">${settlementAction.label}</button>`
+            : `<button type="button" data-end-turn aria-label="${endTurnTitle}" title="${endTurnTitle}" ${canEndTurn ? '' : 'disabled'}>${endTurnLabel}</button>`
+        }
+      </section>
+
+      <section class="target-panel ${selectedTarget ? 'target-locked' : 'target-random'}" aria-label="目标选择">
+        <strong>目标</strong>
+        <span>${selectedTarget ? enemyShortLabel(selectedTarget) : defaultTarget ? `默认${enemyShortLabel(defaultTarget)}` : '无前排'}</span>
+      </section>
+
+      <section class="run-layer-panel" aria-label="路线层">
+        <div class="run-layer-main">
+          <span>${runLayer.title}</span>
+          <strong>${runLayer.nodeLabel}</strong>
+          <em>${runLayer.campaignLabel}</em>
+          <small>${runLayer.difficultyBandLabel} · ${runLayer.buildProblemLabel}</small>
+          ${pollutionPrimer ? `<small>${pollutionPrimer}</small>` : ''}
+        </div>
+        <div class="run-layer-meta" aria-label="下一战继承">
+          <span>${runLayer.nextTitle}</span>
+          <strong>${runLayer.nextState}</strong>
+          <em>${runLayer.nextDetail}</em>
+        </div>
+      </section>
+
+      <section class="enemy-peek ${this.enemyInfoVisible ? 'enemy-info-visible' : ''}" aria-label="前排目标按钮">
+        <button
+          type="button"
+          class="enemy-peek-toggle"
+          data-enemy-toggle
+          aria-expanded="${this.enemyInfoVisible}"

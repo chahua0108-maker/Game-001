@@ -1,0 +1,100 @@
+diff --git a/prototype-web/src/style.css b/prototype-web/src/style.css
+index a3c2be8..6724aa7 100644
+--- a/prototype-web/src/style.css
++++ b/prototype-web/src/style.css
+@@ -741,40 +741,48 @@ button {
+   font-size: 12px;
+   font-weight: 900;
+   line-height: 1.05;
+ }
+ 
+ .run-layer-main em,
+ .run-layer-main small,
+ .run-layer-meta em {
+   margin-top: 2px;
+   color: rgba(255, 255, 255, 0.7);
+   font-size: 9px;
+   font-style: normal;
+   font-weight: 800;
+   line-height: 1.15;
+ }
+ 
+ .run-layer-main small {
+   color: rgba(255, 216, 223, 0.78);
+ }
+ 
++.run-layer-main .pollution-primer {
++  white-space: normal;
++  display: -webkit-box;
++  overflow: hidden;
++  -webkit-box-orient: vertical;
++  -webkit-line-clamp: 2;
++}
++
+ .run-layer-meta {
+   border-color: rgba(255, 216, 104, 0.34);
+   background: rgba(42, 34, 26, 0.62);
+ }
+ 
+ .run-layer-meta span {
+   color: #ffe078;
+ }
+ 
+ .enemy-peek {
+   position: absolute;
+   top: 150px;
+   right: 10px;
+   display: grid;
+   justify-items: end;
+   gap: 6px;
+   pointer-events: none;
+ }
+ 
+ .enemy-peek-toggle {
+@@ -1125,40 +1133,46 @@ button {
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+ }
+ 
+ .reward-card small,
+ .route-choice small {
+   margin-top: 8px;
+   color: #ffd8df;
+   font-size: 11px;
+   line-height: 1.15;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+ }
+ 
+ .route-choice small {
+   color: #fff2b8;
+ }
+ 
++.route-choice .route-response-hint {
++  color: #73ffe2;
++  white-space: normal;
++  overflow-wrap: anywhere;
++}
++
+ .reward-card em,
+ .route-choice em {
+   margin-top: 10px;
+   color: rgba(255, 255, 255, 0.78);
+   font-size: 11px;
+   font-style: normal;
+   line-height: 1.35;
+   overflow-wrap: anywhere;
+ }
+ 
+ .route-choice em {
+   display: -webkit-box;
+   overflow: hidden;
+   -webkit-box-orient: vertical;
+   -webkit-line-clamp: 2;
+ }
+ 
+ .game-over-panel span {
+   min-width: 0;
+   color: #ff6078;

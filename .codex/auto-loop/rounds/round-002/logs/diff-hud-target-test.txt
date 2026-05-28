@@ -1,0 +1,183 @@
+diff --git a/prototype-web/src/tests/ui/hud-target-selection.test.ts b/prototype-web/src/tests/ui/hud-target-selection.test.ts
+index b6de1d2..3b088d0 100644
+--- a/prototype-web/src/tests/ui/hud-target-selection.test.ts
++++ b/prototype-web/src/tests/ui/hud-target-selection.test.ts
+@@ -531,55 +531,57 @@ describe('HUD run and meta layer labels', () => {
+             }
+           ]
+         }
+       },
+       debug: { events: [] }
+     } as unknown as GameSnapshot;
+ 
+     expect(hudRouteChoicesState(snapshot)).toEqual([
+       {
+         id: 'run-1-node-1-to-2-repair-cache',
+         label: '维修补给岔路',
+         nodeLabel: '1->2',
+         modifierToken: '复核+1',
+         rewardToken: '偏修补',
+         riskToken: '推荐/安全',
+         costToken: '无HP代价',
+         pollutionToken: '无污染',
+         tone: 'safe',
+         disabled: false,
+         disabledReason: null,
+-        preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。'
++        preview: '下一战奖励更偏修补/资源，并带 1 次奖励复核上下文。',
++        responseHint: null
+       },
+       {
+         id: 'run-1-node-1-to-2-elite-pressure',
+         label: '高压债务岔路',
+         nodeLabel: '1->2',
+         modifierToken: 'MP+1',
+         rewardToken: '偏终结',
+         riskToken: '高风险/贪心',
+         costToken: 'HP代价',
+         pollutionToken: '污染风险低',
+         tone: 'risk',
+         disabled: false,
+         disabledReason: null,
+-        preview: '下一战临时信用额度 +1，更容易打出终结牌。'
++        preview: '下一战临时信用额度 +1，更容易打出终结牌。',
++        responseHint: null
+       }
+     ]);
+ 
+     const runState = hudRunLayerState(snapshot);
+     expect(runState.routeLabel).toBe('路线候选 2');
+     expect(runState.pressureLabel).toBe('上压 首战');
+     expect(runState.nextState).toBe('选路线');
+     expect(runState.nextDetail).toContain('安全');
+     expect(runState.nextDetail).toContain('下战修补');
+     expect(runState.nextDetail).toContain('非即时回血');
+     expect(runState.nextDetail).toContain('高风险');
+     expect(runState.nextDetail).toContain('MP+1');
+   });
+ 
+   it('keeps long pressure, build, and route consequence copy in compact HUD lanes', () => {
+     const veryLongLabel =
+       '连续节点压力报告-上一节点因污染和高额债务叠加导致玩家必须改变构筑方向否则会在移动端撑破显示区域';
+     const veryLongReason =
+       '当前构筑问题说明非常非常长，需要在状态芯片和run layer里保持可截断，不能把右侧面板或移动端底部信息条撑出视口。';
+     const veryLongPreview =
+@@ -1122,41 +1124,43 @@ describe('HUD run and meta layer labels', () => {
+         xpThreshold: 12
+       },
+       cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+       debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+       lastBurstTick: null
+     } as unknown as GameSnapshot);
+ 
+     const repairButton = root.innerHTML.match(
+       /<button[^>]+data-route-choice-id="run-1-node-1-to-2-repair-cache"[\s\S]*?<\/button>/
+     )?.[0];
+     const eliteButton = root.innerHTML.match(
+       /<button[^>]+data-route-choice-id="run-1-node-1-to-2-elite-pressure"[\s\S]*?<\/button>/
+     )?.[0];
+     const routeSummary = root.innerHTML.match(/<section class="run-layer-panel"[\s\S]*?<\/section>/)?.[0];
+ 
+     expect.soft(repairButton).toMatch(/安全|推荐/);
+     expect.soft(repairButton).toContain('下战修补');
+     expect.soft(repairButton).toContain('非即时回血');
+     expect.soft(eliteButton).toMatch(/风险|贪心/);
+     expect.soft(eliteButton).toContain('-2 HP / 污染');
+-    expect.soft(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
++    expect.soft(root.innerHTML).toContain('污染=不接链状态牌');
++    expect.soft(root.innerHTML).toContain('抽到会挤掉 0-1-2');
++    expect.soft(root.innerHTML).toContain('应对：清污染/净化抽牌/打出状态消耗');
+     expect.soft(routeSummary).toMatch(/下战修补\/复核\+1\/非即时回血[\s\S]*高风险MP\+1\/-2 HP\/\+污染/);
+   });
+ 
+   it('shows activity difficulty and route pressure cost in the run layer', () => {
+     const snapshot = {
+       round: 1,
+       run: {
+         currentNode: 1,
+         maxNodes: 3,
+         rewardHistory: []
+       },
+       activity: {
+         id: 'redline-core-activity-01',
+         title: '红线清算局 第一套闯关',
+         totalDifficultyTiers: 10,
+         playableLevelIds: ['d1', 'd2', 'd3'],
+         currentLevelId: 'd1',
+         completedLevelIds: []
+       },
+       route: {
+@@ -1273,41 +1277,43 @@ describe('HUD run and meta layer labels', () => {
+       cardUpgrades: { enhancements: {}, choices: [], pending: false, history: [] },
+       activity: {
+         id: 'redline-core-activity-01',
+         title: '红线清算局 第一套闯关',
+         totalDifficultyTiers: 10,
+         playableLevelIds: ['d1', 'd2', 'd3', 'd4'],
+         currentLevelId: 'd4',
+         completedLevelIds: ['d1', 'd2', 'd3']
+       },
+       debug: { events: [], commands: [], failedConditions: [], ruleHits: [], trace: [] },
+       lastBurstTick: null
+     } as unknown as GameSnapshot;
+ 
+     expect(hudRunLayerState(snapshot).title).toBe('D4 污染首秀清算');
+     expect(hudRunLayerState(snapshot).nodeLabel).toBe('节点 1/6');
+     const root = {
+       innerHTML: '',
+       addEventListener: () => undefined
+     } as unknown as HTMLElement;
+     new Hud(root, () => undefined).render(snapshot);
+-    expect(root.innerHTML).toContain('污染牌会进弃牌堆，之后会抽到；清污染奖励可处理');
++    expect(root.innerHTML).toContain('污染=不接链状态牌');
++    expect(root.innerHTML).toContain('抽到会挤掉 0-1-2');
++    expect(root.innerHTML).toContain('用清污染/净化抽牌或打出消耗处理');
+   });
+ 
+   it('splits victory continue and failure retry settlement actions into distinct intents', () => {
+     const listeners: Partial<Record<string, (event: Event) => void>> = {};
+     const root = {
+       innerHTML: '',
+       addEventListener: (type: string, listener: EventListener) => {
+         listeners[type] = listener as (event: Event) => void;
+       }
+     } as unknown as HTMLElement;
+     const intents: unknown[] = [];
+     const hud = new Hud(root, (intent) => intents.push(intent));
+     const baseSettlement = {
+       tick: 1,
+       round: 4,
+       elapsedSeconds: 0,
+       player: {
+         hp: 30,
+         maxHp: 72,
+         energy: 0,
+@@ -1543,25 +1549,26 @@ describe('HUD run and meta layer labels', () => {
+       activity: {
+         id: 'redline-core-activity-01',
+         title: '红线清算局 第一套闯关',
+         totalDifficultyTiers: 10,
+         playableLevelIds: ['d1', 'd2', 'd3', 'd4'],
+         currentLevelId: 'd3',
+         completedLevelIds: ['d1', 'd2']
+       },
+       activitySettlementPreview: {
+         currentLevelId: 'd3',
+         currentLevelLabel: 'D3',
+         currentLevelTitle: '中级清算入口',
+         completed: true,
+         nextLevelId: 'd4',
+         nextLevelLabel: 'D4',
+         canContinue: true
+       }
+     } as unknown as GameSnapshot);
+     expect(root.innerHTML).toContain('核心三局已打通');
+     expect(root.innerHTML).toContain('进入 D4 前说明');
+-    expect(root.innerHTML).toContain('污染牌会进弃牌堆');
+-    expect(root.innerHTML).toContain('清污染奖励可处理');
++    expect(root.innerHTML).toContain('污染是不接链状态牌');
++    expect(root.innerHTML).toContain('抽到会挤掉 0-1-2');
++    expect(root.innerHTML).toContain('用清污染/净化抽牌或打出消耗处理');
+     expect(root.innerHTML).toContain('进入 D4');
+   });
+ });

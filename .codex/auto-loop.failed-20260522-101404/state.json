@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "status": "blocked",
+  "workspace": "/Users/roc/Game-001",
+  "goal": "Redline 多局核心体验达到 95/100；保持自动长循环、每轮干净上下文、每轮提交，普通迭代降低完整 10 玩家评分频率，但关键里程碑必须评分。",
+  "targetScore": 95,
+  "round": 0,
+  "maxRounds": 5,
+  "coreScore": null,
+  "gateStatus": "unknown",
+  "continue": false,
+  "stopReason": "codex exec failed in round 1; see /Users/roc/Game-001/.codex/auto-loop/rounds/round-001",
+  "nextHypothesis": "Read the current repo state and choose the smallest core-experience slice.",
+  "lastCommit": "f1e123e",
+  "lastRunAt": "2026-05-22T02:11:55.003Z",
+  "openIssues": [],
+  "artifacts": {
+    "handoff": "/Users/roc/Game-001/.codex/auto-loop/handoff.md",
+    "nextPrompt": "/Users/roc/Game-001/.codex/auto-loop/next-prompt.md"
+  },
+  "notes": [
+    "State is owned by AIRoc auto loop runner. Each Codex exec round must update it before exit."
+  ]
+}

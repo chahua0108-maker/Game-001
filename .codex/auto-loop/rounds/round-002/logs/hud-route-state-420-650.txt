@@ -1,0 +1,231 @@
+
+export function hudRouteChoicesState(snapshot: GameSnapshot): HudRouteChoiceRead[] {
+  const source = snapshot as HudRunSnapshot;
+  const run = toRunRecord(source.run);
+  const route = toRunRecord(firstValue(source.route, source.shortRunRoute, run?.route, run?.shortRunRoute, run));
+  const candidates = firstArray(
+    route?.pendingNodeChoices,
+    route?.pendingChoices,
+    route?.routeChoices,
+    route?.choices,
+    run?.pendingNodeChoices
+  );
+
+  const currentHp = firstNumber(snapshot.player?.hp);
+  return candidates
+    .map((candidate) => routeChoiceRead(candidate, currentHp))
+    .filter((choice): choice is HudRouteChoiceRead => Boolean(choice))
+    .slice(0, 2);
+}
+
+export function hudBuildPlanState(snapshot: GameSnapshot): HudBuildPlanState {
+  const source = snapshot as HudRunSnapshot;
+  const run = toRunRecord(source.run);
+  const plan = toRunRecord(
+    firstValue(source.buildPlan, source.runModifierPlan, source.modifierPlan, run?.buildPlan, run?.runModifierPlan, run?.modifierPlan)
+  );
+
+  if (!plan) {
+    return {
+      token: '常规',
+      reason: '无构筑预览',
+      active: false
+    };
+  }
+
+  const derived = toRunRecord(plan.derived) ?? plan;
+  const issues = firstArray(plan.issues, plan.problems, plan.gaps)
+    .map((issue) => toRunRecord(issue))
+    .filter((issue): issue is RunRecord => Boolean(issue));
+  const primaryIssue = issues[0];
+  const issueToken = primaryIssue
+    ? firstString(primaryIssue.label, primaryIssue.token, primaryIssue.id)
+    : null;
+  const selectedModifiers = firstArray(plan.selectedModifiers, plan.modifiers, plan.selected, plan.drafts);
+  const selectedToken = selectedModifiers.map((modifier) => buildModifierToken(modifier)).find((token) => token !== null);
+  const maxEnergyDelta = firstNumber(derived.maxEnergyDeltaThisRun, derived.maxEnergyDelta, derived.maxEnergyThisRunDelta);
+  const rewardRerollDelta = firstNumber(derived.rewardRerollDelta, derived.rewardRerollsDelta, derived.rerollDelta);
+  const startingDeckAdditions = firstArray(derived.startingDeckAdditions, derived.deckAdditions, plan.startingDeckAdditions);
+  const token =
+    issueToken ??
+    selectedToken ??
+    (maxEnergyDelta && maxEnergyDelta > 0
+      ? `MP+${maxEnergyDelta}`
+      : rewardRerollDelta && rewardRerollDelta > 0
+        ? `复核+${rewardRerollDelta}`
+        : startingDeckAdditions.length > 0
+          ? '修补牌'
+          : '常规');
+  const explanations = firstArray(plan.explanations, plan.reasons, plan.reasonLog);
+  const reason =
+    firstString(
+      primaryIssue?.reason,
+      primaryIssue?.nextStep,
+      plan.reason,
+      plan.summary,
+      explanations[0],
+      selectedModifiers.map((modifier) => buildModifierReason(modifier)).find(Boolean)
+    ) ??
+    (token === '常规' ? '无构筑预览' : '本run构筑预览');
+
+  return {
+    token: sanitizePlayerFacingText(token),
+    reason: sanitizePlayerFacingText(reason),
+    active: token !== '常规' || issues.length > 0
+  };
+}
+
+export function hudBuildGapState(snapshot: GameSnapshot): HudBuildGapState {
+  const counts: Record<HudBuildGapRole, number> = {
+    starter: 0,
+    bridge: 0,
+    expand: 0,
+    payoff: 0,
+    repair: 0,
+    pollution: 0
+  };
+
+  for (const cardId of snapshot.player.deck ?? []) {
+    const card = cards[cardId];
+    if (!card) {
+      continue;
+    }
+
+    if (card.cardType === 'status' || card.countsForChain === false || card.keywords?.includes('污染')) {
+      counts.pollution += 1;
+      continue;
+    }
+
+    const role = hudCardRoleLabel(card);
+    if (role === '开链') {
+      counts.starter += 1;
+    } else if (role === '承接' || role === '整备') {
+      counts.bridge += 1;
+    } else if (role === '展开') {
+      counts.expand += 1;
+    } else if (role === '终结') {
+      counts.payoff += 1;
+    } else if (role === '修补') {
+      counts.repair += 1;
+    }
+  }
+
+  const specs: Array<{ role: HudBuildGapRole; name: string; desired: number }> = [
+    { role: 'starter', name: '开链', desired: 1 },
+    { role: 'bridge', name: '承接', desired: 1 },
+    { role: 'expand', name: '展开', desired: 1 },
+    { role: 'payoff', name: '终结', desired: 1 },
+    { role: 'repair', name: '修补', desired: 1 },
+    { role: 'pollution', name: '污染', desired: 0 }
+  ];
+
+  const tokens = specs.map((spec) => {
+    const count = counts[spec.role];
+    const gap = Math.max(0, spec.desired - count);
+    return {
+      role: spec.role,
+      label: `${spec.name}x${count}`,
+      count,
+      desired: spec.desired,
+      gap,
+      active: false
+    };
+  });
+  const primaryGap =
+    tokens
+      .filter((token) => token.gap > 0)
+      .sort((left, right) => right.gap - left.gap || specs.findIndex((spec) => spec.role === left.role) - specs.findIndex((spec) => spec.role === right.role))[0] ??
+    null;
+
+  if (primaryGap) {
+    primaryGap.active = true;
+  }
+
+  return {
+    tokens,
+    primaryGap,
+    summary: primaryGap ? `最缺 ${primaryGap.label.replace(/x\d+$/, '')}` : '构筑稳定'
+  };
+}
+
+function buildModifierToken(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return modifierIdToken(value);
+  }
+
+  const record = toRunRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const id = firstString(record.id, record.modifierId);
+  return modifierIdToken(id) ?? firstString(record.token, record.shortToken, record.label);
+}
+
+function buildModifierReason(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return null;
+  }
+
+  const record = toRunRecord(value);
+  const reason = record ? firstString(record.reason, record.summary, record.description, record.label) : null;
+  return reason ? sanitizePlayerFacingText(reason) : null;
+}
+
+function modifierIdToken(id: string | null): string | null {
+  if (id === 'maxEnergyThisRunPlusOne') {
+    return 'MP+1';
+  }
+
+  if (id === 'rewardRerollPlusOne') {
+    return '复核+1';
+  }
+
+  if (id === 'startingRepairCard') {
+    return '修补牌';
+  }
+
+  return null;
+}
+
+function routeChoiceRead(value: unknown, currentHp: number | null = null): HudRouteChoiceRead | null {
+  const record = toRunRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const context = toRunRecord(record.nextBattleContext) ?? toRunRecord(record.context);
+  const id = firstString(record.id, record.routeId, record.selectedRouteId, context?.selectedRouteId);
+  if (!id) {
+    return null;
+  }
+
+  const fromNode = firstNumber(record.fromNode, context?.sourceNode);
+  const toNode = firstNumber(record.toNode, context?.targetNode);
+  const label = sanitizePlayerFacingText(firstString(record.label, context?.label, record.kind) ?? '下一路线');
+  const modifierId = firstString(record.modifierId, context?.modifierId);
+  const rewardBranch = firstString(record.rewardBranchHint, context?.rewardBranchHint);
+  const preview = sanitizePlayerFacingText(firstString(record.preview, context?.preview, record.description) ?? `${label} · 下一战`);
+  const kind = routeChoiceKind(record, context, id, label);
+  const routePressure = toRunRecord(firstValue(record.routePressure, context?.routePressure, record.pressure, context?.pressure));
+  const entryDamage = firstNumber(routePressure?.entryDamage, routePressure?.hpCost, routePressure?.damage);
+  const addsPollution = firstBoolean(routePressure?.addsPollution, routePressure?.pollution, routePressure?.addsStaticOverload);
+  const disabledReason = routeDisabledReason(kind, currentHp, entryDamage);
+
+  return {
+    id,
+    label,
+    nodeLabel: fromNode !== null && toNode !== null ? `${fromNode}->${toNode}` : '下一节点',
+    modifierToken: routeModifierToken(modifierId),
+    rewardToken: routeRewardToken(rewardBranch),
+    riskToken: routeRiskToken(kind),
+    costToken: routeCostToken(kind, preview, entryDamage),
+    pollutionToken: routePollutionToken(kind, preview, addsPollution),
+    tone: routeTone(kind),
+    disabled: Boolean(disabledReason),
+    disabledReason,
+    preview
+  };
+}
+
+function routeDisabledReason(kind: string, currentHp: number | null, entryDamage: number | null): string | null {
