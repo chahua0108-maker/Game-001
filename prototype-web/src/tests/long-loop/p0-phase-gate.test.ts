@@ -63,6 +63,6 @@ describe('P0 long-loop phase gate', () => {
       p0CanonicalIds.runLocalBlacksmithEnhancement
     );
 
-    expect(phaseEventTypes(reloadedOrchestrator.getPhaseEvents())).toEqual(expect.arrayContaining(expectedP0PhaseEvents));
+    expect(phaseEventTypes(reloadedOrchestrator.getPhaseEvents())).toEqual(expect.arrayContaining([...expectedP0PhaseEvents]));
   });
 });
