@@ -85,7 +85,7 @@ export interface First3HoursUnlockMatrixEntry {
   readonly achievement: AchievementId | 'none' | 'unchanged';
   readonly uiState: string;
   readonly nextGoal: string;
-  readonly visibility: 'hidden' | 'preview' | 'visible';
+  readonly visibility: 'hidden' | 'hinted' | 'condition_visible' | 'unlocked';
   readonly unlockRuleIds: readonly UnlockRuleId[];
 }
 

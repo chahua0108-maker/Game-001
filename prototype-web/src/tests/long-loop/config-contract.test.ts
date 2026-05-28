@@ -30,7 +30,9 @@ const lockedP0ShopItemIds = [
   'blacksmith_reroll_permit',
   'starter_stable_chain'
 ];
-const rawPermanentUpgradeTokens = ['hp', 'health', 'attack', 'max_mp', 'max mp', 'mp'];
+const approvedMatrixVisibilityValues = ['condition_visible', 'hidden', 'hinted', 'unlocked'];
+const rawPermanentUpgradeExactTokens = ['attack', 'hp', 'max_mp', 'maxmp'];
+const rawPermanentUpgradeExactPhrases = ['max mp'];
 const requiredMatrixFields = ['trigger', 'mapNode', 'featureGate', 'achievement', 'uiState', 'nextGoal', 'visibility'];
 
 type ValidatorInput = Parameters<typeof validateLongLoopConfig>[0];
@@ -45,6 +47,13 @@ function shouldPrintTableCounts(): boolean {
   };
 
   return maybeProcess.process?.env?.LONG_LOOP_CONFIG_PRINT_COUNTS === '1';
+}
+
+function tokenizeConfigIdentifier(value: string): readonly string[] {
+  return value
+    .toLowerCase()
+    .split(/[\s.-]+/)
+    .filter(Boolean);
 }
 
 describe('long-loop config contract', () => {
@@ -81,6 +90,32 @@ describe('long-loop config contract', () => {
     }
   });
 
+  it('uses the approved first 3 hours unlock matrix visibility values', () => {
+    expect(approvedMatrixVisibilityValues).toEqual(['condition_visible', 'hidden', 'hinted', 'unlocked']);
+
+    for (const entry of longLoopConfig.first3HoursUnlockMatrix) {
+      expect(approvedMatrixVisibilityValues, entry.trigger).toContain(entry.visibility);
+    }
+  });
+
+  it('rejects legacy first 3 hours visibility values', () => {
+    for (const visibility of ['visible', 'preview']) {
+      const result = validateLongLoopConfig(asValidatorInput({
+        ...longLoopConfig,
+        first3HoursUnlockMatrix: [
+          {
+            ...longLoopConfig.first3HoursUnlockMatrix[0],
+            visibility
+          }
+        ]
+      }));
+
+      expect(result.errors).toContain(
+        'first3HoursUnlockMatrix[0].visibility must be hidden, hinted, condition_visible, or unlocked'
+      );
+    }
+  });
+
   it('uses the canonical P0 achievement ids from the approved plan', () => {
     expect(longLoopConfig.achievements.map((achievement) => achievement.id).sort()).toEqual(canonicalP0AchievementIds);
   });
@@ -92,10 +127,17 @@ describe('long-loop config contract', () => {
 
   it('does not define raw HP, attack, or max MP permanent upgrades', () => {
     for (const upgrade of longLoopConfig.permanentUpgrades) {
-      const searchable = `${upgrade.id} ${upgrade.name} ${upgrade.effectType}`.toLowerCase();
+      const identifierTokens = [
+        ...tokenizeConfigIdentifier(upgrade.id),
+        ...tokenizeConfigIdentifier(upgrade.effectType)
+      ];
+      const identifierPhrase = `${upgrade.id} ${upgrade.effectType}`.toLowerCase().replace(/[_\s.-]+/g, ' ').trim();
 
-      for (const token of rawPermanentUpgradeTokens) {
-        expect(searchable, upgrade.id).not.toContain(token);
+      for (const token of rawPermanentUpgradeExactTokens) {
+        expect(identifierTokens, upgrade.id).not.toContain(token);
+      }
+      for (const phrase of rawPermanentUpgradeExactPhrases) {
+        expect(` ${identifierPhrase} `, upgrade.id).not.toContain(` ${phrase} `);
       }
     }
   });
@@ -219,6 +261,26 @@ describe('long-loop config contract', () => {
     }));
 
     expect(malformedResult.errors).toContain('first3HoursUnlockMatrix[0].unlockRuleIds must be a non-empty array');
+  });
+
+  it('accumulates independent first 3 hours matrix row errors', () => {
+    const { achievement: _achievement, ...matrixEntryWithoutAchievement } = longLoopConfig.first3HoursUnlockMatrix[0];
+    const result = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      first3HoursUnlockMatrix: [
+        {
+          ...matrixEntryWithoutAchievement,
+          unlockRuleIds: 'unlock.map.elite_route'
+        }
+      ]
+    }));
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        'first3HoursUnlockMatrix[0].achievement is required',
+        'first3HoursUnlockMatrix[0].unlockRuleIds must be a non-empty array'
+      ])
+    );
   });
 
   it('rejects unlock building entries without a required unlock rule id', () => {

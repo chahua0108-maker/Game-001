@@ -8,7 +8,7 @@ export const first3HoursUnlockMatrix = [
     achievement: 'first_run_completed',
     uiState: 'unlock_toast',
     nextGoal: 'buy_first_permit',
-    visibility: 'visible',
+    visibility: 'unlocked',
     unlockRuleIds: ['unlock.map.elite_route', 'unlock.feature.blacksmith', 'unlock.shop.starter_stable_chain']
   },
   {
@@ -18,7 +18,7 @@ export const first3HoursUnlockMatrix = [
     achievement: 'clear_d1',
     uiState: 'blacksmith_available',
     nextGoal: 'certify_stable_chain',
-    visibility: 'visible',
+    visibility: 'condition_visible',
     unlockRuleIds: ['unlock.blacksmith.raise_level', 'unlock.blacksmith.red_socket', 'unlock.crawler.iron_monk']
   },
   {
@@ -28,7 +28,7 @@ export const first3HoursUnlockMatrix = [
     achievement: 'chain_certified',
     uiState: 'reroll_hint',
     nextGoal: 'make_first_purchase',
-    visibility: 'preview',
+    visibility: 'hinted',
     unlockRuleIds: ['unlock.feature.blacksmith_reroll', 'unlock.arcana.blood_pact', 'unlock.relic.ash_compass']
   }
 ] as const satisfies readonly First3HoursUnlockMatrixEntry[];

@@ -31,6 +31,7 @@ const unlockTargetTableKeys: readonly UnlockTargetTableKey[] = [
 ];
 
 const specialMatrixAchievementValues = new Set(['none', 'unchanged']);
+const matrixVisibilityValues = ['hidden', 'hinted', 'condition_visible', 'unlocked'];
 
 export function validateLongLoopConfig(config: ConfigRecord): LongLoopConfigValidationResult {
   const errors: string[] = [];
@@ -131,20 +132,21 @@ function validateMatrix(
     );
 
     const achievement = entry.achievement;
-    if (!validateRequiredString(achievement, `first3HoursUnlockMatrix[${index}].achievement`, errors)) {
-      return;
-    }
-    if (!specialMatrixAchievementValues.has(achievement) && !idSets.achievements.has(achievement)) {
+    if (
+      validateRequiredString(achievement, `first3HoursUnlockMatrix[${index}].achievement`, errors) &&
+      !specialMatrixAchievementValues.has(achievement) &&
+      !idSets.achievements.has(achievement)
+    ) {
       errors.push(`first3HoursUnlockMatrix[${index}].achievement must be an achievement id, none, or unchanged`);
     }
 
     validateRequiredString(entry.uiState, `first3HoursUnlockMatrix[${index}].uiState`, errors);
     validateRequiredString(entry.nextGoal, `first3HoursUnlockMatrix[${index}].nextGoal`, errors);
-    if (!validateRequiredString(entry.visibility, `first3HoursUnlockMatrix[${index}].visibility`, errors)) {
-      return;
-    }
-    if (!['hidden', 'preview', 'visible'].includes(entry.visibility)) {
-      errors.push(`first3HoursUnlockMatrix[${index}].visibility must be hidden, preview, or visible`);
+    if (
+      validateRequiredString(entry.visibility, `first3HoursUnlockMatrix[${index}].visibility`, errors) &&
+      !matrixVisibilityValues.includes(entry.visibility)
+    ) {
+      errors.push(`first3HoursUnlockMatrix[${index}].visibility must be hidden, hinted, condition_visible, or unlocked`);
     }
 
     validateReferences(
