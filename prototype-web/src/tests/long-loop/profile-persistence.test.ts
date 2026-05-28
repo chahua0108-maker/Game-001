@@ -39,6 +39,28 @@ class MemoryStorage implements Storage {
   }
 }
 
+class ThrowingStorage extends MemoryStorage {
+  constructor(private readonly failureMode: 'getItem' | 'setItem') {
+    super();
+  }
+
+  override getItem(key: string): string | null {
+    if (this.failureMode === 'getItem') {
+      throw new Error('getItem unavailable');
+    }
+
+    return super.getItem(key);
+  }
+
+  override setItem(key: string, value: string): void {
+    if (this.failureMode === 'setItem') {
+      throw new Error('setItem unavailable');
+    }
+
+    super.setItem(key, value);
+  }
+}
+
 describe('long-loop profile persistence', () => {
   it('keeps meta progression across reload while dropping run-local card enhancements', () => {
     const storage = new MemoryStorage();
@@ -122,5 +144,86 @@ describe('long-loop profile persistence', () => {
       clearedDistrictIds: ['D1']
     });
     expect(selectRunLocalPreview(profile).cardEnhancements).toEqual([{ cardId: 'slash', level: 2 }]);
+  });
+
+  it('drops legacy run-local card enhancements when loading raw stored JSON', () => {
+    const storage = new MemoryStorage();
+
+    storage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        runLocalPreview: {
+          cardEnhancements: [{ cardId: 'slash', level: 2 }]
+        }
+      })
+    );
+
+    expect(selectRunLocalPreview(loadProfile({ storage })).cardEnhancements).toEqual([]);
+  });
+
+  it('strips raw permanent stat upgrade ids during load and save', () => {
+    const storage = new MemoryStorage();
+
+    storage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        permanentUpgrades: {
+          upgradeRanks: {
+            attack: 4,
+            hp: 3,
+            max_mp: 2,
+            'max mp': 2,
+            maxmp: 2,
+            'upgrade.max_health': 1,
+            unlock_blacksmith_reroll_service: 1
+          }
+        }
+      })
+    );
+
+    const loadedProfile = loadProfile({ storage });
+
+    expect(loadedProfile.permanentUpgrades.upgradeRanks).toEqual({
+      unlock_blacksmith_reroll_service: 1
+    });
+
+    loadedProfile.permanentUpgrades.upgradeRanks.attack = 9;
+    loadedProfile.permanentUpgrades.upgradeRanks.unlock_stable_chain_choices = 1;
+    saveProfile(loadedProfile, { storage });
+
+    const savedProfile = JSON.parse(storage.getItem(PROFILE_STORAGE_KEY) ?? '{}');
+    expect(savedProfile.permanentUpgrades.upgradeRanks).toEqual({
+      unlock_blacksmith_reroll_service: 1,
+      unlock_stable_chain_choices: 1
+    });
+  });
+
+  it('falls back or no-ops when storage access throws', () => {
+    expect(loadProfile({ storage: new ThrowingStorage('getItem') }).profileId).toBe('default');
+
+    const profile = createDefaultProfile();
+
+    expect(() => saveProfile(profile, { storage: new ThrowingStorage('setItem') })).not.toThrow();
+  });
+
+  it('preserves default-bearing map and feature gates when saved arrays are malformed', () => {
+    const storage = new MemoryStorage();
+
+    storage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        map: {
+          unlockedNodeIds: [null, 7, {}]
+        },
+        featureGates: {
+          unlockedIds: [false, 3, []]
+        }
+      })
+    );
+
+    const loadedProfile = loadProfile({ storage });
+
+    expect(loadedProfile.map.unlockedNodeIds).toEqual(['map.start']);
+    expect(loadedProfile.featureGates.unlockedIds).toEqual(['feature.map_branching', 'feature.shop_inventory']);
   });
 });

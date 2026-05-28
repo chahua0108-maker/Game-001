@@ -3,6 +3,20 @@ import { CURRENT_PROFILE_VERSION, type LongLoopProfile } from './profileTypes';
 
 type UnknownRecord = Record<string, unknown>;
 
+const RAW_STAT_UPGRADE_TOKEN_DENYLIST = new Set(['attack', 'atk', 'hp', 'health']);
+const RAW_STAT_UPGRADE_NORMALIZED_DENYLIST = new Set([
+  'attack',
+  'atk',
+  'hp',
+  'health',
+  'maxhp',
+  'maxhealth',
+  'maxmp',
+  'mp',
+  'mana',
+  'maxmana'
+]);
+
 export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID): LongLoopProfile {
   const source = isRecord(snapshot) ? snapshot : {};
   const profile = createDefaultProfile({ profileId: stringValue(source.profileId, profileId) });
@@ -11,7 +25,9 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
   profile.wallet.metaGems = numberValue(recordValue(source.wallet)?.metaGems, profile.wallet.metaGems);
 
   const map = recordValue(source.map);
-  profile.map.unlockedNodeIds = uniqueStrings(recordValue(map)?.unlockedNodeIds, profile.map.unlockedNodeIds);
+  profile.map.unlockedNodeIds = uniqueStrings(recordValue(map)?.unlockedNodeIds, profile.map.unlockedNodeIds, {
+    preserveFallbackWhenEmpty: true
+  });
   profile.map.completedNodeIds = uniqueStrings(recordValue(map)?.completedNodeIds, profile.map.completedNodeIds);
   profile.map.clearedDistrictIds = uniqueStrings(recordValue(map)?.clearedDistrictIds, profile.map.clearedDistrictIds);
 
@@ -41,7 +57,7 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
   );
 
   const permanentUpgrades = recordValue(source.permanentUpgrades);
-  profile.permanentUpgrades.upgradeRanks = numberRecord(permanentUpgrades?.upgradeRanks);
+  profile.permanentUpgrades.upgradeRanks = upgradeRankRecord(permanentUpgrades?.upgradeRanks);
   profile.permanentUpgrades.statUpgradeBoundary = { ...DEFAULT_STAT_UPGRADE_BOUNDARY };
 
   const collection = recordValue(source.collection);
@@ -62,12 +78,11 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
 
   profile.featureGates.unlockedIds = uniqueStrings(
     recordValue(source.featureGates)?.unlockedIds,
-    profile.featureGates.unlockedIds
+    profile.featureGates.unlockedIds,
+    { preserveFallbackWhenEmpty: true }
   );
 
-  profile.runLocalPreview.cardEnhancements = migrateCardEnhancements(
-    recordValue(source.runLocalPreview)?.cardEnhancements
-  );
+  profile.runLocalPreview.cardEnhancements = [];
 
   profile.version = CURRENT_PROFILE_VERSION;
   return profile;
@@ -100,7 +115,7 @@ export function sanitizeProfileForSave(profile: LongLoopProfile): LongLoopProfil
       runLocalServiceBoundary: 'card_level_socket_reroll_not_persisted'
     },
     permanentUpgrades: {
-      upgradeRanks: { ...profile.permanentUpgrades.upgradeRanks },
+      upgradeRanks: upgradeRankRecord(profile.permanentUpgrades.upgradeRanks),
       statUpgradeBoundary: { ...DEFAULT_STAT_UPGRADE_BOUNDARY }
     },
     collection: {
@@ -125,26 +140,17 @@ export function sanitizeProfileForSave(profile: LongLoopProfile): LongLoopProfil
   };
 }
 
-function migrateCardEnhancements(value: unknown): LongLoopProfile['runLocalPreview']['cardEnhancements'] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((entry) => {
-    if (!isRecord(entry) || typeof entry.cardId !== 'string' || typeof entry.level !== 'number') {
-      return [];
-    }
-
-    return [{ cardId: entry.cardId, level: entry.level }];
-  });
-}
-
-function uniqueStrings(value: unknown, fallback: string[]): string[] {
+function uniqueStrings(
+  value: unknown,
+  fallback: string[],
+  options: { preserveFallbackWhenEmpty?: boolean } = {}
+): string[] {
   if (!Array.isArray(value)) {
     return [...fallback];
   }
 
-  return Array.from(new Set(value.filter((entry): entry is string => typeof entry === 'string')));
+  const strings = Array.from(new Set(value.filter((entry): entry is string => typeof entry === 'string')));
+  return strings.length === 0 && options.preserveFallbackWhenEmpty ? [...fallback] : strings;
 }
 
 function numberRecord(value: unknown): Record<string, number> {
@@ -154,6 +160,33 @@ function numberRecord(value: unknown): Record<string, number> {
 
   return Object.fromEntries(
     Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+  );
+}
+
+function upgradeRankRecord(value: unknown): Record<string, number> {
+  return Object.fromEntries(Object.entries(numberRecord(value)).filter(([id]) => !isRawStatUpgradeId(id)));
+}
+
+function isRawStatUpgradeId(id: string): boolean {
+  const normalized = id.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (RAW_STAT_UPGRADE_NORMALIZED_DENYLIST.has(normalized)) {
+    return true;
+  }
+
+  const tokens = id
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+  if (tokens.some((token) => RAW_STAT_UPGRADE_TOKEN_DENYLIST.has(token))) {
+    return true;
+  }
+
+  return (
+    (tokens.includes('max') && (tokens.includes('mp') || tokens.includes('mana') || tokens.includes('hp'))) ||
+    normalized.includes('maxhealth') ||
+    normalized.includes('maxhp') ||
+    normalized.includes('maxmp')
   );
 }
 

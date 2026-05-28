@@ -11,7 +11,7 @@ export function loadProfile(options: ProfileStorageOptions = {}): LongLoopProfil
     return createDefaultProfile({ profileId: options.profileId });
   }
 
-  const rawProfile = storage.getItem(options.storageKey ?? PROFILE_STORAGE_KEY);
+  const rawProfile = readStorageItem(storage, options.storageKey ?? PROFILE_STORAGE_KEY);
   if (!rawProfile) {
     return createDefaultProfile({ profileId: options.profileId });
   }
@@ -27,12 +27,16 @@ export function saveProfile(profile: LongLoopProfile, options: ProfileStorageOpt
   const storage = resolveStorage(options.storage);
   const snapshot = sanitizeProfileForSave(profile);
 
-  storage?.setItem(options.storageKey ?? PROFILE_STORAGE_KEY, JSON.stringify(snapshot));
+  writeStorageItem(storage, options.storageKey ?? PROFILE_STORAGE_KEY, JSON.stringify(snapshot));
   return snapshot;
 }
 
 export function clearProfile(options: ProfileStorageOptions = {}): void {
-  resolveStorage(options.storage)?.removeItem(options.storageKey ?? PROFILE_STORAGE_KEY);
+  try {
+    resolveStorage(options.storage)?.removeItem(options.storageKey ?? PROFILE_STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
 }
 
 function resolveStorage(storage?: Storage): Storage | undefined {
@@ -40,5 +44,25 @@ function resolveStorage(storage?: Storage): Storage | undefined {
     return storage;
   }
 
-  return typeof globalThis.localStorage === 'undefined' ? undefined : globalThis.localStorage;
+  try {
+    return typeof globalThis.localStorage === 'undefined' ? undefined : globalThis.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+function readStorageItem(storage: Storage, key: string): string | null {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorageItem(storage: Storage | undefined, key: string, value: string): void {
+  try {
+    storage?.setItem(key, value);
+  } catch {
+    // Save should not crash gameplay when storage quota or access fails.
+  }
 }
