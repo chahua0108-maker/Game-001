@@ -1,0 +1,130 @@
+{
+  "storageKey": "vampire-crawlers.profile.v1",
+  "source": {
+    "type": "vitest-node-orchestrator",
+    "appCodeExercised": [
+      "src/meta/orchestrator/runLoopOrchestrator.ts",
+      "src/meta/profile/profileStore.ts",
+      "src/meta/profile/profileStorage.ts"
+    ],
+    "browserAutomation": false,
+    "limitation": "This proof runs the app long-loop orchestrator and profile storage path in Vitest/Node MemoryStorage. It is QA proof, not DOM/browser rendering proof."
+  },
+  "generatedAt": "2026-05-28T16:34:55.229Z",
+  "rawValue": "{\"version\":1,\"profileId\":\"p0-qa-evidence-profile\",\"wallet\":{\"softCurrency\":20,\"metaGems\":1},\"map\":{\"unlockedNodeIds\":[\"map.start\"],\"completedNodeIds\":[\"map.d1\"],\"clearedDistrictIds\":[\"D1\"]},\"achievements\":{\"unlockedIds\":[\"first_run_completed\",\"clear_d1\",\"chain_certified\",\"first_purchase\"]},\"shop\":{\"purchasedItemIds\":[\"starter_stable_chain\"]},\"starter\":{\"selectedStarterKitId\":\"starter.default_chain\",\"unlockedStarterKitIds\":[\"starter.default_chain\",\"starter.stable_chain\"],\"selectedCrawlerId\":\"crawler.blood_runner\",\"unlockedCrawlerIds\":[\"crawler.blood_runner\"]},\"blacksmith\":{\"purchasedPermitIds\":[],\"unlockedServiceIds\":[],\"runLocalServiceBoundary\":\"card_level_socket_reroll_not_persisted\"},\"permanentUpgrades\":{\"upgradeRanks\":{},\"statUpgradeBoundary\":{\"attack\":\"not_persisted\",\"hp\":\"not_persisted\",\"maxMp\":\"not_persisted\"}},\"collection\":{\"seenIds\":[\"starter_stable_chain\"],\"seenCategoryIds\":[]},\"relicArcanaGem\":{\"unlockedRelicIds\":[],\"unlockedArcanaIds\":[],\"ownedGemIds\":[],\"gemInventory\":{},\"socketBoundary\":\"run_local_not_persisted\"},\"featureGates\":{\"unlockedIds\":[\"map.branching\",\"hub.shop\",\"hub.blacksmith\"]},\"runLocalPreview\":{\"cardEnhancements\":[],\"gemSocketBoundary\":\"not_persisted\",\"rerollResultBoundary\":\"not_persisted\"},\"orchestrator\":{\"settledRunIds\":[\"run-1\"],\"nextRunSequence\":2,\"phaseEvents\":[{\"type\":\"p0.d1.started\",\"runId\":\"run-1\"},{\"type\":\"p0.d1.settled\",\"runId\":\"run-1\"},{\"type\":\"p0.settlement.shown\",\"runId\":\"run-1\"},{\"type\":\"p0.shop.item-purchased\",\"itemId\":\"starter_stable_chain\"},{\"type\":\"p0.next-run-preview.changed\",\"itemId\":\"starter_stable_chain\"},{\"type\":\"p0.profile-meta.reloaded\"}]}}",
+  "parsedProfile": {
+    "version": 1,
+    "profileId": "p0-qa-evidence-profile",
+    "wallet": {
+      "softCurrency": 20,
+      "metaGems": 1
+    },
+    "map": {
+      "unlockedNodeIds": [
+        "map.start"
+      ],
+      "completedNodeIds": [
+        "map.d1"
+      ],
+      "clearedDistrictIds": [
+        "D1"
+      ]
+    },
+    "achievements": {
+      "unlockedIds": [
+        "first_run_completed",
+        "clear_d1",
+        "chain_certified",
+        "first_purchase"
+      ]
+    },
+    "shop": {
+      "purchasedItemIds": [
+        "starter_stable_chain"
+      ]
+    },
+    "starter": {
+      "selectedStarterKitId": "starter.default_chain",
+      "unlockedStarterKitIds": [
+        "starter.default_chain",
+        "starter.stable_chain"
+      ],
+      "selectedCrawlerId": "crawler.blood_runner",
+      "unlockedCrawlerIds": [
+        "crawler.blood_runner"
+      ]
+    },
+    "blacksmith": {
+      "purchasedPermitIds": [],
+      "unlockedServiceIds": [],
+      "runLocalServiceBoundary": "card_level_socket_reroll_not_persisted"
+    },
+    "permanentUpgrades": {
+      "upgradeRanks": {},
+      "statUpgradeBoundary": {
+        "attack": "not_persisted",
+        "hp": "not_persisted",
+        "maxMp": "not_persisted"
+      }
+    },
+    "collection": {
+      "seenIds": [
+        "starter_stable_chain"
+      ],
+      "seenCategoryIds": []
+    },
+    "relicArcanaGem": {
+      "unlockedRelicIds": [],
+      "unlockedArcanaIds": [],
+      "ownedGemIds": [],
+      "gemInventory": {},
+      "socketBoundary": "run_local_not_persisted"
+    },
+    "featureGates": {
+      "unlockedIds": [
+        "map.branching",
+        "hub.shop",
+        "hub.blacksmith"
+      ]
+    },
+    "runLocalPreview": {
+      "cardEnhancements": [],
+      "gemSocketBoundary": "not_persisted",
+      "rerollResultBoundary": "not_persisted"
+    },
+    "orchestrator": {
+      "settledRunIds": [
+        "run-1"
+      ],
+      "nextRunSequence": 2,
+      "phaseEvents": [
+        {
+          "type": "p0.d1.started",
+          "runId": "run-1"
+        },
+        {
+          "type": "p0.d1.settled",
+          "runId": "run-1"
+        },
+        {
+          "type": "p0.settlement.shown",
+          "runId": "run-1"
+        },
+        {
+          "type": "p0.shop.item-purchased",
+          "itemId": "starter_stable_chain"
+        },
+        {
+          "type": "p0.next-run-preview.changed",
+          "itemId": "starter_stable_chain"
+        },
+        {
+          "type": "p0.profile-meta.reloaded"
+        }
+      ]
+    }
+  },
+  "storageDump": {
+    "vampire-crawlers.profile.v1": "{\"version\":1,\"profileId\":\"p0-qa-evidence-profile\",\"wallet\":{\"softCurrency\":20,\"metaGems\":1},\"map\":{\"unlockedNodeIds\":[\"map.start\"],\"completedNodeIds\":[\"map.d1\"],\"clearedDistrictIds\":[\"D1\"]},\"achievements\":{\"unlockedIds\":[\"first_run_completed\",\"clear_d1\",\"chain_certified\",\"first_purchase\"]},\"shop\":{\"purchasedItemIds\":[\"starter_stable_chain\"]},\"starter\":{\"selectedStarterKitId\":\"starter.default_chain\",\"unlockedStarterKitIds\":[\"starter.default_chain\",\"starter.stable_chain\"],\"selectedCrawlerId\":\"crawler.blood_runner\",\"unlockedCrawlerIds\":[\"crawler.blood_runner\"]},\"blacksmith\":{\"purchasedPermitIds\":[],\"unlockedServiceIds\":[],\"runLocalServiceBoundary\":\"card_level_socket_reroll_not_persisted\"},\"permanentUpgrades\":{\"upgradeRanks\":{},\"statUpgradeBoundary\":{\"attack\":\"not_persisted\",\"hp\":\"not_persisted\",\"maxMp\":\"not_persisted\"}},\"collection\":{\"seenIds\":[\"starter_stable_chain\"],\"seenCategoryIds\":[]},\"relicArcanaGem\":{\"unlockedRelicIds\":[],\"unlockedArcanaIds\":[],\"ownedGemIds\":[],\"gemInventory\":{},\"socketBoundary\":\"run_local_not_persisted\"},\"featureGates\":{\"unlockedIds\":[\"map.branching\",\"hub.shop\",\"hub.blacksmith\"]},\"runLocalPreview\":{\"cardEnhancements\":[],\"gemSocketBoundary\":\"not_persisted\",\"rerollResultBoundary\":\"not_persisted\"},\"orchestrator\":{\"settledRunIds\":[\"run-1\"],\"nextRunSequence\":2,\"phaseEvents\":[{\"type\":\"p0.d1.started\",\"runId\":\"run-1\"},{\"type\":\"p0.d1.settled\",\"runId\":\"run-1\"},{\"type\":\"p0.settlement.shown\",\"runId\":\"run-1\"},{\"type\":\"p0.shop.item-purchased\",\"itemId\":\"starter_stable_chain\"},{\"type\":\"p0.next-run-preview.changed\",\"itemId\":\"starter_stable_chain\"},{\"type\":\"p0.profile-meta.reloaded\"}]}}"
+  }
+}

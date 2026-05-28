@@ -15,7 +15,8 @@
     "validate:long-loop-config": "node scripts/validate-long-loop-config.mjs",
     "qa:ui": "node scripts/qa-ui.mjs",
     "qa:similarity": "node scripts/qa-similarity.mjs",
-    "qa:lifecycle": "node scripts/qa-lifecycle.mjs"
+    "qa:lifecycle": "node scripts/qa-lifecycle.mjs",
+    "qa:long-loop": "node scripts/qa-long-loop.mjs"
   },
   "dependencies": {
     "three": "^0.164.1"

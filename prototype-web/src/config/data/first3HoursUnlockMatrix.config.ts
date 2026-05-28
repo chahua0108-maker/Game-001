@@ -1,20 +1,21 @@
 import type { First3HoursUnlockMatrixEntry } from '../schema/definitions';
+import { CANONICAL_FEATURE_GATE_IDS, CANONICAL_MAP_NODE_IDS } from '../schema/ids';
 
 export const first3HoursUnlockMatrix = [
   {
     trigger: 'run_completed',
-    mapNode: 'map.start',
-    featureGate: 'feature.shop_inventory',
+    mapNode: CANONICAL_MAP_NODE_IDS.start,
+    featureGate: CANONICAL_FEATURE_GATE_IDS.hubShop,
     achievement: 'first_run_completed',
     uiState: 'unlock_toast',
     nextGoal: 'buy_first_permit',
     visibility: 'unlocked',
-    unlockRuleIds: ['unlock.map.elite_route', 'unlock.feature.blacksmith', 'unlock.shop.starter_stable_chain']
+    unlockRuleIds: ['unlock.map.elite_route', 'unlock.hub.blacksmith', 'unlock.shop.starter_stable_chain']
   },
   {
     trigger: 'district_clear',
-    mapNode: 'map.elite_fork',
-    featureGate: 'feature.blacksmith',
+    mapNode: CANONICAL_MAP_NODE_IDS.eliteFork,
+    featureGate: CANONICAL_FEATURE_GATE_IDS.hubBlacksmith,
     achievement: 'clear_d1',
     uiState: 'blacksmith_available',
     nextGoal: 'certify_stable_chain',
@@ -24,11 +25,11 @@ export const first3HoursUnlockMatrix = [
   {
     trigger: 'chain_certified',
     mapNode: 'unchanged',
-    featureGate: 'feature.blacksmith_reroll',
+    featureGate: CANONICAL_FEATURE_GATE_IDS.blacksmithReroll,
     achievement: 'chain_certified',
     uiState: 'reroll_hint',
     nextGoal: 'make_first_purchase',
     visibility: 'hinted',
-    unlockRuleIds: ['unlock.feature.blacksmith_reroll', 'unlock.arcana.blood_pact', 'unlock.relic.ash_compass']
+    unlockRuleIds: ['unlock.blacksmith.reroll_gate', 'unlock.arcana.blood_pact', 'unlock.relic.ash_compass']
   }
 ] as const satisfies readonly First3HoursUnlockMatrixEntry[];

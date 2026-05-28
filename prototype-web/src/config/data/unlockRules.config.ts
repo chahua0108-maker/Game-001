@@ -1,32 +1,33 @@
 import type { UnlockRuleConfig } from '../schema/definitions';
+import { CANONICAL_FEATURE_GATE_IDS, CANONICAL_MAP_NODE_IDS } from '../schema/ids';
 
 export const unlockRules = [
   {
     id: 'unlock.map.d2',
     name: 'D2 Unlock',
     targetSystem: 'mapNodes',
-    targetId: 'd2',
+    targetId: CANONICAL_MAP_NODE_IDS.d2,
     requiresAchievements: ['clear_d1']
   },
   {
     id: 'unlock.map.d3',
     name: 'D3 Unlock',
     targetSystem: 'mapNodes',
-    targetId: 'd3',
+    targetId: CANONICAL_MAP_NODE_IDS.d3,
     requiresAchievements: ['clear_d2']
   },
   {
     id: 'unlock.map.d4',
     name: 'D4 Pollution Preview Unlock',
     targetSystem: 'mapNodes',
-    targetId: 'd4',
+    targetId: CANONICAL_MAP_NODE_IDS.d4,
     requiresAchievements: ['build_survived_d3']
   },
   {
     id: 'unlock.map.elite_route',
     name: 'Elite Route Unlock',
     targetSystem: 'mapNodes',
-    targetId: 'map.elite_fork',
+    targetId: CANONICAL_MAP_NODE_IDS.eliteFork,
     requiresAchievements: ['first_run_completed']
   },
   {
@@ -37,17 +38,17 @@ export const unlockRules = [
     requiresAchievements: ['chain_certified']
   },
   {
-    id: 'unlock.feature.blacksmith',
+    id: 'unlock.hub.blacksmith',
     name: 'Blacksmith Feature Unlock',
     targetSystem: 'featureGates',
-    targetId: 'feature.blacksmith',
+    targetId: CANONICAL_FEATURE_GATE_IDS.hubBlacksmith,
     requiresAchievements: ['first_run_completed']
   },
   {
-    id: 'unlock.feature.blacksmith_reroll',
+    id: 'unlock.blacksmith.reroll_gate',
     name: 'Blacksmith Reroll Feature Unlock',
     targetSystem: 'featureGates',
-    targetId: 'feature.blacksmith_reroll',
+    targetId: CANONICAL_FEATURE_GATE_IDS.blacksmithReroll,
     requiresAchievements: ['first_purchase']
   },
   {
@@ -55,7 +56,7 @@ export const unlockRules = [
     name: 'Raise Level Service Unlock',
     targetSystem: 'blacksmithServices',
     targetId: 'blacksmith.raise_level',
-    requiresFeatureGates: ['feature.blacksmith']
+    requiresFeatureGates: [CANONICAL_FEATURE_GATE_IDS.hubBlacksmith]
   },
   {
     id: 'unlock.blacksmith.red_socket',
@@ -63,7 +64,7 @@ export const unlockRules = [
     targetSystem: 'blacksmithServices',
     targetId: 'blacksmith.red_socket',
     requiresAchievements: ['clear_d1'],
-    requiresFeatureGates: ['feature.blacksmith']
+    requiresFeatureGates: [CANONICAL_FEATURE_GATE_IDS.hubBlacksmith]
   },
   {
     id: 'unlock.blacksmith.reroll',
@@ -71,7 +72,7 @@ export const unlockRules = [
     targetSystem: 'blacksmithServices',
     targetId: 'blacksmith.reroll',
     requiresAchievements: ['first_purchase'],
-    requiresFeatureGates: ['feature.blacksmith_reroll']
+    requiresFeatureGates: [CANONICAL_FEATURE_GATE_IDS.blacksmithReroll]
   },
   {
     id: 'unlock.permanentUpgrade.blacksmith_reroll',
@@ -106,6 +107,6 @@ export const unlockRules = [
     name: 'Blacksmith Building Entry Unlock',
     targetSystem: 'unlockBuildingEntries',
     targetId: 'building.blacksmith',
-    requiresFeatureGates: ['feature.blacksmith']
+    requiresFeatureGates: [CANONICAL_FEATURE_GATE_IDS.hubBlacksmith]
   }
 ] as const satisfies readonly UnlockRuleConfig[];

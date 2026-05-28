@@ -1,3 +1,4 @@
+import { toCanonicalLongLoopId } from '../../config/schema/ids';
 import { createDefaultProfile, DEFAULT_PROFILE_ID, DEFAULT_STAT_UPGRADE_BOUNDARY } from './createProfile';
 import { CURRENT_PROFILE_VERSION, type LongLoopProfile } from './profileTypes';
 
@@ -25,10 +26,12 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
   profile.wallet.metaGems = numberValue(recordValue(source.wallet)?.metaGems, profile.wallet.metaGems);
 
   const map = recordValue(source.map);
-  profile.map.unlockedNodeIds = uniqueStrings(recordValue(map)?.unlockedNodeIds, profile.map.unlockedNodeIds, {
-    preserveFallbackWhenEmpty: true
-  });
-  profile.map.completedNodeIds = uniqueStrings(recordValue(map)?.completedNodeIds, profile.map.completedNodeIds);
+  profile.map.unlockedNodeIds = canonicalStrings(
+    recordValue(map)?.unlockedNodeIds,
+    profile.map.unlockedNodeIds,
+    { preserveFallbackWhenEmpty: true }
+  );
+  profile.map.completedNodeIds = canonicalStrings(recordValue(map)?.completedNodeIds, profile.map.completedNodeIds);
   profile.map.clearedDistrictIds = uniqueStrings(recordValue(map)?.clearedDistrictIds, profile.map.clearedDistrictIds);
 
   profile.achievements.unlockedIds = uniqueStrings(
@@ -38,8 +41,10 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
   profile.shop.purchasedItemIds = uniqueStrings(recordValue(source.shop)?.purchasedItemIds, profile.shop.purchasedItemIds);
 
   const starter = recordValue(source.starter);
-  profile.starter.selectedStarterKitId = stringValue(starter?.selectedStarterKitId, profile.starter.selectedStarterKitId);
-  profile.starter.unlockedStarterKitIds = uniqueStrings(
+  profile.starter.selectedStarterKitId = toCanonicalLongLoopId(
+    stringValue(starter?.selectedStarterKitId, profile.starter.selectedStarterKitId)
+  );
+  profile.starter.unlockedStarterKitIds = canonicalStrings(
     starter?.unlockedStarterKitIds,
     profile.starter.unlockedStarterKitIds,
     { preserveFallbackWhenEmpty: true }
@@ -79,7 +84,7 @@ export function migrateProfile(snapshot: unknown, profileId = DEFAULT_PROFILE_ID
   profile.relicArcanaGem.ownedGemIds = uniqueStrings(relicArcanaGem?.ownedGemIds, profile.relicArcanaGem.ownedGemIds);
   profile.relicArcanaGem.gemInventory = numberRecord(relicArcanaGem?.gemInventory);
 
-  profile.featureGates.unlockedIds = uniqueStrings(
+  profile.featureGates.unlockedIds = canonicalStrings(
     recordValue(source.featureGates)?.unlockedIds,
     profile.featureGates.unlockedIds,
     { preserveFallbackWhenEmpty: true }
@@ -167,6 +172,14 @@ function uniqueStrings(
 
   const strings = Array.from(new Set(value.filter((entry): entry is string => typeof entry === 'string')));
   return strings.length === 0 && options.preserveFallbackWhenEmpty ? [...fallback] : strings;
+}
+
+function canonicalStrings(
+  value: unknown,
+  fallback: string[],
+  options: { preserveFallbackWhenEmpty?: boolean } = {}
+): string[] {
+  return uniqueStrings(value, fallback, options).map(toCanonicalLongLoopId);
 }
 
 function numberRecord(value: unknown): Record<string, number> {

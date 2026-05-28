@@ -1,0 +1,362 @@
+{
+  "name": "p0-long-loop-evidence",
+  "status": "pass",
+  "generatedAt": "2026-05-28T16:34:55.229Z",
+  "evidenceSource": {
+    "type": "vitest-node-orchestrator",
+    "appCodeExercised": [
+      "src/meta/orchestrator/runLoopOrchestrator.ts",
+      "src/meta/profile/profileStore.ts",
+      "src/meta/profile/profileStorage.ts"
+    ],
+    "browserAutomation": false,
+    "limitation": "This proof runs the app long-loop orchestrator and profile storage path in Vitest/Node MemoryStorage. It is QA proof, not DOM/browser rendering proof."
+  },
+  "browserProof": {
+    "status": "not-run",
+    "reason": "prototype-web/package.json does not declare Playwright. Existing browser QA scripts rely on optional external Playwright; this P0 proof uses the lighter existing Vitest harness."
+  },
+  "storage": {
+    "key": "vampire-crawlers.profile.v1",
+    "file": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/p0-latest/profile-storage.json",
+    "rawProfileBytes": 1581
+  },
+  "profileDump": {
+    "file": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/p0-latest/profile-dump.json",
+    "summary": {
+      "profileId": "p0-qa-evidence-profile",
+      "version": 1,
+      "softCurrency": 20,
+      "metaGems": 1,
+      "achievementIds": [
+        "first_run_completed",
+        "clear_d1",
+        "chain_certified",
+        "first_purchase"
+      ],
+      "purchasedShopItemIds": [
+        "starter_stable_chain"
+      ],
+      "unlockedStarterKitIds": [
+        "starter.default_chain",
+        "starter.stable_chain"
+      ],
+      "featureGateIds": [
+        "map.branching",
+        "hub.shop",
+        "hub.blacksmith"
+      ],
+      "completedMapNodeIds": [
+        "map.d1"
+      ],
+      "clearedDistrictIds": [
+        "D1"
+      ],
+      "phaseEventTypes": [
+        "p0.d1.started",
+        "p0.d1.settled",
+        "p0.settlement.shown",
+        "p0.shop.item-purchased",
+        "p0.next-run-preview.changed",
+        "p0.profile-meta.reloaded"
+      ],
+      "nextRunSequence": 2
+    }
+  },
+  "assertions": {
+    "runStarted": true,
+    "settlementShown": true,
+    "shopPurchasePersisted": true,
+    "nextRunPreviewChanged": true,
+    "reloadViaStorage": true,
+    "profileDumpReady": true
+  },
+  "gateScore": {
+    "passed": 6,
+    "total": 6
+  },
+  "steps": [
+    {
+      "name": "run_start",
+      "status": "pass",
+      "detail": {
+        "id": "run-1",
+        "districtId": "D1",
+        "starterKitId": "starter.default_chain",
+        "status": "active",
+        "starterPayload": {
+          "selectedStarterKitId": "starter.default_chain",
+          "availableStarterKitIds": [
+            "starter.default_chain"
+          ],
+          "deckModifierId": "starter.default_chain.deck",
+          "grantedCardIds": [
+            "debt_hook",
+            "redline_cut",
+            "wild_mana_stitch"
+          ],
+          "starterCardIds": [
+            "debt_hook",
+            "redline_cut",
+            "wild_mana_stitch"
+          ],
+          "deckMutationBoundary": "adapter_payload_only"
+        },
+        "runLocalEnhancementIds": []
+      }
+    },
+    {
+      "name": "settlement",
+      "status": "pass",
+      "detail": {
+        "runId": "run-1",
+        "outcome": "district_cleared",
+        "districtId": "D1",
+        "achievementIds": [
+          "first_run_completed",
+          "clear_d1",
+          "chain_certified"
+        ],
+        "uiStateIds": [
+          "settlement",
+          "unlock_toast",
+          "blacksmith_available",
+          "shop_inventory"
+        ],
+        "unlockedFeatureGateIds": [
+          "hub.blacksmith"
+        ],
+        "visibleShopItemIds": [
+          "starter_stable_chain",
+          "blacksmith_raise_level_permit",
+          "blacksmith_red_socket_permit"
+        ],
+        "softCurrencyDelta": 100,
+        "metaGemDelta": 1
+      }
+    },
+    {
+      "name": "shop_purchase",
+      "status": "pass",
+      "detail": {
+        "shopBeforePurchase": {
+          "visibleItemIds": [
+            "starter_stable_chain",
+            "blacksmith_raise_level_permit",
+            "blacksmith_red_socket_permit"
+          ],
+          "purchasedItemIds": []
+        },
+        "purchase": {
+          "ok": true,
+          "itemId": "starter_stable_chain",
+          "achievementIds": [
+            "first_purchase"
+          ],
+          "purchase": {
+            "itemId": "starter_stable_chain",
+            "currencyId": "settlement_reputation",
+            "price": 80
+          },
+          "effects": [
+            {
+              "type": "UnlockStarterPreview",
+              "starterKitId": "starter.stable_chain",
+              "sourceShopItemId": "starter_stable_chain"
+            }
+          ]
+        },
+        "shopAfterPurchase": {
+          "visibleItemIds": [
+            "starter_stable_chain",
+            "blacksmith_raise_level_permit",
+            "blacksmith_red_socket_permit",
+            "blacksmith_reroll_permit"
+          ],
+          "purchasedItemIds": [
+            "starter_stable_chain"
+          ]
+        }
+      }
+    },
+    {
+      "name": "next_run_preview",
+      "status": "pass",
+      "detail": {
+        "before": {
+          "districtId": "D1",
+          "selectedStarterKitId": "starter.default_chain",
+          "starterKitIds": [
+            "starter.default_chain"
+          ],
+          "purchasedShopItemIds": [],
+          "featureGateIds": [
+            "map.branching",
+            "hub.shop",
+            "hub.blacksmith"
+          ],
+          "runLocalEnhancementIds": [],
+          "starterPayload": {
+            "selectedStarterKitId": "starter.default_chain",
+            "availableStarterKitIds": [
+              "starter.default_chain"
+            ],
+            "deckModifierId": "starter.default_chain.deck",
+            "grantedCardIds": [
+              "debt_hook",
+              "redline_cut",
+              "wild_mana_stitch"
+            ],
+            "starterCardIds": [
+              "debt_hook",
+              "redline_cut",
+              "wild_mana_stitch"
+            ],
+            "deckMutationBoundary": "adapter_payload_only"
+          }
+        },
+        "after": {
+          "districtId": "D1",
+          "selectedStarterKitId": "starter.default_chain",
+          "starterKitIds": [
+            "starter.default_chain",
+            "starter.stable_chain"
+          ],
+          "purchasedShopItemIds": [
+            "starter_stable_chain"
+          ],
+          "featureGateIds": [
+            "map.branching",
+            "hub.shop",
+            "hub.blacksmith"
+          ],
+          "runLocalEnhancementIds": [],
+          "starterPayload": {
+            "selectedStarterKitId": "starter.default_chain",
+            "availableStarterKitIds": [
+              "starter.default_chain",
+              "starter.stable_chain"
+            ],
+            "deckModifierId": "starter.default_chain.deck",
+            "grantedCardIds": [
+              "debt_hook",
+              "redline_cut",
+              "wild_mana_stitch"
+            ],
+            "starterCardIds": [
+              "debt_hook",
+              "redline_cut",
+              "wild_mana_stitch"
+            ],
+            "deckMutationBoundary": "adapter_payload_only"
+          }
+        }
+      }
+    },
+    {
+      "name": "reload_via_storage",
+      "status": "pass",
+      "detail": {
+        "storageKey": "vampire-crawlers.profile.v1",
+        "rawProfileBytes": 1581,
+        "reloadedMeta": {
+          "achievementIds": [
+            "first_run_completed",
+            "clear_d1",
+            "chain_certified",
+            "first_purchase"
+          ],
+          "purchasedShopItemIds": [
+            "starter_stable_chain"
+          ],
+          "purchasedBlacksmithPermitIds": [],
+          "selectedStarterKitId": "starter.default_chain",
+          "selectedCrawlerId": "crawler.blood_runner",
+          "featureGateIds": [
+            "map.branching",
+            "hub.shop",
+            "hub.blacksmith"
+          ],
+          "seenCollectionIds": [
+            "starter_stable_chain"
+          ],
+          "completedMapNodeIds": [
+            "map.d1"
+          ],
+          "clearedDistrictIds": [
+            "D1"
+          ]
+        },
+        "reloadedCurrentRun": null,
+        "reloadedPhaseEvents": [
+          {
+            "type": "p0.d1.started",
+            "runId": "run-1"
+          },
+          {
+            "type": "p0.d1.settled",
+            "runId": "run-1"
+          },
+          {
+            "type": "p0.settlement.shown",
+            "runId": "run-1"
+          },
+          {
+            "type": "p0.shop.item-purchased",
+            "itemId": "starter_stable_chain"
+          },
+          {
+            "type": "p0.next-run-preview.changed",
+            "itemId": "starter_stable_chain"
+          },
+          {
+            "type": "p0.profile-meta.reloaded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "profile_dump",
+      "status": "pass",
+      "detail": {
+        "profileId": "p0-qa-evidence-profile",
+        "version": 1,
+        "softCurrency": 20,
+        "metaGems": 1,
+        "achievementIds": [
+          "first_run_completed",
+          "clear_d1",
+          "chain_certified",
+          "first_purchase"
+        ],
+        "purchasedShopItemIds": [
+          "starter_stable_chain"
+        ],
+        "unlockedStarterKitIds": [
+          "starter.default_chain",
+          "starter.stable_chain"
+        ],
+        "featureGateIds": [
+          "map.branching",
+          "hub.shop",
+          "hub.blacksmith"
+        ],
+        "completedMapNodeIds": [
+          "map.d1"
+        ],
+        "clearedDistrictIds": [
+          "D1"
+        ],
+        "phaseEventTypes": [
+          "p0.d1.started",
+          "p0.d1.settled",
+          "p0.settlement.shown",
+          "p0.shop.item-purchased",
+          "p0.next-run-preview.changed",
+          "p0.profile-meta.reloaded"
+        ],
+        "nextRunSequence": 2
+      }
+    }
+  ]
+}

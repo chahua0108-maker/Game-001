@@ -1,11 +1,14 @@
-import { longLoopConfig } from '../../config/data/longLoopConfig';
-import type { ShopItemConfig } from '../../config/schema/definitions';
+import { CANONICAL_DISTRICT_IDS, CANONICAL_MAP_NODE_IDS } from '../../config/schema/ids';
 import { selectProfileMeta } from '../profile/profileSelectors';
 import type { LongLoopProfile } from '../profile/profileTypes';
+import { purchaseShopItem as purchaseShopItemTransaction } from '../systems/shop/shopFacade';
+import type { ShopPurchaseEffect, ShopPurchaseFailureReason as ShopFacadePurchaseFailureReason } from '../systems/shop/shopFacade';
+import { createRunStartStarterPayload } from './applyStarterToRunSnapshot';
 import { createRunStartSnapshot } from './runStartSnapshot';
 import { projectSettlement, visibleShopItemIds } from './settlementProjection';
 import type {
   LongLoopEvent,
+  BlacksmithEnhancementFailureReason,
   LongLoopOrchestrator,
   LongLoopPhaseEvent,
   LongLoopState,
@@ -13,14 +16,9 @@ import type {
   RunLoopRunState,
   SettlementSummary,
   ShopPurchaseFailureReason,
+  ShopPurchaseResult,
   ShopStateSnapshot
 } from './orchestratorTypes';
-
-const blacksmithPermitServiceIds: Record<string, string> = {
-  blacksmith_raise_level_permit: 'blacksmith.raise_level',
-  blacksmith_red_socket_permit: 'blacksmith.red_socket',
-  blacksmith_reroll_permit: 'blacksmith.reroll'
-};
 
 const blacksmithEnhancementRequirements: Record<string, { readonly permitId: string; readonly serviceId: string }> = {
   blacksmith_raise_level: {
@@ -64,11 +62,16 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
 
       const runSequence = Math.max(1, state.runSequence);
       const profile = cloneProfile(state.profile);
+      const starterPayload = createRunStartStarterPayload({
+        selectedStarterKitId: event.starterKitId,
+        starterKitIds: state.nextRunPreview.starterKitIds
+      });
       const currentRun: RunLoopRunState = {
         id: `run-${runSequence}`,
         districtId: event.districtId,
         starterKitId: event.starterKitId,
         status: 'active',
+        starterPayload,
         runLocalEnhancementIds: []
       };
       const phaseEvents = appendPhaseEvent(state.phaseEvents, { type: p0RunStartedEvent(event.districtId), runId: currentRun.id });
@@ -118,23 +121,17 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
     }
 
     case 'purchase_shop_item': {
-      const rejectionReason = shopPurchaseRejectionReason(state, event.itemId);
-      if (rejectionReason) {
+      if (state.phase !== 'settlement_review') {
         return state;
       }
 
-      const shopItem = shopItemById(event.itemId) as ShopItemConfig;
-      const profile = cloneProfile(state.profile);
-      profile.wallet.softCurrency -= shopItem.price;
-      profile.shop.purchasedItemIds = appendUnique(profile.shop.purchasedItemIds, event.itemId);
-      profile.achievements.unlockedIds = appendUnique(profile.achievements.unlockedIds, 'first_purchase');
-
-      if (event.itemId === 'starter_stable_chain') {
-        profile.starter.unlockedStarterKitIds = appendUnique(profile.starter.unlockedStarterKitIds, 'stable_chain');
-        profile.collection.seenIds = appendUnique(profile.collection.seenIds, event.itemId);
+      const purchaseResult = purchaseShopItemTransaction(state.profile, event.itemId);
+      if (!purchaseResult.ok) {
+        return state;
       }
 
-      applyBlacksmithPermitPurchase(profile, event.itemId);
+      const profile = consumeShopPurchaseEffects(purchaseResult.profile, purchaseResult.effects);
+      profile.achievements.unlockedIds = appendUnique(profile.achievements.unlockedIds, 'first_purchase');
 
       const nextRunPreview = createRunStartSnapshot(profile, { districtId: state.nextRunPreview.districtId });
       const phaseEvents = appendPhaseEvent(
@@ -148,24 +145,31 @@ export function advanceLongLoop(state: LongLoopState, event: LongLoopEvent): Lon
         ...state,
         profile,
         nextRunPreview,
-        phaseEvents
+        phaseEvents,
+        lastShopPurchase: {
+          ok: true,
+          itemId: purchaseResult.purchase.itemId,
+          achievementIds: ['first_purchase'].filter((id) => !state.profile.achievements.unlockedIds.includes(id)),
+          purchase: { ...purchaseResult.purchase },
+          effects: cloneShopPurchaseEffects(purchaseResult.effects)
+        }
       };
     }
 
     case 'apply_run_local_blacksmith_enhancement': {
-      if (
-        !state.currentRun ||
-        state.currentRun.id !== event.runId ||
-        !canApplyBlacksmithEnhancement(state.profile, event.enhancementId)
-      ) {
+      const currentRun = state.currentRun;
+      if (!currentRun || blacksmithEnhancementRejectionReason(state, event)) {
         return state;
       }
 
+      const application = applyBlacksmithEnhancement(state.profile, event.enhancementId);
+
       return {
         ...state,
+        profile: application.profile,
         currentRun: {
-          ...state.currentRun,
-          runLocalEnhancementIds: appendUnique(state.currentRun.runLocalEnhancementIds, event.enhancementId)
+          ...currentRun,
+          runLocalEnhancementIds: appendUnique(currentRun.runLocalEnhancementIds, event.enhancementId)
         }
       };
     }
@@ -232,31 +236,58 @@ export function createLongLoopOrchestrator(options: { readonly profileStore: Pro
       return createRunStartSnapshot(state.profile, input);
     },
     purchaseShopItem(input) {
-      const rejectionReason = shopPurchaseRejectionReason(state, input.itemId);
-      if (rejectionReason) {
+      if (state.phase !== 'settlement_review') {
         return {
           ok: false,
           itemId: input.itemId,
-          reason: rejectionReason
+          reason: 'not_settlement_review'
         };
       }
 
-      const before = state.profile.achievements.unlockedIds;
+      const beforeState = state;
       commit(advanceLongLoop(state, { type: 'purchase_shop_item', itemId: input.itemId }));
-      const addedAchievementIds = state.profile.achievements.unlockedIds.filter((id) => !before.includes(id));
+      if (state !== beforeState && state.lastShopPurchase?.itemId === input.itemId) {
+        return cloneShopPurchaseResult(state.lastShopPurchase);
+      }
+
+      const rejectedPurchase = purchaseShopItemTransaction(beforeState.profile, input.itemId);
+      const reason = rejectedPurchase.ok ? 'unknown_item' : mapShopFacadeFailureReason(rejectedPurchase.reason);
 
       return {
-        ok: true,
+        ok: false,
         itemId: input.itemId,
-        achievementIds: addedAchievementIds
+        reason
       };
     },
     applyRunLocalBlacksmithEnhancement(input) {
-      state = advanceLongLoop(state, {
+      const rejectionReason = blacksmithEnhancementRejectionReason(state, {
         type: 'apply_run_local_blacksmith_enhancement',
         runId: input.runId,
         enhancementId: input.enhancementId
       });
+      if (rejectionReason) {
+        return {
+          ok: false,
+          enhancementId: input.enhancementId,
+          reason: rejectionReason
+        };
+      }
+
+      const beforePermitIds = state.profile.blacksmith.purchasedPermitIds;
+      commit(
+        advanceLongLoop(state, {
+          type: 'apply_run_local_blacksmith_enhancement',
+          runId: input.runId,
+          enhancementId: input.enhancementId
+        })
+      );
+      const consumedPermitId = beforePermitIds.find((id) => !state.profile.blacksmith.purchasedPermitIds.includes(id));
+
+      return {
+        ok: true,
+        enhancementId: input.enhancementId,
+        ...(consumedPermitId ? { consumedPermitId } : {})
+      };
     },
     getProfileMeta() {
       return selectProfileMeta(state.profile);
@@ -287,7 +318,7 @@ function applySettlementRewards(
   nextProfile.featureGates.unlockedIds = appendUnique(nextProfile.featureGates.unlockedIds, ...summary.unlockedFeatureGateIds);
 
   if (summary.outcome === 'district_cleared') {
-    nextProfile.map.completedNodeIds = appendUnique(nextProfile.map.completedNodeIds, 'map.start');
+    nextProfile.map.completedNodeIds = appendUnique(nextProfile.map.completedNodeIds, mapNodeIdForDistrict(summary.districtId));
     nextProfile.map.clearedDistrictIds = appendUnique(nextProfile.map.clearedDistrictIds, summary.districtId);
   }
 
@@ -305,6 +336,12 @@ function cloneProfile(profile: LongLoopProfile): LongLoopProfile {
 function cloneRunState(runState: RunLoopRunState): RunLoopRunState {
   return {
     ...runState,
+    starterPayload: {
+      ...runState.starterPayload,
+      availableStarterKitIds: [...runState.starterPayload.availableStarterKitIds],
+      grantedCardIds: [...runState.starterPayload.grantedCardIds],
+      starterCardIds: [...runState.starterPayload.starterCardIds]
+    },
     runLocalEnhancementIds: [...runState.runLocalEnhancementIds]
   };
 }
@@ -327,55 +364,90 @@ function appendUnique<T>(values: readonly T[], ...nextValues: readonly T[]): T[]
   return [...new Set([...values, ...nextValues])];
 }
 
-function shopItemById(itemId: string): ShopItemConfig | undefined {
-  return (longLoopConfig.shopItems as readonly ShopItemConfig[]).find((item) => item.id === itemId);
+function consumeShopPurchaseEffects(profile: LongLoopProfile, effects: readonly ShopPurchaseEffect[]): LongLoopProfile {
+  const nextProfile = cloneProfile(profile);
+
+  for (const effect of effects) {
+    switch (effect.type) {
+      case 'GrantBlacksmithPermit':
+        nextProfile.blacksmith.purchasedPermitIds = appendUnique(
+          nextProfile.blacksmith.purchasedPermitIds,
+          effect.sourceShopItemId
+        );
+        break;
+      case 'UnlockStarterPreview':
+        nextProfile.starter.unlockedStarterKitIds = appendUnique(nextProfile.starter.unlockedStarterKitIds, effect.starterKitId);
+        nextProfile.collection.seenIds = appendUnique(nextProfile.collection.seenIds, effect.sourceShopItemId);
+        break;
+    }
+  }
+
+  return nextProfile;
 }
 
-function shopPurchaseRejectionReason(state: LongLoopState, itemId: string): ShopPurchaseFailureReason | undefined {
-  if (state.phase !== 'settlement_review') {
-    return 'not_settlement_review';
-  }
-
-  const shopItem = shopItemById(itemId);
-  if (!shopItem) {
-    return 'unknown_item';
-  }
-
-  if (state.profile.shop.purchasedItemIds.includes(itemId)) {
-    return 'already_purchased';
-  }
-
-  if (!visibleShopItemIds(state.profile).includes(itemId)) {
-    return 'not_visible';
-  }
-
-  if (state.profile.wallet.softCurrency < shopItem.price) {
-    return 'insufficient_currency';
-  }
-
-  return undefined;
+function cloneShopPurchaseResult(
+  result: Extract<ShopPurchaseResult, { readonly ok: true }>
+): Extract<ShopPurchaseResult, { readonly ok: true }> {
+  return {
+    ok: true,
+    itemId: result.itemId,
+    achievementIds: [...result.achievementIds],
+    purchase: { ...result.purchase },
+    effects: cloneShopPurchaseEffects(result.effects)
+  };
 }
 
-function applyBlacksmithPermitPurchase(profile: LongLoopProfile, itemId: string): void {
-  const serviceId = blacksmithPermitServiceIds[itemId];
-  if (!serviceId) {
-    return;
-  }
-
-  profile.blacksmith.purchasedPermitIds = appendUnique(profile.blacksmith.purchasedPermitIds, itemId);
-  profile.blacksmith.unlockedServiceIds = appendUnique(profile.blacksmith.unlockedServiceIds, serviceId);
+function cloneShopPurchaseEffects(effects: readonly ShopPurchaseEffect[]): ShopPurchaseEffect[] {
+  return effects.map((effect) => ({ ...effect }));
 }
 
-function canApplyBlacksmithEnhancement(profile: LongLoopProfile, enhancementId: string): boolean {
-  const requirement = blacksmithEnhancementRequirements[enhancementId];
+function mapShopFacadeFailureReason(reason: ShopFacadePurchaseFailureReason): ShopPurchaseFailureReason {
+  return reason === 'locked' ? 'not_visible' : reason;
+}
+
+function blacksmithEnhancementRejectionReason(
+  state: LongLoopState,
+  event: Extract<LongLoopEvent, { type: 'apply_run_local_blacksmith_enhancement' }>
+): BlacksmithEnhancementFailureReason | undefined {
+  if (!state.currentRun || state.currentRun.id !== event.runId) {
+    return 'invalid_run';
+  }
+
+  const requirement = blacksmithEnhancementRequirements[event.enhancementId];
   if (!requirement) {
-    return false;
+    return 'unknown_enhancement';
   }
 
-  return (
-    profile.blacksmith.purchasedPermitIds.includes(requirement.permitId) ||
-    profile.blacksmith.unlockedServiceIds.includes(requirement.serviceId)
-  );
+  if (
+    state.profile.blacksmith.purchasedPermitIds.includes(requirement.permitId) ||
+    state.profile.blacksmith.unlockedServiceIds.includes(requirement.serviceId)
+  ) {
+    return undefined;
+  }
+
+  return 'missing_permit_or_service';
+}
+
+function applyBlacksmithEnhancement(
+  profile: LongLoopProfile,
+  enhancementId: string
+): { readonly profile: LongLoopProfile; readonly consumedPermitId?: string } {
+  const requirement = blacksmithEnhancementRequirements[enhancementId];
+  const nextProfile = cloneProfile(profile);
+
+  if (!requirement || nextProfile.blacksmith.unlockedServiceIds.includes(requirement.serviceId)) {
+    return { profile: nextProfile };
+  }
+
+  if (nextProfile.blacksmith.purchasedPermitIds.includes(requirement.permitId)) {
+    nextProfile.blacksmith.purchasedPermitIds = nextProfile.blacksmith.purchasedPermitIds.filter((id) => id !== requirement.permitId);
+    return {
+      profile: nextProfile,
+      consumedPermitId: requirement.permitId
+    };
+  }
+
+  return { profile: nextProfile };
 }
 
 function appendPhaseEvent(
@@ -386,11 +458,15 @@ function appendPhaseEvent(
 }
 
 function p0RunStartedEvent(districtId: string): string {
-  return districtId === 'D1' ? 'p0.d1.started' : 'run.started';
+  return districtId === CANONICAL_DISTRICT_IDS.d1 ? 'p0.d1.started' : 'run.started';
 }
 
 function p0RunSettledEvent(districtId: string): string {
-  return districtId === 'D1' ? 'p0.d1.settled' : 'run.settled';
+  return districtId === CANONICAL_DISTRICT_IDS.d1 ? 'p0.d1.settled' : 'run.settled';
+}
+
+function mapNodeIdForDistrict(districtId: string): string {
+  return districtId === CANONICAL_DISTRICT_IDS.d1 ? CANONICAL_MAP_NODE_IDS.d1 : `map.${districtId.toLowerCase()}`;
 }
 
 function isActiveMatchingRun(currentRun: RunLoopRunState | undefined, event: Extract<LongLoopEvent, { type: 'settle_run' }>): boolean {

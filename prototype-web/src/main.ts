@@ -5,13 +5,15 @@ import { buildSnapshot } from './sim/snapshot';
 import { tickWorld } from './sim/runtime';
 import { createInitialWorld } from './sim/world';
 import { Hud } from './ui/hud';
+import { LongLoopPanel } from './ui/longLoopPanel';
 import { createInitialActivityState } from './sim/activity';
 import type { Intent } from './sim/types';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 const hudRoot = document.querySelector<HTMLElement>('#hud');
+const appRoot = document.querySelector<HTMLElement>('#app');
 
-if (!canvas || !hudRoot) {
+if (!canvas || !hudRoot || !appRoot) {
   throw new Error('Missing app roots');
 }
 
@@ -19,6 +21,10 @@ let world = createInitialWorld(1, createInitialActivityState());
 const pendingIntents: Intent[] = [];
 const renderer = new CorridorRenderer(canvas);
 const hud = new Hud(hudRoot, (intent) => pendingIntents.push(intent));
+const longLoopRoot = document.createElement('div');
+longLoopRoot.id = 'long-loop-root';
+appRoot.append(longLoopRoot);
+new LongLoopPanel(longLoopRoot).render();
 
 bindKeyboard(() => world.player.hand, (intent) => pendingIntents.push(intent));
 

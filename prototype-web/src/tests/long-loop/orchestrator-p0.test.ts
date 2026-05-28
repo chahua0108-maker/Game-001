@@ -74,6 +74,9 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(state.settlementSummary?.uiStateIds).toEqual(
       expect.arrayContaining([p0CanonicalIds.uiSettlement, p0CanonicalIds.uiBlacksmithAvailable])
     );
+    expect(state.profile.map.completedNodeIds).toContain(p0CanonicalIds.mapD1);
+    expect(state.profile.map.completedNodeIds).not.toContain(p0CanonicalIds.districtD1);
+    expect(state.profile.map.completedNodeIds).not.toContain(p0CanonicalIds.mapStart);
 
     state = advanceLongLoop(state, {
       type: 'purchase_shop_item',
@@ -163,7 +166,7 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(state.profile.wallet.softCurrency).toBe(100 - shopItemPrice(blacksmithRaiseLevelPermitId));
   });
 
-  it('persists blacksmith permit and service state across profileStore export and reload', () => {
+  it('persists blacksmith permit stock without promoting shop permits into permanent services', () => {
     const profileStore = createProfileStore({ profileId: 'orchestrator-p0-blacksmith-reload' });
     let state = createLongLoopState(profileStore.getSnapshot());
 
@@ -186,12 +189,12 @@ describe('P0 run-loop orchestrator reducer', () => {
 
     expect(state.profile.wallet.softCurrency).toBe(100 - shopItemPrice(blacksmithRaiseLevelPermitId));
     expect(state.profile.blacksmith.purchasedPermitIds).toContain(blacksmithRaiseLevelPermitId);
-    expect(state.profile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
+    expect(state.profile.blacksmith.unlockedServiceIds).not.toContain(blacksmithRaiseLevelServiceId);
     expect(selectProfileMeta(state.profile).purchasedBlacksmithPermitIds).toContain(blacksmithRaiseLevelPermitId);
 
     const reloadedProfile = createProfileStore({ snapshot: profileStore.exportSnapshot() }).getSnapshot();
     expect(reloadedProfile.blacksmith.purchasedPermitIds).toContain(blacksmithRaiseLevelPermitId);
-    expect(reloadedProfile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
+    expect(reloadedProfile.blacksmith.unlockedServiceIds).not.toContain(blacksmithRaiseLevelServiceId);
     expect(selectProfileMeta(reloadedProfile).purchasedBlacksmithPermitIds).toContain(blacksmithRaiseLevelPermitId);
   });
 
@@ -288,7 +291,7 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(state.profile.runLocalPreview.cardEnhancements).toEqual([]);
   });
 
-  it('applies run-local blacksmith enhancement after buying the matching permit', () => {
+  it('consumes a purchased blacksmith permit after one run-local enhancement and blocks repeat use', () => {
     let state = createLongLoopState(createDefaultProfile({ profileId: 'orchestrator-p0-run-local-permitted' }));
 
     state = advanceLongLoop(state, {
@@ -318,7 +321,74 @@ describe('P0 run-loop orchestrator reducer', () => {
     });
 
     expect(state.currentRun?.runLocalEnhancementIds).toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
+    expect(state.profile.blacksmith.purchasedPermitIds).not.toContain(blacksmithRaiseLevelPermitId);
     expect(state.profile.runLocalPreview.cardEnhancements).toEqual([]);
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'apply_run_local_blacksmith_enhancement',
+      runId: state.currentRun?.id ?? '',
+      enhancementId: p0CanonicalIds.runLocalBlacksmithEnhancement
+    });
+
+    expect(state.currentRun?.runLocalEnhancementIds).not.toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
+    expect(state.profile.blacksmith.purchasedPermitIds).not.toContain(blacksmithRaiseLevelPermitId);
+    expect(state.profile.runLocalPreview.cardEnhancements).toEqual([]);
+  });
+
+  it('keeps permanent blacksmith service unlocks valid without permit stock', () => {
+    const profile = createDefaultProfile({ profileId: 'orchestrator-p0-run-local-service-unlock' });
+    profile.blacksmith.unlockedServiceIds.push(blacksmithRaiseLevelServiceId);
+    let state = createLongLoopState(profile);
+
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'apply_run_local_blacksmith_enhancement',
+      runId: state.currentRun?.id ?? '',
+      enhancementId: p0CanonicalIds.runLocalBlacksmithEnhancement
+    });
+
+    expect(state.currentRun?.runLocalEnhancementIds).toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
+    expect(state.profile.blacksmith.purchasedPermitIds).toEqual([]);
+
+    state = advanceLongLoop(state, {
+      type: 'settle_run',
+      runId: state.currentRun?.id ?? '',
+      districtId: p0CanonicalIds.districtD1,
+      outcome: 'district_cleared'
+    });
+    state = advanceLongLoop(state, {
+      type: 'start_run',
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: p0CanonicalIds.starterKitDefaultChain
+    });
+    state = advanceLongLoop(state, {
+      type: 'apply_run_local_blacksmith_enhancement',
+      runId: state.currentRun?.id ?? '',
+      enhancementId: p0CanonicalIds.runLocalBlacksmithEnhancement
+    });
+
+    expect(state.currentRun?.runLocalEnhancementIds).toContain(p0CanonicalIds.runLocalBlacksmithEnhancement);
+    expect(state.profile.blacksmith.unlockedServiceIds).toContain(blacksmithRaiseLevelServiceId);
   });
 
   it('returns explicit public shop purchase results for success and rejected commands', () => {
@@ -349,7 +419,19 @@ describe('P0 run-loop orchestrator reducer', () => {
     const success = orchestrator.purchaseShopItem({ itemId: blacksmithRaiseLevelPermitId });
     expect(success).toMatchObject({
       ok: true,
-      itemId: blacksmithRaiseLevelPermitId
+      itemId: blacksmithRaiseLevelPermitId,
+      purchase: {
+        itemId: blacksmithRaiseLevelPermitId,
+        currencyId: 'settlement_reputation',
+        price: shopItemPrice(blacksmithRaiseLevelPermitId)
+      },
+      effects: [
+        {
+          type: 'GrantBlacksmithPermit',
+          permitId: 'raise-level',
+          sourceShopItemId: blacksmithRaiseLevelPermitId
+        }
+      ]
     });
     if (!success.ok) {
       throw new Error(`Expected blacksmith permit purchase to succeed, got ${success.reason}`);

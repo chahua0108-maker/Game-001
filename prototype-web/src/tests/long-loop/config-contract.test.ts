@@ -124,7 +124,27 @@ describe('long-loop config contract', () => {
 
   it('uses the locked P0 shop and starter ids from the approved plan', () => {
     expect(longLoopConfig.shopItems.map((item) => item.id).sort()).toEqual(lockedP0ShopItemIds);
-    expect(longLoopConfig.starterKits.map((kit) => kit.id).sort()).toEqual(['default_chain', 'stable_chain']);
+    expect(longLoopConfig.starterKits.map((kit) => kit.id).sort()).toEqual([
+      'starter.default_chain',
+      'starter.stable_chain'
+    ]);
+  });
+
+  it('keeps canonical ids namespaced by concept instead of mixing district, map, hub, and starter ids', () => {
+    expect(longLoopConfig.mapNodes.map((node) => node.id)).toEqual(
+      expect.arrayContaining(['map.start', 'map.d1', 'map.d2'])
+    );
+    expect(longLoopConfig.mapNodes.map((node) => node.id).filter((id) => /^d\d+$/.test(id))).toEqual([]);
+    expect(longLoopConfig.featureGates.map((gate) => gate.id).sort()).toEqual([
+      'blacksmith.reroll',
+      'hub.blacksmith',
+      'hub.shop',
+      'map.branching'
+    ]);
+    expect(longLoopConfig.starterKits.map((kit) => kit.id).sort()).toEqual([
+      'starter.default_chain',
+      'starter.stable_chain'
+    ]);
   });
 
   it('does not define raw HP, attack, or max MP permanent upgrades', () => {
@@ -218,6 +238,36 @@ describe('long-loop config contract', () => {
     expect(result.errors).toContain('starterKits[0].crawlerId is required');
   });
 
+  it('rejects starter kits without a run-start deck modifier payload', () => {
+    const { runStartDeckModifier: _runStartDeckModifier, ...starterKitWithoutModifier } = longLoopConfig.starterKits[0];
+    const missingResult = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      starterKits: [starterKitWithoutModifier]
+    }));
+    const emptyCardsResult = validateLongLoopConfig(asValidatorInput({
+      ...longLoopConfig,
+      starterKits: [
+        {
+          ...longLoopConfig.starterKits[0],
+          runStartDeckModifier: {
+            id: 'starter.default_chain.deck',
+            starterCardIds: []
+          }
+        }
+      ]
+    }));
+
+    expect(missingResult.errors).toEqual(
+      expect.arrayContaining([
+        'starterKits[0].runStartDeckModifier.id is required',
+        'starterKits[0].runStartDeckModifier.starterCardIds must be a non-empty array'
+      ])
+    );
+    expect(emptyCardsResult.errors).toContain(
+      'starterKits[0].runStartDeckModifier.starterCardIds must be a non-empty array'
+    );
+  });
+
   it('rejects crawlers that reference a missing starter kit', () => {
     const result = validateLongLoopConfig({
       ...longLoopConfig,
@@ -301,7 +351,7 @@ describe('long-loop config contract', () => {
       shopItems: [
         {
           ...longLoopConfig.shopItems[0],
-          requiresFeatureGateIds: { 0: 'feature.shop_inventory', length: 1 },
+          requiresFeatureGateIds: { 0: 'hub.shop', length: 1 },
           requiresAchievementIds: 'achievement.completed_first_run',
           unlockRuleIds: 42
         }

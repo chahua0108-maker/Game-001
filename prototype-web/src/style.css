@@ -2385,6 +2385,239 @@ button:focus-visible {
   }
 }
 
+#long-loop-root {
+  position: fixed;
+  top: 56px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 18;
+  width: min(440px, calc(100vw - 24px));
+  pointer-events: auto;
+}
+
+.long-loop-panel {
+  display: grid;
+  grid-template-rows: auto;
+  gap: 8px;
+  width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--hud-border);
+  border-radius: 8px;
+  background: rgba(13, 12, 17, 0.9);
+  box-shadow: 0 18px 56px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(14px);
+}
+
+.long-loop-header,
+.long-loop-section,
+.long-loop-card,
+.long-loop-read-row,
+.long-loop-shop-item {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: rgba(25, 22, 29, 0.72);
+}
+
+.long-loop-header,
+.long-loop-section-head,
+.long-loop-summary > div,
+.long-loop-shop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.long-loop-header {
+  padding: 8px;
+}
+
+.long-loop-header div,
+.long-loop-summary > div,
+.long-loop-shop-item div,
+.long-loop-read-row {
+  min-width: 0;
+}
+
+.long-loop-header strong,
+.long-loop-section-head strong,
+.long-loop-card strong,
+.long-loop-shop-item strong,
+.long-loop-read-row strong {
+  color: #fff7f8;
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.long-loop-header span,
+.long-loop-section-head span,
+.long-loop-summary span,
+.long-loop-card small,
+.long-loop-shop-item span,
+.long-loop-read-row span,
+.long-loop-panel p {
+  color: rgba(247, 237, 240, 0.68);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.long-loop-header span,
+.long-loop-shop-item span,
+.long-loop-read-row span,
+.long-loop-summary strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.long-loop-panel button {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(115, 255, 226, 0.42);
+  border-radius: 7px;
+  color: #081311;
+  background: #73ffe2;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.long-loop-panel button:hover {
+  filter: brightness(1.08);
+}
+
+.long-loop-section {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+}
+
+.long-loop-section p {
+  margin: 0;
+}
+
+.long-loop-summary {
+  grid-template-columns: 1fr;
+}
+
+.long-loop-summary > div {
+  min-height: 24px;
+}
+
+.long-loop-summary strong {
+  max-width: 68%;
+  color: var(--hud-accent);
+  font-size: 10px;
+  text-align: right;
+}
+
+.long-loop-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.long-loop-map {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.long-loop-card,
+.long-loop-read-row {
+  display: grid;
+  gap: 3px;
+  min-height: 68px;
+  padding: 7px;
+}
+
+.long-loop-card span,
+.long-loop-card em,
+.long-loop-shop-item em,
+.long-loop-read-row em {
+  width: max-content;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--hud-warning);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.long-loop-card.state-playable span,
+.long-loop-card.state-playable em,
+.long-loop-read-row.state-selected em,
+.long-loop-read-row.state-unlocked em,
+.long-loop-shop-item.state-available em {
+  color: #73ffe2;
+  background: rgba(115, 255, 226, 0.12);
+}
+
+.long-loop-card.state-locked-preview em,
+.long-loop-read-row.state-locked_preview em,
+.long-loop-shop-item.state-locked em {
+  color: #ff9fb0;
+  background: rgba(255, 64, 101, 0.12);
+}
+
+.long-loop-shop-item.state-purchased em {
+  color: #c7ff8a;
+  background: rgba(199, 255, 138, 0.12);
+}
+
+.long-loop-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.long-loop-two-col > div,
+.long-loop-shop {
+  display: grid;
+  gap: 6px;
+}
+
+.long-loop-shop-item {
+  min-height: 56px;
+  padding: 7px;
+}
+
+.long-loop-shop-item div {
+  display: grid;
+  gap: 3px;
+}
+
+.long-loop-shop-item button {
+  min-width: 46px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 920px) {
+  #long-loop-root {
+    top: 48px;
+    right: 8px;
+    bottom: 172px;
+    width: min(390px, calc(100vw - 16px));
+  }
+}
+
+@media (max-width: 640px) {
+  #long-loop-root {
+    top: 48px;
+    right: 8px;
+    left: 8px;
+    bottom: 206px;
+    width: auto;
+  }
+
+  .long-loop-map,
+  .long-loop-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* One Vampire Crawlers HUD shell: player layout is the base, debug only adds an information layer. */
 .hud-mode-toggle {
   position: absolute;

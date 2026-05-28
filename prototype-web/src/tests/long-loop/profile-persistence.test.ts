@@ -71,11 +71,11 @@ describe('long-loop profile persistence', () => {
     profile.achievements.unlockedIds.push('clear_d1', 'first_purchase');
     profile.shop.purchasedItemIds.push('starter_stable_chain');
     profile.blacksmith.purchasedPermitIds.push('blacksmith_raise_level_permit');
-    profile.starter.selectedStarterKitId = 'stable_chain';
-    profile.starter.unlockedStarterKitIds.push('stable_chain');
+    profile.starter.selectedStarterKitId = 'starter.stable_chain';
+    profile.starter.unlockedStarterKitIds.push('starter.stable_chain');
     profile.collection.seenIds.push('starter_stable_chain', 'relic.ash_compass');
-    profile.featureGates.unlockedIds.push('feature.blacksmith');
-    profile.map.completedNodeIds.push('map.start');
+    profile.featureGates.unlockedIds.push('hub.blacksmith');
+    profile.map.completedNodeIds.push('map.d1');
     profile.map.clearedDistrictIds.push('D1');
     profile.relicArcanaGem.unlockedRelicIds.push('relic.ash_compass');
     profile.relicArcanaGem.unlockedArcanaIds.push('arcana.blood_pact');
@@ -92,11 +92,11 @@ describe('long-loop profile persistence', () => {
       achievementIds: ['clear_d1', 'first_purchase'],
       purchasedShopItemIds: ['starter_stable_chain'],
       purchasedBlacksmithPermitIds: ['blacksmith_raise_level_permit'],
-      selectedStarterKitId: 'stable_chain',
+      selectedStarterKitId: 'starter.stable_chain',
       selectedCrawlerId: 'crawler.blood_runner',
-      featureGateIds: ['feature.map_branching', 'feature.shop_inventory', 'feature.blacksmith'],
+      featureGateIds: ['map.branching', 'hub.shop', 'hub.blacksmith'],
       seenCollectionIds: ['starter_stable_chain', 'relic.ash_compass'],
-      completedMapNodeIds: ['map.start'],
+      completedMapNodeIds: ['map.d1'],
       clearedDistrictIds: ['D1']
     });
     expect(reloadedProfile.wallet.softCurrency).toBe(160);
@@ -114,7 +114,7 @@ describe('long-loop profile persistence', () => {
     expect(migrated.map.unlockedNodeIds).toContain('map.start');
     expect(migrated.achievements.unlockedIds).toEqual([]);
     expect(migrated.shop.purchasedItemIds).toEqual([]);
-    expect(migrated.starter.selectedStarterKitId).toBe('default_chain');
+    expect(migrated.starter.selectedStarterKitId).toBe('starter.default_chain');
     expect(migrated.starter.selectedCrawlerId).toBe('crawler.blood_runner');
     expect(migrated.blacksmith.runLocalServiceBoundary).toBe('card_level_socket_reroll_not_persisted');
     expect(migrated.permanentUpgrades.statUpgradeBoundary).toEqual({
@@ -124,23 +124,23 @@ describe('long-loop profile persistence', () => {
     });
     expect(migrated.collection.seenIds).toEqual([]);
     expect(migrated.relicArcanaGem.socketBoundary).toBe('run_local_not_persisted');
-    expect(migrated.featureGates.unlockedIds).toEqual(['feature.map_branching', 'feature.shop_inventory']);
+    expect(migrated.featureGates.unlockedIds).toEqual(['map.branching', 'hub.shop']);
     expect(migrated.runLocalPreview.cardEnhancements).toEqual([]);
   });
 
   it('provides stable selector snapshots for orchestrator and UI callers', () => {
     const profile = createDefaultProfile();
 
-    profile.featureGates.unlockedIds.push('feature.blacksmith');
-    profile.map.completedNodeIds.push('map.start');
+    profile.featureGates.unlockedIds.push('hub.blacksmith');
+    profile.map.completedNodeIds.push('map.d1');
     profile.map.clearedDistrictIds.push('D1');
     profile.runLocalPreview.cardEnhancements.push({ cardId: 'slash', level: 2 });
 
-    expect(selectFeatureGateIds(profile)).toEqual(['feature.map_branching', 'feature.shop_inventory', 'feature.blacksmith']);
-    expect(selectSelectedStarterKitId(profile)).toBe('default_chain');
+    expect(selectFeatureGateIds(profile)).toEqual(['map.branching', 'hub.shop', 'hub.blacksmith']);
+    expect(selectSelectedStarterKitId(profile)).toBe('starter.default_chain');
     expect(selectMapProgress(profile)).toEqual({
       unlockedNodeIds: ['map.start'],
-      completedNodeIds: ['map.start'],
+      completedNodeIds: ['map.d1'],
       clearedDistrictIds: ['D1']
     });
     expect(selectRunLocalPreview(profile).cardEnhancements).toEqual([{ cardId: 'slash', level: 2 }]);
@@ -224,7 +224,7 @@ describe('long-loop profile persistence', () => {
     const loadedProfile = loadProfile({ storage });
 
     expect(loadedProfile.map.unlockedNodeIds).toEqual(['map.start']);
-    expect(loadedProfile.featureGates.unlockedIds).toEqual(['feature.map_branching', 'feature.shop_inventory']);
+    expect(loadedProfile.featureGates.unlockedIds).toEqual(['map.branching', 'hub.shop']);
   });
 
   it('preserves default selected starter and crawler unlocks when saved arrays are malformed or empty', () => {
@@ -234,7 +234,7 @@ describe('long-loop profile persistence', () => {
       PROFILE_STORAGE_KEY,
       JSON.stringify({
         starter: {
-          selectedStarterKitId: 'default_chain',
+          selectedStarterKitId: 'starter.default_chain',
           unlockedStarterKitIds: [],
           selectedCrawlerId: 'crawler.blood_runner',
           unlockedCrawlerIds: [null, 9, {}]
@@ -244,8 +244,8 @@ describe('long-loop profile persistence', () => {
 
     const loadedProfile = loadProfile({ storage });
 
-    expect(loadedProfile.starter.selectedStarterKitId).toBe('default_chain');
-    expect(loadedProfile.starter.unlockedStarterKitIds).toContain('default_chain');
+    expect(loadedProfile.starter.selectedStarterKitId).toBe('starter.default_chain');
+    expect(loadedProfile.starter.unlockedStarterKitIds).toContain('starter.default_chain');
     expect(loadedProfile.starter.selectedCrawlerId).toBe('crawler.blood_runner');
     expect(loadedProfile.starter.unlockedCrawlerIds).toContain('crawler.blood_runner');
   });

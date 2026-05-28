@@ -1,26 +1,27 @@
 import type { FeatureGateConfig } from '../schema/definitions';
+import { CANONICAL_FEATURE_GATE_IDS } from '../schema/ids';
 
 export const featureGates = [
   {
-    id: 'feature.map_branching',
+    id: CANONICAL_FEATURE_GATE_IDS.mapBranching,
     name: 'Map Branching',
     defaultState: 'available'
   },
   {
-    id: 'feature.shop_inventory',
+    id: CANONICAL_FEATURE_GATE_IDS.hubShop,
     name: 'Shop Inventory',
     defaultState: 'available'
   },
   {
-    id: 'feature.blacksmith',
+    id: CANONICAL_FEATURE_GATE_IDS.hubBlacksmith,
     name: 'Blacksmith',
     defaultState: 'locked',
-    unlockRuleIds: ['unlock.feature.blacksmith']
+    unlockRuleIds: ['unlock.hub.blacksmith']
   },
   {
-    id: 'feature.blacksmith_reroll',
+    id: CANONICAL_FEATURE_GATE_IDS.blacksmithReroll,
     name: 'Blacksmith Reroll',
     defaultState: 'locked',
-    unlockRuleIds: ['unlock.feature.blacksmith_reroll']
+    unlockRuleIds: ['unlock.blacksmith.reroll_gate']
   }
 ] as const satisfies readonly FeatureGateConfig[];

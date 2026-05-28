@@ -1,4 +1,9 @@
 import {
+  CANONICAL_FEATURE_GATE_IDS,
+  CANONICAL_MAP_NODE_IDS,
+  CANONICAL_STARTER_KIT_IDS
+} from '../../config/schema/ids';
+import {
   CURRENT_PROFILE_VERSION,
   type CreateProfileOptions,
   type LongLoopProfile,
@@ -22,7 +27,7 @@ export function createDefaultProfile(options: CreateProfileOptions = {}): LongLo
       metaGems: 0
     },
     map: {
-      unlockedNodeIds: ['map.start'],
+      unlockedNodeIds: [CANONICAL_MAP_NODE_IDS.start],
       completedNodeIds: [],
       clearedDistrictIds: []
     },
@@ -33,8 +38,8 @@ export function createDefaultProfile(options: CreateProfileOptions = {}): LongLo
       purchasedItemIds: []
     },
     starter: {
-      selectedStarterKitId: 'default_chain',
-      unlockedStarterKitIds: ['default_chain'],
+      selectedStarterKitId: CANONICAL_STARTER_KIT_IDS.defaultChain,
+      unlockedStarterKitIds: [CANONICAL_STARTER_KIT_IDS.defaultChain],
       selectedCrawlerId: 'crawler.blood_runner',
       unlockedCrawlerIds: ['crawler.blood_runner']
     },
@@ -59,7 +64,7 @@ export function createDefaultProfile(options: CreateProfileOptions = {}): LongLo
       socketBoundary: 'run_local_not_persisted'
     },
     featureGates: {
-      unlockedIds: ['feature.map_branching', 'feature.shop_inventory']
+      unlockedIds: [CANONICAL_FEATURE_GATE_IDS.mapBranching, CANONICAL_FEATURE_GATE_IDS.hubShop]
     },
     runLocalPreview: {
       cardEnhancements: [],

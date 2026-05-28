@@ -1,7 +1,9 @@
 import { longLoopConfig } from '../../../config/data/longLoopConfig';
 import type { MapNodeConfig } from '../../../config/schema/definitions';
+import { CANONICAL_MAP_NODE_IDS } from '../../../config/schema/ids';
 import type { MapNodeId } from '../../../config/schema/ids';
 import type { LongLoopProfile } from '../../profile/profileTypes';
+import { areUnlockRulesSatisfied } from './unlockRuleEvaluator';
 
 export type LongLoopPhaseName = 'P0' | 'P1' | 'P2' | 'P3' | 'P4';
 export type MapNodeReadState = 'playable' | 'condition-visible' | 'locked-preview';
@@ -38,7 +40,7 @@ export function playableMapNodeIds(profile: LongLoopProfile, phase: LongLoopPhas
 }
 
 function mapNodeState(node: MapNodeConfig, profile: LongLoopProfile, phase: LongLoopPhaseName): MapNodeReadState {
-  if (node.id === 'd1') {
+  if (node.id === CANONICAL_MAP_NODE_IDS.d1) {
     return 'playable';
   }
 
@@ -46,29 +48,21 @@ function mapNodeState(node: MapNodeConfig, profile: LongLoopProfile, phase: Long
     return 'locked-preview';
   }
 
-  if (profile.map.unlockedNodeIds.includes(node.id)) {
+  if (!areUnlockRulesSatisfied(node.unlockRuleIds, profile)) {
+    return 'locked-preview';
+  }
+
+  if (profile.map.unlockedNodeIds.includes(node.id) || profile.map.completedNodeIds.includes(node.id)) {
     return 'playable';
   }
 
-  if (node.id === 'd2' && profile.achievements.unlockedIds.includes('clear_d1')) {
-    return 'condition-visible';
-  }
-
-  if (node.id === 'd3' && profile.achievements.unlockedIds.includes('clear_d2')) {
-    return 'condition-visible';
-  }
-
-  if (node.id === 'd4' && profile.achievements.unlockedIds.includes('build_survived_d3')) {
-    return 'condition-visible';
-  }
-
-  return 'locked-preview';
+  return 'condition-visible';
 }
 
 function isStageNode(node: MapNodeConfig): boolean {
-  return /^d\d+$/.test(node.id);
+  return /^map\.d\d+$/.test(node.id);
 }
 
 function isBackHalfNode(node: MapNodeConfig): boolean {
-  return /^d(?:[5-9]|10)$/.test(node.id);
+  return /^map\.d(?:[5-9]|10)$/.test(node.id);
 }

@@ -2,6 +2,7 @@ import type {
   AchievementId,
   ArcanaId,
   BlacksmithServiceId,
+  CardId,
   CollectionCategoryId,
   CrawlerId,
   FeatureGateId,
@@ -106,6 +107,10 @@ export interface CrawlerConfig extends NamedConfigEntry<CrawlerId> {
 export interface StarterKitConfig extends NamedConfigEntry<StarterKitId> {
   readonly crawlerId: CrawlerId;
   readonly shopItemIds: readonly ShopItemId[];
+  readonly runStartDeckModifier: {
+    readonly id: string;
+    readonly starterCardIds: readonly CardId[];
+  };
 }
 
 export interface BlacksmithServiceConfig extends NamedConfigEntry<BlacksmithServiceId> {

@@ -1,31 +1,26 @@
+import { CANONICAL_DISTRICT_IDS } from '../../config/schema/ids';
 import type { DistrictId, LongLoopProfile } from '../profile/profileTypes';
+import { selectAvailableStarterKitIds, toCanonicalStarterKitId } from '../systems/starter/starterSelectors';
+import { createRunStartStarterPayload } from './applyStarterToRunSnapshot';
 import type { NextRunSnapshot } from './orchestratorTypes';
 
-const DEFAULT_DISTRICT_ID: DistrictId = 'D1';
-const DEFAULT_STARTER_KIT_ID = 'default_chain';
-const STABLE_CHAIN_STARTER_KIT_ID = 'stable_chain';
-const STABLE_CHAIN_SHOP_ITEM_ID = 'starter_stable_chain';
+const DEFAULT_DISTRICT_ID: DistrictId = CANONICAL_DISTRICT_IDS.d1;
 
 export function createRunStartSnapshot(
   profile: LongLoopProfile,
   options: { readonly districtId?: DistrictId } = {}
 ): NextRunSnapshot {
-  const starterKitIds = new Set(profile.starter.unlockedStarterKitIds);
-
-  if (profile.shop.purchasedItemIds.includes(STABLE_CHAIN_SHOP_ITEM_ID)) {
-    starterKitIds.add(STABLE_CHAIN_STARTER_KIT_ID);
-  }
-
-  if (starterKitIds.size === 0) {
-    starterKitIds.add(DEFAULT_STARTER_KIT_ID);
-  }
-
-  return {
+  const snapshot = {
     districtId: options.districtId ?? DEFAULT_DISTRICT_ID,
-    selectedStarterKitId: profile.starter.selectedStarterKitId,
-    starterKitIds: [...starterKitIds],
+    selectedStarterKitId: toCanonicalStarterKitId(profile.starter.selectedStarterKitId),
+    starterKitIds: selectAvailableStarterKitIds(profile),
     purchasedShopItemIds: [...profile.shop.purchasedItemIds],
     featureGateIds: [...profile.featureGates.unlockedIds],
     runLocalEnhancementIds: []
+  };
+
+  return {
+    ...snapshot,
+    starterPayload: createRunStartStarterPayload(snapshot)
   };
 }

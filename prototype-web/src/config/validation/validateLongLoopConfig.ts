@@ -225,6 +225,10 @@ function validateStarterKits(
   const starterKits = getTable(config, 'starterKits') as readonly {
     readonly crawlerId?: string;
     readonly shopItemIds?: readonly string[];
+    readonly runStartDeckModifier?: {
+      readonly id?: string;
+      readonly starterCardIds?: readonly string[];
+    };
   }[];
 
   starterKits.forEach((kit, index) => {
@@ -238,6 +242,12 @@ function validateStarterKits(
       required: true,
       nonEmpty: true
     });
+    validateRequiredString(kit.runStartDeckModifier?.id, `starterKits[${index}].runStartDeckModifier.id`, errors);
+    validateNonEmptyStringArray(
+      kit.runStartDeckModifier?.starterCardIds,
+      `starterKits[${index}].runStartDeckModifier.starterCardIds`,
+      errors
+    );
   });
 }
 
@@ -396,6 +406,18 @@ function validateRequiredString(value: unknown, path: string, errors: string[]):
     errors.push(`${path} is required`);
     return false;
   }
+  return true;
+}
+
+function validateNonEmptyStringArray(value: unknown, path: string, errors: string[]): value is readonly string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    errors.push(`${path} must be a non-empty array`);
+    return false;
+  }
+
+  value.forEach((entry, index) => {
+    validateRequiredString(entry, `${path}[${index}]`, errors);
+  });
   return true;
 }
 

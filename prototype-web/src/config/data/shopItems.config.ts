@@ -1,4 +1,5 @@
 import type { ShopItemConfig } from '../schema/definitions';
+import { CANONICAL_FEATURE_GATE_IDS } from '../schema/ids';
 
 export const shopItems = [
   {
@@ -14,7 +15,7 @@ export const shopItems = [
     name: 'Blacksmith Raise Level Permit',
     price: 60,
     categoryId: 'category.services',
-    requiresFeatureGateIds: ['feature.blacksmith'],
+    requiresFeatureGateIds: [CANONICAL_FEATURE_GATE_IDS.hubBlacksmith],
     unlockRuleIds: ['unlock.blacksmith.raise_level']
   },
   {
@@ -22,7 +23,7 @@ export const shopItems = [
     name: 'Blacksmith Red Socket Permit',
     price: 90,
     categoryId: 'category.services',
-    requiresFeatureGateIds: ['feature.blacksmith'],
+    requiresFeatureGateIds: [CANONICAL_FEATURE_GATE_IDS.hubBlacksmith],
     unlockRuleIds: ['unlock.blacksmith.red_socket']
   },
   {
@@ -30,7 +31,7 @@ export const shopItems = [
     name: 'Blacksmith Reroll Permit',
     price: 120,
     categoryId: 'category.services',
-    requiresFeatureGateIds: ['feature.blacksmith_reroll'],
+    requiresFeatureGateIds: [CANONICAL_FEATURE_GATE_IDS.blacksmithReroll],
     requiresAchievementIds: ['first_purchase'],
     unlockRuleIds: ['unlock.blacksmith.reroll']
   }
