@@ -640,7 +640,59 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 -> 自评缺口和下一轮 loop item
 ```
 
-### 12.0 Loop Slice 总表
+每个 worktree 小组默认不是单 agent 串行开发，而是一个并行 agent 编队。常规组分配 5 个 agent，复杂组可扩到 6 个。主线程负责 PM、规格、合并顺序、交叉验收和风险仲裁，不承担每组的重体力实现。
+
+### 12.0 并行 Agent 编队规则
+
+每个 worktree 的推荐编队：
+
+| 角色 | 默认职责 | 推荐模型级别 | 产出 |
+| --- | --- | --- | --- |
+| System Architect | 模块边界、接口、数据流、与 Orchestrator/Profile/Config 的依赖关系 | 高推理/最高级模型 | 架构草案、风险清单、禁止跨界点 |
+| Gameplay / Product Owner | 确保本组功能推动下一局目标，而不是只完成技术模块 | 高推理模型 | 玩家闭环、验收场景、P0/P1/P2 切片 |
+| Implementation Worker | 按测试实现最小代码，遵守写入范围 | Coding-optimized 模型 | 代码变更和本组测试 |
+| Test / Contract Worker | 先写红灯测试，维护本组 sim/ui/integration 合同 | Coding-optimized 或中高推理模型 | 测试文件、失败/通过证据 |
+| Browser QA / UX Worker | 跑真实页面、移动端、reload、截图和 DOM 摘要 | 快速模型或中档模型 | 浏览器证据、可见问题清单 |
+| Integration Reviewer | 复杂组启用；审查与其他 worktree 的冲突、合并风险和回归范围 | 高推理模型 | 合并建议、冲突报告、返工清单 |
+
+模型分配原则：
+
+- 架构、跨系统边界、长期路线和疑难失败使用最高级/高推理模型。
+- 明确实现、局部测试、机械迁移使用 coding-optimized 模型。
+- 浏览器巡检、截图整理、文案溢出检查和重复 QA 可以使用更快、更低成本模型。
+- 同一组内最多 5-6 个 agent 并行；超过 6 个必须拆成两个 worktree 或两个阶段，避免主线程无法审查。
+- agent 不共享隐式上下文；每个 agent 的 prompt 必须包含写入范围、禁止事项、验收证据和当前阶段目标。
+- 每组必须有一个架构师职责，不允许只有实现 worker。
+- 每组至少有一个测试/QA 职责，不允许只交代码。
+
+不同类型小组的推荐编队：
+
+| Worktree 类型 | Agent 数 | 必备角色 | 可选角色 |
+| --- | ---: | --- | --- |
+| Config / Luban | 6 | System Architect、Implementation、Test、Integration Reviewer、Gameplay/Product、QA | 工具链 spike 专家 |
+| Profile / Save | 5 | System Architect、Implementation、Test、QA、Integration Reviewer | Migration 专家 |
+| Orchestrator | 6 | System Architect、Gameplay/Product、Implementation、Contract Test、Integration Reviewer、QA | 状态机审查专家 |
+| Map / Feature Gates | 5 | System Architect、Gameplay/Product、Implementation、Test、QA | D4/D10 平衡审查 |
+| Shop / Economy | 5 | System Architect、Gameplay/Product、Implementation、Test、QA | 经济平衡审查 |
+| Blacksmith / Deck Services | 5 | System Architect、Implementation、Test、Gameplay/Product、Integration Reviewer | 卡牌平衡审查 |
+| Achievements / Unlocks | 5 | System Architect、Gameplay/Product、Implementation、Test、QA | 数据完整性审查 |
+| UI IA | 6 | UX/Product、Implementation、Browser QA、Mobile QA、Integration Reviewer、System Architect | 文案/可读性审查 |
+| Integration QA | 5 | QA Lead、Browser QA、Sim Test、Regression Reviewer、PM Reporter | 性能/cleanup 审查 |
+
+每个小组的最终回报必须包含：
+
+```text
+本轮目标
+参与 agent 和职责
+每个 agent 的主要发现或变更
+本组 loop slice 是否可玩
+测试命令和结果
+浏览器/截图/reload 证据
+与其他 worktree 的接口或冲突
+下一轮必须继续迭代的事项
+```
+
+### 12.1 Loop Slice 总表
 
 | Worktree | 输入 | 输出 | 玩家可见闭环 | 最少迭代 | 证据 |
 | --- | --- | --- | --- | ---: | --- |
@@ -655,7 +707,7 @@ UI 只能强推一个主推荐，另一个可以灰态预告或次级可见。
 | UI IA | orchestrator state、profile summary、selectors | Hub/Village、Map、Crawler、Shop、Blacksmith、Achievements、Settlement、Profile Summary | 第一局后只突出一个下一目标，P1 后全部局外入口可浏览 | 4 | desktop/mobile 截图、真实点击、无溢出 |
 | Integration QA | contract tests、browser path、profile dump、合并候选 | qa-long-loop、截图、DOM 摘要、端口清理、合并判定 | 新档连续走到 D1/D2、购买、reload、下一局变化 | 每阶段 2 | `check`、`qa:ui`、`qa-long-loop`、浏览器证据 |
 
-### 12.1 Config Architect
+### 12.2 Config Architect
 
 职责：
 
@@ -684,7 +736,7 @@ prototype-web/src/data/* 兼容导出，必要时
 - 不把所有系统合并到一张配置表。
 - Luban spike 未通过前，不强迫下游依赖不可复现的生成产物。
 
-### 12.2 Contract Tests
+### 12.3 Contract Tests
 
 职责：
 
@@ -699,7 +751,7 @@ prototype-web/src/tests/sim/long-loop-orchestrator-state-machine.test.ts
 prototype-web/src/tests/sim/first-3-hours-unlock-matrix.test.ts
 ```
 
-### 12.3 Profile Save & Meta
+### 12.4 Profile Save & Meta
 
 写入范围：
 
@@ -709,7 +761,7 @@ prototype-web/src/save/**
 prototype-web/src/tests/sim/profile-persistence-boundary.test.ts
 ```
 
-### 12.4 Run Loop Orchestrator
+### 12.5 Run Loop Orchestrator
 
 写入范围：
 
@@ -720,7 +772,7 @@ prototype-web/src/tests/sim/long-loop-orchestrator-state-machine.test.ts
 
 只允许通过 adapter 调用 combat runtime。
 
-### 12.5 Map & Feature Gates
+### 12.6 Map & Feature Gates
 
 写入范围：
 
@@ -730,7 +782,7 @@ prototype-web/src/featureGates/**
 prototype-web/src/tests/sim/feature-gate-map.test.ts
 ```
 
-### 12.6 Shop Catalog & Economy Facade
+### 12.7 Shop Catalog & Economy Facade
 
 写入范围：
 
@@ -739,7 +791,7 @@ prototype-web/src/shop/**
 prototype-web/src/tests/sim/shop-catalog-economy-facade.test.ts
 ```
 
-### 12.7 Blacksmith & Deck Services
+### 12.8 Blacksmith & Deck Services
 
 写入范围：
 
@@ -748,7 +800,7 @@ prototype-web/src/cardServices/**
 prototype-web/src/tests/sim/blacksmith-deck-services-boundary.test.ts
 ```
 
-### 12.8 Achievements & Unlocks
+### 12.9 Achievements & Unlocks
 
 写入范围：
 
@@ -758,7 +810,7 @@ prototype-web/src/unlocks/**
 prototype-web/src/tests/sim/achievement-idempotency.test.ts
 ```
 
-### 12.9 UI IA
+### 12.10 UI IA
 
 写入范围：
 
@@ -770,7 +822,7 @@ prototype-web/src/tests/ui/long-loop-ui-state.test.ts
 
 UI 组可以拆分局外 shell，但不得让战斗 HUD 承担局外信息。
 
-### 12.10 Integration QA
+### 12.11 Integration QA
 
 写入范围：
 
