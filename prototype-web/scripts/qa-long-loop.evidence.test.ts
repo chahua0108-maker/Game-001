@@ -49,12 +49,14 @@ interface EvidenceStep {
 }
 
 describe('P0 long-loop QA evidence', () => {
-  it('writes mandatory evidence for run start, settlement, shop purchase, next-run preview, reload, and profile dump', async () => {
+  it('writes mandatory evidence for run start, settlement, shop purchase, next-run preview, reload, second run, and profile dump', async () => {
     const outputDir = process.env.QA_LONG_LOOP_OUTPUT_DIR ?? path.resolve('outputs/long-loop/p0-latest');
     const evidenceFile = process.env.QA_LONG_LOOP_EVIDENCE_FILE ?? path.join(outputDir, 'p0-long-loop-evidence.json');
     const profileStorageFile =
       process.env.QA_LONG_LOOP_PROFILE_STORAGE_FILE ?? path.join(outputDir, 'profile-storage.json');
     const profileDumpFile = process.env.QA_LONG_LOOP_PROFILE_DUMP_FILE ?? path.join(outputDir, 'profile-dump.json');
+    const expectedStableStarterCardIds = ['debt_hook', 'wild_gap_key', 'severance_burst'];
+    const expectedEvidenceStepCount = 7;
     await mkdir(outputDir, { recursive: true });
     const steps: EvidenceStep[] = [];
 
@@ -123,7 +125,7 @@ describe('P0 long-loop QA evidence', () => {
       }
     });
 
-    const savedProfile = saveProfile(profileStore.getSnapshot(), { storage });
+    saveProfile(profileStore.getSnapshot(), { storage });
     const rawProfile = storage.getItem(PROFILE_STORAGE_KEY);
     const loadedProfile = loadProfile({ storage, profileId: 'p0-qa-evidence-profile' });
     const reloadedProfileStore = createProfileStore({ snapshot: loadedProfile });
@@ -152,7 +154,37 @@ describe('P0 long-loop QA evidence', () => {
       }
     });
 
-    const profileDump = buildProfileDump(persistedReloadProfile, {
+    const secondRunPreview = reloadedOrchestrator.previewNextRun({ districtId: p0CanonicalIds.districtD1 });
+    const secondRun = reloadedOrchestrator.startRun({
+      districtId: p0CanonicalIds.districtD1,
+      starterKitId: secondRunPreview.selectedStarterKitId
+    });
+    const secondRunPhaseEvents = reloadedOrchestrator.getPhaseEvents();
+    const secondRunProfile = saveProfile(reloadedProfileStore.getSnapshot(), { storage });
+    steps.push({
+      name: 'second_run_after_reload',
+      status:
+        secondRun.id === 'run-2' &&
+        secondRun.starterKitId === CANONICAL_STARTER_KIT_IDS.stableChain &&
+        secondRun.starterPayload.selectedStarterKitId === CANONICAL_STARTER_KIT_IDS.stableChain &&
+        secondRun.starterPayload.deckModifierId === 'starter.stable_chain.deck' &&
+        JSON.stringify(secondRun.starterPayload.starterCardIds) === JSON.stringify(expectedStableStarterCardIds) &&
+        secondRunPhaseEvents.some((event) => event.type === 'p0.d1.started' && event.runId === 'run-2') &&
+        secondRunProfile.orchestrator.nextRunSequence === 3 &&
+        secondRunProfile.starter.selectedStarterKitId === CANONICAL_STARTER_KIT_IDS.stableChain
+          ? 'pass'
+          : 'failed',
+      detail: {
+        preview: secondRunPreview,
+        run: secondRun,
+        nextRunSequence: secondRunProfile.orchestrator.nextRunSequence,
+        selectedStarterKitId: secondRunProfile.starter.selectedStarterKitId,
+        selectedCrawlerId: secondRunProfile.starter.selectedCrawlerId,
+        phaseEvents: secondRunPhaseEvents
+      }
+    });
+
+    const profileDump = buildProfileDump(secondRunProfile, {
       storageKey: PROFILE_STORAGE_KEY,
       evidenceFile,
       profileStorageFile,
@@ -163,6 +195,7 @@ describe('P0 long-loop QA evidence', () => {
       status:
         profileDump.profile.profileId === 'p0-qa-evidence-profile' &&
         profileDump.profile.shop.purchasedItemIds.includes(p0CanonicalIds.p0ShopItem) &&
+        profileDump.profile.starter.unlockedCrawlerIds.includes(profileDump.profile.starter.selectedCrawlerId) &&
         profileDump.profile.orchestrator.phaseEvents.some((event) => event.type === 'p0.profile-meta.reloaded')
           ? 'pass'
           : 'failed',
@@ -175,6 +208,7 @@ describe('P0 long-loop QA evidence', () => {
       shopPurchasePersisted: steps.find((step) => step.name === 'shop_purchase')?.status === 'pass',
       nextRunPreviewChanged: steps.find((step) => step.name === 'next_run_preview')?.status === 'pass',
       reloadViaStorage: steps.find((step) => step.name === 'reload_via_storage')?.status === 'pass',
+      secondRunAfterReload: steps.find((step) => step.name === 'second_run_after_reload')?.status === 'pass',
       profileDumpReady: steps.find((step) => step.name === 'profile_dump')?.status === 'pass'
     };
     const gateScore = {
@@ -224,7 +258,7 @@ describe('P0 long-loop QA evidence', () => {
           source: evidence.evidenceSource,
           generatedAt: evidence.generatedAt,
           rawValue: storage.getItem(PROFILE_STORAGE_KEY),
-          parsedProfile: persistedReloadProfile,
+          parsedProfile: secondRunProfile,
           storageDump: storage.dump()
         },
         null,
@@ -242,6 +276,7 @@ describe('P0 long-loop QA evidence', () => {
         shopPurchasePersisted: true,
         nextRunPreviewChanged: true,
         reloadViaStorage: true,
+        secondRunAfterReload: true,
         profileDumpReady: true
       });
     } catch (error) {
@@ -271,7 +306,7 @@ describe('P0 long-loop QA evidence', () => {
             steps,
             gateScore: {
               passed: steps.filter((step) => step.status === 'pass').length,
-              total: 6
+              total: expectedEvidenceStepCount
             },
             error: serializeError(error)
           },
@@ -304,6 +339,9 @@ function buildProfileDump(
       achievementIds: profile.achievements.unlockedIds,
       purchasedShopItemIds: profile.shop.purchasedItemIds,
       unlockedStarterKitIds: profile.starter.unlockedStarterKitIds,
+      selectedStarterKitId: profile.starter.selectedStarterKitId,
+      unlockedCrawlerIds: profile.starter.unlockedCrawlerIds,
+      selectedCrawlerId: profile.starter.selectedCrawlerId,
       featureGateIds: profile.featureGates.unlockedIds,
       completedMapNodeIds: profile.map.completedNodeIds,
       clearedDistrictIds: profile.map.clearedDistrictIds,

@@ -1,3 +1,4 @@
+import { longLoopConfig } from '../../config/data/longLoopConfig';
 import { CANONICAL_DISTRICT_IDS, CANONICAL_MAP_NODE_IDS } from '../../config/schema/ids';
 import { selectProfileMeta } from '../profile/profileSelectors';
 import type { LongLoopProfile } from '../profile/profileTypes';
@@ -376,7 +377,14 @@ function consumeShopPurchaseEffects(profile: LongLoopProfile, effects: readonly 
         );
         break;
       case 'UnlockStarterPreview':
+        const pairedCrawlerId = longLoopConfig.crawlers.find((crawler) => crawler.starterKitId === effect.starterKitId)?.id;
+
         nextProfile.starter.unlockedStarterKitIds = appendUnique(nextProfile.starter.unlockedStarterKitIds, effect.starterKitId);
+        nextProfile.starter.selectedStarterKitId = effect.starterKitId;
+        if (pairedCrawlerId) {
+          nextProfile.starter.unlockedCrawlerIds = appendUnique(nextProfile.starter.unlockedCrawlerIds, pairedCrawlerId);
+          nextProfile.starter.selectedCrawlerId = pairedCrawlerId;
+        }
         nextProfile.collection.seenIds = appendUnique(nextProfile.collection.seenIds, effect.sourceShopItemId);
         break;
     }

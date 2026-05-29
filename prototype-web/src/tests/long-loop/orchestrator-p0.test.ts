@@ -85,7 +85,12 @@ describe('P0 run-loop orchestrator reducer', () => {
 
     expect(state.profile.shop.purchasedItemIds).toContain(p0CanonicalIds.p0ShopItem);
     expect(state.profile.achievements.unlockedIds).toContain(p0CanonicalIds.achievementFirstPurchase);
+    expect(state.profile.starter.selectedStarterKitId).toBe(p0CanonicalIds.starterKitStableChain);
+    expect(state.profile.starter.unlockedCrawlerIds).toContain('crawler.iron_monk');
+    expect(state.profile.starter.selectedCrawlerId).toBe('crawler.iron_monk');
     expect(state.nextRunPreview).not.toEqual(firstPreview);
+    expect(state.nextRunPreview.selectedStarterKitId).toBe(p0CanonicalIds.starterKitStableChain);
+    expect(state.nextRunPreview.starterPayload.deckModifierId).toBe('starter.stable_chain.deck');
     expect(state.nextRunPreview.starterKitIds).toContain(p0CanonicalIds.starterKitStableChain);
   });
 
@@ -227,6 +232,11 @@ describe('P0 run-loop orchestrator reducer', () => {
     expect(currencyAfterFirstPurchase).toBe(settledCurrency - shopItemPrice(p0CanonicalIds.p0ShopItem));
     expect(state.profile.wallet.softCurrency).toBe(currencyAfterFirstPurchase);
     expect(state.profile.shop.purchasedItemIds.filter((id) => id === p0CanonicalIds.p0ShopItem)).toHaveLength(1);
+    expect(state.profile.starter.selectedStarterKitId).toBe(p0CanonicalIds.starterKitStableChain);
+    expect(state.profile.starter.unlockedCrawlerIds).toContain('crawler.iron_monk');
+    expect(state.profile.starter.selectedCrawlerId).toBe('crawler.iron_monk');
+    expect(state.nextRunPreview.selectedStarterKitId).toBe(p0CanonicalIds.starterKitStableChain);
+    expect(state.nextRunPreview.starterPayload.deckModifierId).toBe('starter.stable_chain.deck');
     expect(state.nextRunPreview.starterKitIds).toContain(p0CanonicalIds.starterKitStableChain);
   });
 

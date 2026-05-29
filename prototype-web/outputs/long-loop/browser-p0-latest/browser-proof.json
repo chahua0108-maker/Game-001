@@ -1,0 +1,2744 @@
+{
+  "name": "qa-long-loop-browser",
+  "status": "pass",
+  "startedAt": "2026-05-29T00:13:01.461Z",
+  "browserProof": {
+    "status": "pass",
+    "requiredPath": "Fresh Hub -> D1 -> Settlement -> Shop -> Buy Stable Chain -> Next Run Preview -> reload persistence -> second D1 uses Stable Chain",
+    "outputDir": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest",
+    "outputFile": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/browser-proof.json",
+    "generatedAt": "2026-05-29T00:13:19.806Z",
+    "viewports": [
+      {
+        "name": "desktop",
+        "status": "pass",
+        "failedGateCount": 0,
+        "screenshotCount": 8
+      },
+      {
+        "name": "mobile-390",
+        "status": "pass",
+        "failedGateCount": 0,
+        "screenshotCount": 8
+      },
+      {
+        "name": "mobile-360",
+        "status": "pass",
+        "failedGateCount": 0,
+        "screenshotCount": 8
+      }
+    ]
+  },
+  "config": {
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1366,
+        "height": 768
+      },
+      {
+        "name": "mobile-390",
+        "width": 390,
+        "height": 844
+      },
+      {
+        "name": "mobile-360",
+        "width": 360,
+        "height": 640
+      }
+    ],
+    "preferredPort": 5174,
+    "baseUrlOverride": null,
+    "profileStorageKey": "vampire-crawlers.profile.v1",
+    "bannedVisibleTerms": [
+      "Long-loop P0",
+      "QA profile",
+      "orchestrator",
+      "orchestrator-backed",
+      "profileStorage",
+      "phaseEvents",
+      "Visible shop ids",
+      "visibleItemIds",
+      "raw ids",
+      "facade",
+      "MemoryStorage",
+      "adapter_payload_only",
+      "unlockRuleIds",
+      "featureGateIds",
+      "starterPayload",
+      "selectedStarterKitId",
+      "purchasedShopItemIds",
+      "map.",
+      "crawler.",
+      "starter.",
+      "hub.",
+      "unlock.",
+      "starter_stable_chain",
+      "blacksmith_raise_level_permit",
+      "blacksmith_red_socket_permit",
+      "blacksmith_reroll_permit",
+      "Settle D1",
+      "Reload Profile"
+    ],
+    "testidGroups": {
+      "hub": [
+        "long-loop-hub",
+        "meta-hub",
+        "hub-shell"
+      ],
+      "wallet": [
+        "long-loop-wallet",
+        "wallet-summary",
+        "hub-wallet"
+      ],
+      "d1Entry": [
+        "start-d1",
+        "d1-entry",
+        "district-d1-entry",
+        "start-d1-entry"
+      ],
+      "d1Brief": [
+        "d1-brief",
+        "district-d1-brief",
+        "district-d1-card",
+        "run-brief"
+      ],
+      "d1Run": [
+        "district-d1-run",
+        "d1-run",
+        "run-screen"
+      ],
+      "startD1Run": [
+        "start-d1-run",
+        "start-d1",
+        "begin-d1-run"
+      ],
+      "completeD1Run": [
+        "complete-d1-run",
+        "clear-d1-run",
+        "finish-d1-run",
+        "complete-d1"
+      ],
+      "settlement": [
+        "settlement",
+        "d1-settlement",
+        "settlement-screen",
+        "settlement-summary"
+      ],
+      "settlementRewards": [
+        "settlement-rewards",
+        "d1-clear-rewards",
+        "reward-summary",
+        "settlement-summary"
+      ],
+      "settlementToShop": [
+        "settlement-to-shop",
+        "open-shop",
+        "go-to-shop",
+        "nav-shop"
+      ],
+      "shop": [
+        "shop",
+        "shop-screen",
+        "shop-inventory"
+      ],
+      "stableChainCard": [
+        "stable-chain-card",
+        "shop-stable-chain",
+        "shop-item-stable-chain",
+        "starter-stable-chain-card"
+      ],
+      "buyStableChain": [
+        "buy-stable-chain",
+        "purchase-stable-chain",
+        "buy-stable-chain-starter"
+      ],
+      "stableChainOwned": [
+        "stable-chain-owned",
+        "owned-stable-chain",
+        "stable-chain-purchased",
+        "shop-item-stable-chain"
+      ],
+      "nextD1Action": [
+        "start-next-d1",
+        "start-next-run",
+        "next-d1-action"
+      ],
+      "nextRunPreview": [
+        "next-run-preview",
+        "next-run-summary",
+        "run-preview"
+      ]
+    },
+    "stageRequirements": {
+      "hub": [
+        "hub",
+        "wallet",
+        "d1Entry",
+        "nextRunPreview"
+      ],
+      "d1Brief": [
+        "d1Brief",
+        "startD1Run"
+      ],
+      "d1Run": [
+        "d1Run",
+        "completeD1Run"
+      ],
+      "settlement": [
+        "settlement",
+        "settlementRewards",
+        "settlementToShop"
+      ],
+      "shop": [
+        "shop",
+        "stableChainCard",
+        "buyStableChain"
+      ],
+      "afterBuy": [
+        "wallet",
+        "stableChainOwned",
+        "nextD1Action",
+        "nextRunPreview"
+      ],
+      "afterReload": [
+        "hub",
+        "wallet",
+        "stableChainOwned",
+        "nextRunPreview"
+      ]
+    }
+  },
+  "server": {
+    "url": "http://127.0.0.1:5174",
+    "owned": false,
+    "pid": null,
+    "port": 5174,
+    "preferredPort": 5174
+  },
+  "results": [
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1366,
+        "height": 768
+      },
+      "status": "pass",
+      "flow": [
+        {
+          "name": "fresh_hub_visible",
+          "status": "pass"
+        },
+        {
+          "name": "hub_has_d1_entry",
+          "status": "pass"
+        },
+        {
+          "name": "hub_has_next_run_preview",
+          "status": "pass"
+        },
+        {
+          "name": "fresh_load_not_combat_first",
+          "status": "pass"
+        },
+        {
+          "name": "open_d1_from_hub",
+          "status": "pass"
+        },
+        {
+          "name": "d1_brief_or_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "d1_start_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "start_d1_run",
+          "status": "pass"
+        },
+        {
+          "name": "d1_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "d1_finish_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "complete_d1_run",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_visible",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_rewards_visible",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_shop_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "open_shop_from_settlement",
+          "status": "pass"
+        },
+        {
+          "name": "shop_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_card_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_card_in_shop_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_purchase_accessible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_purchase_in_shop_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "buy_stable_chain",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_owned_visible",
+          "status": "pass"
+        },
+        {
+          "name": "next_d1_action_after_buy_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "next_run_preview_after_buy_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_next_run_impact_visible",
+          "status": "pass"
+        },
+        {
+          "name": "reload_returns_to_hub",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_stable_chain",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_d1_clear",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_next_run_changes",
+          "status": "pass"
+        },
+        {
+          "name": "open_second_d1_from_reloaded_hub",
+          "status": "pass"
+        },
+        {
+          "name": "start_second_d1_after_reload",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_uses_stable_chain_after_reload",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_storage_records_stable_chain_run",
+          "status": "pass",
+          "detail": {
+            "storageKey": "vampire-crawlers.profile.v1",
+            "nextRunSequence": 3,
+            "selectedStarterKitId": "starter.stable_chain",
+            "selectedCrawlerId": "crawler.iron_monk",
+            "unlockedCrawlerIds": [
+              "crawler.blood_runner",
+              "crawler.iron_monk"
+            ],
+            "startedRun2": true,
+            "phaseEventCount": 7,
+            "ok": true
+          }
+        }
+      ],
+      "stageChecks": [
+        {
+          "stage": "hub",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/01-hub.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Brief",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/02-d1-brief.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Run",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/03-d1-run.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "settlement",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/04-settlement.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "shop",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/05-shop-before-buy.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "afterBuy",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/06-next-run-preview-after-buy.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "afterReload",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/07-after-browser-reload.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Run",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/08-second-d1-run-after-reload.png",
+          "status": "pass",
+          "failures": []
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-hub",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/01-hub.png",
+          "requirementStage": "hub",
+          "inspection": {
+            "stage": "hub",
+            "visibleTextSample": "红线清算局 远征中枢 声望 0 宝石 0 爬行者 血奔者 起手链 默认链 区域板 D1 已就绪 D1 D1 红线闸门 就绪 第一道闸门。清理后开放结算奖励。 D2 D2 分岔大厅 锁定 清理 D1 后选择分岔路线。 D3 D3 铁圣龛试炼 锁定 分岔开放后侦察这条路线。 D4 D4 灰烬污染门 锁定 分岔开放后侦察这条路线。 D5 D5 灰烬通行路 锁定 后续远征预览。穿过前面的闸门后解锁。 D6 D6 余烬接力站 锁定 后续远征预览。穿过前面的闸门后解锁。 D7 D7 精英灯叉 锁定 后续远征预览。穿过前面的闸门后解锁。 D8 D8 月下裂口 锁定 后续远征预览。穿过前面的闸门后解锁。 D9 D9 死神收费站 锁定 后续远征预览。穿过前面的闸门后解锁。 D10 D10 绯红王冠 锁定 后续远征预览。穿过前面的闸门后解锁。 下一次远征 D1 红线闸门 清理闸门，获得声望、宝石、商店入口，以及第一条起手升级路线。 准备 D1 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买 爬行者与起手链 当前配装 血奔者 已选择 铁僧 锁定 默认链 已选择 稳定链 锁定 打开商店",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "hub",
+            "requiredGroups": [
+              "hub",
+              "wallet",
+              "d1Entry",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "hub",
+                "candidates": [
+                  "long-loop-hub",
+                  "meta-hub",
+                  "hub-shell"
+                ],
+                "matched": [
+                  {
+                    "testid": "long-loop-hub",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "d1Entry",
+                "candidates": [
+                  "start-d1",
+                  "d1-entry",
+                  "district-d1-entry",
+                  "start-d1-entry"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "02-d1-brief",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/02-d1-brief.png",
+          "requirementStage": "d1Brief",
+          "inspection": {
+            "stage": "d1Brief",
+            "visibleTextSample": "红线清算局 D1 作战简报 声望 0 宝石 0 爬行者 血奔者 起手链 默认链 D1 简报 红线闸门 闸门契约 清理 D1，入账奖励，打开第一条起手升级。 穿过闸门后，先把结算奖励花出去，再进入下一次远征。 开始 D1 远征条件 预计通关奖励：+100 声望，+1 宝石。 清理 D1 会开放商店，并揭示稳定链起手路线。 起始牌组 债钩 红线斩 野性法力缝合 当前配装 血奔者 携带 默认链。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Brief",
+            "requiredGroups": [
+              "d1Brief",
+              "startD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Brief",
+                "candidates": [
+                  "d1-brief",
+                  "district-d1-brief",
+                  "district-d1-card",
+                  "run-brief"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-card",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "startD1Run",
+                "candidates": [
+                  "start-d1-run",
+                  "start-d1",
+                  "begin-d1-run"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "03-d1-run",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/03-d1-run.png",
+          "requirementStage": "d1Run",
+          "inspection": {
+            "stage": "d1Run",
+            "visibleTextSample": "D1 红线闸门 D1 交战中 血奔者 携带 默认链：债钩 / 红线斩 / 野性法力缝合。完成闸门，锁定结算奖励。 闸门 D1 红线 牌组 红线斩 + 野性法力缝合 奖励 +100 声望 / +1 宝石 完成 D1",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Run",
+            "requiredGroups": [
+              "d1Run",
+              "completeD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Run",
+                "candidates": [
+                  "district-d1-run",
+                  "d1-run",
+                  "run-screen"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-run",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "completeD1Run",
+                "candidates": [
+                  "complete-d1-run",
+                  "clear-d1-run",
+                  "finish-d1-run",
+                  "complete-d1"
+                ],
+                "matched": [
+                  {
+                    "testid": "complete-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "04-settlement",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/04-settlement.png",
+          "requirementStage": "settlement",
+          "inspection": {
+            "stage": "settlement",
+            "visibleTextSample": "红线清算局 结算 声望 100 宝石 1 爬行者 血奔者 起手链 默认链 结算 D1 已清理 获得声望 +100 回收宝石 +1 商店入口 已开放 地图推进 D2 已侦察 花费声望 返回中枢 商店现在上架稳定链，给后续 D1 尝试提供更稳的起手方案。 铁匠服务已露出；等你攒够声望，就能购买许可。 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "settlement",
+            "requiredGroups": [
+              "settlement",
+              "settlementRewards",
+              "settlementToShop"
+            ],
+            "present": [
+              {
+                "group": "settlement",
+                "candidates": [
+                  "settlement",
+                  "d1-settlement",
+                  "settlement-screen",
+                  "settlement-summary"
+                ],
+                "matched": [
+                  {
+                    "testid": "settlement-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "settlementRewards",
+                "candidates": [
+                  "settlement-rewards",
+                  "d1-clear-rewards",
+                  "reward-summary",
+                  "settlement-summary"
+                ],
+                "matched": [
+                  {
+                    "testid": "settlement-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "settlementToShop",
+                "candidates": [
+                  "settlement-to-shop",
+                  "open-shop",
+                  "go-to-shop",
+                  "nav-shop"
+                ],
+                "matched": [
+                  {
+                    "testid": "nav-shop",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "05-shop-before-buy",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/05-shop-before-buy.png",
+          "requirementStage": "shop",
+          "inspection": {
+            "stage": "shop",
+            "visibleTextSample": "红线清算局 远征商店 声望 100 宝石 1 爬行者 血奔者 起手链 默认链 远征商店 可用声望：100 起手链 稳定链 让铁僧带上更稳定的起手方案，直接影响下一次远征。 80 声望 购买 可以购买。 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买 铁匠服务 升阶许可 购买对应许可后，后续远征可使用这项铁匠服务。 60 声望 购买 可以购买。 铁匠服务 赤槽许可 购买对应许可后，后续远征可使用这项铁匠服务。 90 声望 购买 可以购买。 铁匠服务 重铸许可 购买对应许可后，后续远征可使用这项铁匠服务。 120 声望 声望不足 完成更多远征目标后显示。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "shop",
+            "requiredGroups": [
+              "shop",
+              "stableChainCard",
+              "buyStableChain"
+            ],
+            "present": [
+              {
+                "group": "shop",
+                "candidates": [
+                  "shop",
+                  "shop-screen",
+                  "shop-inventory"
+                ],
+                "matched": [
+                  {
+                    "testid": "shop-screen",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainCard",
+                "candidates": [
+                  "stable-chain-card",
+                  "shop-stable-chain",
+                  "shop-item-stable-chain",
+                  "starter-stable-chain-card"
+                ],
+                "matched": [
+                  {
+                    "testid": "shop-item-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "buyStableChain",
+                "candidates": [
+                  "buy-stable-chain",
+                  "purchase-stable-chain",
+                  "buy-stable-chain-starter"
+                ],
+                "matched": [
+                  {
+                    "testid": "buy-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "06-next-run-preview-after-buy",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/06-next-run-preview-after-buy.png",
+          "requirementStage": "afterBuy",
+          "inspection": {
+            "stage": "afterBuy",
+            "visibleTextSample": "红线清算局 远征商店 声望 20 宝石 1 爬行者 铁僧 起手链 稳定链 远征商店 可用声望：20 升级已锁定 稳定链已装备。铁僧已分配到稳定牌组；下一局会以野隙钥和断离爆发开局。 下一局已准备 稳定链已拥有。 花费 80 声望。铁僧已装上稳定牌组。 开始下一次 D1 声望 100 -> 20 牌组 野隙钥 + 断离爆发 爬行者 血奔者 -> 铁僧 起手链 默认链 -> 稳定链 下一局预览 D1 红线闸门 爬行者 铁僧 搭配稳定链 起手链 稳定链 起始牌组 债钩 / 野隙钥 / 断离爆发 稳定链 已装备。下一局从稳定起始牌组开始 起手链 稳定链 让铁僧带上更稳定的起手方案，直接影响下一次远征。 80 声望 已装备 已为下一次远征装备。 铁匠服务 升阶许可 购买对应许可后，后续远征可使用这项铁匠服务。 60 声望 声望不足 购买前需要更多声望。 铁匠服务 赤槽许可 购买对应许可后，后续远征可使用这项铁匠服务。 90 声望 声望不足 购买前需要更多声望。 铁匠服务 重铸许可 购买对应许可后，后续远征可使用这项铁匠服务。 120 声望 声望不足 购买前需要更多声望。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "afterBuy",
+            "requiredGroups": [
+              "wallet",
+              "stableChainOwned",
+              "nextD1Action",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainOwned",
+                "candidates": [
+                  "stable-chain-owned",
+                  "owned-stable-chain",
+                  "stable-chain-purchased",
+                  "shop-item-stable-chain"
+                ],
+                "matched": [
+                  {
+                    "testid": "stable-chain-owned",
+                    "count": 1,
+                    "visible": true
+                  },
+                  {
+                    "testid": "shop-item-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextD1Action",
+                "candidates": [
+                  "start-next-d1",
+                  "start-next-run",
+                  "next-d1-action"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-next-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "07-after-browser-reload",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/07-after-browser-reload.png",
+          "requirementStage": "afterReload",
+          "inspection": {
+            "stage": "afterReload",
+            "visibleTextSample": "红线清算局 远征中枢 声望 20 宝石 1 爬行者 铁僧 起手链 稳定链 区域板 D1 已就绪 D1 D1 红线闸门 就绪 第一道闸门。清理后开放结算奖励。 D2 D2 分岔大厅 已侦察 清理 D1 后选择分岔路线。 D3 D3 铁圣龛试炼 锁定 分岔开放后侦察这条路线。 D4 D4 灰烬污染门 锁定 分岔开放后侦察这条路线。 D5 D5 灰烬通行路 锁定 后续远征预览。穿过前面的闸门后解锁。 D6 D6 余烬接力站 锁定 后续远征预览。穿过前面的闸门后解锁。 D7 D7 精英灯叉 锁定 后续远征预览。穿过前面的闸门后解锁。 D8 D8 月下裂口 锁定 后续远征预览。穿过前面的闸门后解锁。 D9 D9 死神收费站 锁定 后续远征预览。穿过前面的闸门后解锁。 D10 D10 绯红王冠 锁定 后续远征预览。穿过前面的闸门后解锁。 下一次远征 D1 红线闸门 稳定链已为下一局装备。开局牌组会带上野隙钥和断离爆发。 准备 D1 D2 已侦察 商店 开放 存款 20 声望 / 1 宝石 下一步 测试稳定链，然后分岔 下一局预览 D1 红线闸门 爬行者 铁僧 搭配稳定链 起手链 稳定链 起始牌组 债钩 / 野隙钥 / 断离爆发 稳定链 已装备。下一局从稳定起始牌组开始 爬行者与起手链 当前配装 血奔者 可用 铁僧 已选择 默认链 可用 稳定链 已选择 打开商店",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "afterReload",
+            "requiredGroups": [
+              "hub",
+              "wallet",
+              "stableChainOwned",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "hub",
+                "candidates": [
+                  "long-loop-hub",
+                  "meta-hub",
+                  "hub-shell"
+                ],
+                "matched": [
+                  {
+                    "testid": "long-loop-hub",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainOwned",
+                "candidates": [
+                  "stable-chain-owned",
+                  "owned-stable-chain",
+                  "stable-chain-purchased",
+                  "shop-item-stable-chain"
+                ],
+                "matched": [
+                  {
+                    "testid": "stable-chain-owned",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "08-second-d1-run-after-reload",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/desktop/08-second-d1-run-after-reload.png",
+          "requirementStage": "d1Run",
+          "inspection": {
+            "stage": "d1Run",
+            "visibleTextSample": "D1 红线闸门 稳定链测试已开始 铁僧 正在使用存档里的稳定链：债钩 / 野隙钥 / 断离爆发。完成闸门，证明升级已生效。 闸门 D1 红线 新牌组 野隙钥 + 断离爆发 奖励 +100 声望 / +1 宝石 完成 D1",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 1366,
+              "documentScrollWidth": 1366,
+              "bodyScrollWidth": 1366,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Run",
+            "requiredGroups": [
+              "d1Run",
+              "completeD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Run",
+                "candidates": [
+                  "district-d1-run",
+                  "d1-run",
+                  "run-screen"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-run",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "completeD1Run",
+                "candidates": [
+                  "complete-d1-run",
+                  "clear-d1-run",
+                  "finish-d1-run",
+                  "complete-d1"
+                ],
+                "matched": [
+                  {
+                    "testid": "complete-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedGates": []
+    },
+    {
+      "viewport": {
+        "name": "mobile-390",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "flow": [
+        {
+          "name": "fresh_hub_visible",
+          "status": "pass"
+        },
+        {
+          "name": "hub_has_d1_entry",
+          "status": "pass"
+        },
+        {
+          "name": "hub_has_next_run_preview",
+          "status": "pass"
+        },
+        {
+          "name": "fresh_load_not_combat_first",
+          "status": "pass"
+        },
+        {
+          "name": "open_d1_from_hub",
+          "status": "pass"
+        },
+        {
+          "name": "d1_brief_or_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "d1_start_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "start_d1_run",
+          "status": "pass"
+        },
+        {
+          "name": "d1_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "d1_finish_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "complete_d1_run",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_visible",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_rewards_visible",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_shop_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "open_shop_from_settlement",
+          "status": "pass"
+        },
+        {
+          "name": "shop_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_card_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_card_in_shop_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_purchase_accessible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_purchase_in_shop_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "buy_stable_chain",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_owned_visible",
+          "status": "pass"
+        },
+        {
+          "name": "next_d1_action_after_buy_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "next_run_preview_after_buy_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_next_run_impact_visible",
+          "status": "pass"
+        },
+        {
+          "name": "reload_returns_to_hub",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_stable_chain",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_d1_clear",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_next_run_changes",
+          "status": "pass"
+        },
+        {
+          "name": "open_second_d1_from_reloaded_hub",
+          "status": "pass"
+        },
+        {
+          "name": "start_second_d1_after_reload",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_uses_stable_chain_after_reload",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_storage_records_stable_chain_run",
+          "status": "pass",
+          "detail": {
+            "storageKey": "vampire-crawlers.profile.v1",
+            "nextRunSequence": 3,
+            "selectedStarterKitId": "starter.stable_chain",
+            "selectedCrawlerId": "crawler.iron_monk",
+            "unlockedCrawlerIds": [
+              "crawler.blood_runner",
+              "crawler.iron_monk"
+            ],
+            "startedRun2": true,
+            "phaseEventCount": 7,
+            "ok": true
+          }
+        }
+      ],
+      "stageChecks": [
+        {
+          "stage": "hub",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/01-hub.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Brief",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/02-d1-brief.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Run",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/03-d1-run.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "settlement",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/04-settlement.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "shop",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/05-shop-before-buy.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "afterBuy",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/06-next-run-preview-after-buy.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "afterReload",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/07-after-browser-reload.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Run",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/08-second-d1-run-after-reload.png",
+          "status": "pass",
+          "failures": []
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-hub",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/01-hub.png",
+          "requirementStage": "hub",
+          "inspection": {
+            "stage": "hub",
+            "visibleTextSample": "红线清算局 远征中枢 声望 0 宝石 0 爬行者 血奔者 起手链 默认链 区域板 D1 已就绪 D1 D1 红线闸门 就绪 第一道闸门。清理后开放结算奖励。 D2 D2 分岔大厅 锁定 清理 D1 后选择分岔路线。 D3 D3 铁圣龛试炼 锁定 分岔开放后侦察这条路线。 D4 D4 灰烬污染门 锁定 分岔开放后侦察这条路线。 D5 D5 灰烬通行路 锁定 后续远征预览。穿过前面的闸门后解锁。 D6 D6 余烬接力站 锁定 后续远征预览。穿过前面的闸门后解锁。 D7 D7 精英灯叉 锁定 后续远征预览。穿过前面的闸门后解锁。 D8 D8 月下裂口 锁定 后续远征预览。穿过前面的闸门后解锁。 D9 D9 死神收费站 锁定 后续远征预览。穿过前面的闸门后解锁。 D10 D10 绯红王冠 锁定 后续远征预览。穿过前面的闸门后解锁。 下一次远征 D1 红线闸门 清理闸门，获得声望、宝石、商店入口，以及第一条起手升级路线。 准备 D1 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买 爬行者与起手链 当前配装 血奔者 已选择 铁僧 锁定 默认链 已选择 稳定链 锁定 打开商店",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "hub",
+            "requiredGroups": [
+              "hub",
+              "wallet",
+              "d1Entry",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "hub",
+                "candidates": [
+                  "long-loop-hub",
+                  "meta-hub",
+                  "hub-shell"
+                ],
+                "matched": [
+                  {
+                    "testid": "long-loop-hub",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "d1Entry",
+                "candidates": [
+                  "start-d1",
+                  "d1-entry",
+                  "district-d1-entry",
+                  "start-d1-entry"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "02-d1-brief",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/02-d1-brief.png",
+          "requirementStage": "d1Brief",
+          "inspection": {
+            "stage": "d1Brief",
+            "visibleTextSample": "红线清算局 D1 作战简报 声望 0 宝石 0 爬行者 血奔者 起手链 默认链 D1 简报 红线闸门 闸门契约 清理 D1，入账奖励，打开第一条起手升级。 穿过闸门后，先把结算奖励花出去，再进入下一次远征。 开始 D1 远征条件 预计通关奖励：+100 声望，+1 宝石。 清理 D1 会开放商店，并揭示稳定链起手路线。 起始牌组 债钩 红线斩 野性法力缝合 当前配装 血奔者 携带 默认链。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Brief",
+            "requiredGroups": [
+              "d1Brief",
+              "startD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Brief",
+                "candidates": [
+                  "d1-brief",
+                  "district-d1-brief",
+                  "district-d1-card",
+                  "run-brief"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-card",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "startD1Run",
+                "candidates": [
+                  "start-d1-run",
+                  "start-d1",
+                  "begin-d1-run"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "03-d1-run",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/03-d1-run.png",
+          "requirementStage": "d1Run",
+          "inspection": {
+            "stage": "d1Run",
+            "visibleTextSample": "D1 红线闸门 D1 交战中 血奔者 携带 默认链：债钩 / 红线斩 / 野性法力缝合。完成闸门，锁定结算奖励。 闸门 D1 红线 牌组 红线斩 + 野性法力缝合 奖励 +100 声望 / +1 宝石 完成 D1",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Run",
+            "requiredGroups": [
+              "d1Run",
+              "completeD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Run",
+                "candidates": [
+                  "district-d1-run",
+                  "d1-run",
+                  "run-screen"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-run",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "completeD1Run",
+                "candidates": [
+                  "complete-d1-run",
+                  "clear-d1-run",
+                  "finish-d1-run",
+                  "complete-d1"
+                ],
+                "matched": [
+                  {
+                    "testid": "complete-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "04-settlement",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/04-settlement.png",
+          "requirementStage": "settlement",
+          "inspection": {
+            "stage": "settlement",
+            "visibleTextSample": "红线清算局 结算 声望 100 宝石 1 爬行者 血奔者 起手链 默认链 结算 D1 已清理 获得声望 +100 回收宝石 +1 商店入口 已开放 地图推进 D2 已侦察 花费声望 返回中枢 商店现在上架稳定链，给后续 D1 尝试提供更稳的起手方案。 铁匠服务已露出；等你攒够声望，就能购买许可。 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "settlement",
+            "requiredGroups": [
+              "settlement",
+              "settlementRewards",
+              "settlementToShop"
+            ],
+            "present": [
+              {
+                "group": "settlement",
+                "candidates": [
+                  "settlement",
+                  "d1-settlement",
+                  "settlement-screen",
+                  "settlement-summary"
+                ],
+                "matched": [
+                  {
+                    "testid": "settlement-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "settlementRewards",
+                "candidates": [
+                  "settlement-rewards",
+                  "d1-clear-rewards",
+                  "reward-summary",
+                  "settlement-summary"
+                ],
+                "matched": [
+                  {
+                    "testid": "settlement-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "settlementToShop",
+                "candidates": [
+                  "settlement-to-shop",
+                  "open-shop",
+                  "go-to-shop",
+                  "nav-shop"
+                ],
+                "matched": [
+                  {
+                    "testid": "nav-shop",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "05-shop-before-buy",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/05-shop-before-buy.png",
+          "requirementStage": "shop",
+          "inspection": {
+            "stage": "shop",
+            "visibleTextSample": "红线清算局 远征商店 声望 100 宝石 1 爬行者 血奔者 起手链 默认链 远征商店 可用声望：100 起手链 稳定链 让铁僧带上更稳定的起手方案，直接影响下一次远征。 80 声望 购买 可以购买。 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买 铁匠服务 升阶许可 购买对应许可后，后续远征可使用这项铁匠服务。 60 声望 购买 可以购买。 铁匠服务 赤槽许可 购买对应许可后，后续远征可使用这项铁匠服务。 90 声望 购买 可以购买。 铁匠服务 重铸许可 购买对应许可后，后续远征可使用这项铁匠服务。 120 声望 声望不足 完成更多远征目标后显示。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "shop",
+            "requiredGroups": [
+              "shop",
+              "stableChainCard",
+              "buyStableChain"
+            ],
+            "present": [
+              {
+                "group": "shop",
+                "candidates": [
+                  "shop",
+                  "shop-screen",
+                  "shop-inventory"
+                ],
+                "matched": [
+                  {
+                    "testid": "shop-screen",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainCard",
+                "candidates": [
+                  "stable-chain-card",
+                  "shop-stable-chain",
+                  "shop-item-stable-chain",
+                  "starter-stable-chain-card"
+                ],
+                "matched": [
+                  {
+                    "testid": "shop-item-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "buyStableChain",
+                "candidates": [
+                  "buy-stable-chain",
+                  "purchase-stable-chain",
+                  "buy-stable-chain-starter"
+                ],
+                "matched": [
+                  {
+                    "testid": "buy-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "06-next-run-preview-after-buy",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/06-next-run-preview-after-buy.png",
+          "requirementStage": "afterBuy",
+          "inspection": {
+            "stage": "afterBuy",
+            "visibleTextSample": "红线清算局 远征商店 声望 20 宝石 1 爬行者 铁僧 起手链 稳定链 远征商店 可用声望：20 升级已锁定 稳定链已装备。铁僧已分配到稳定牌组；下一局会以野隙钥和断离爆发开局。 下一局已准备 稳定链已拥有。 花费 80 声望。铁僧已装上稳定牌组。 开始下一次 D1 声望 100 -> 20 牌组 野隙钥 + 断离爆发 爬行者 血奔者 -> 铁僧 起手链 默认链 -> 稳定链 下一局预览 D1 红线闸门 爬行者 铁僧 搭配稳定链 起手链 稳定链 起始牌组 债钩 / 野隙钥 / 断离爆发 稳定链 已装备。下一局从稳定起始牌组开始 起手链 稳定链 让铁僧带上更稳定的起手方案，直接影响下一次远征。 80 声望 已装备 已为下一次远征装备。 铁匠服务 升阶许可 购买对应许可后，后续远征可使用这项铁匠服务。 60 声望 声望不足 购买前需要更多声望。 铁匠服务 赤槽许可 购买对应许可后，后续远征可使用这项铁匠服务。 90 声望 声望不足 购买前需要更多声望。 铁匠服务 重铸许可 购买对应许可后，后续远征可使用这项铁匠服务。 120 声望 声望不足 购买前需要更多声望。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "afterBuy",
+            "requiredGroups": [
+              "wallet",
+              "stableChainOwned",
+              "nextD1Action",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainOwned",
+                "candidates": [
+                  "stable-chain-owned",
+                  "owned-stable-chain",
+                  "stable-chain-purchased",
+                  "shop-item-stable-chain"
+                ],
+                "matched": [
+                  {
+                    "testid": "stable-chain-owned",
+                    "count": 1,
+                    "visible": true
+                  },
+                  {
+                    "testid": "shop-item-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextD1Action",
+                "candidates": [
+                  "start-next-d1",
+                  "start-next-run",
+                  "next-d1-action"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-next-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "07-after-browser-reload",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/07-after-browser-reload.png",
+          "requirementStage": "afterReload",
+          "inspection": {
+            "stage": "afterReload",
+            "visibleTextSample": "红线清算局 远征中枢 声望 20 宝石 1 爬行者 铁僧 起手链 稳定链 区域板 D1 已就绪 D1 D1 红线闸门 就绪 第一道闸门。清理后开放结算奖励。 D2 D2 分岔大厅 已侦察 清理 D1 后选择分岔路线。 D3 D3 铁圣龛试炼 锁定 分岔开放后侦察这条路线。 D4 D4 灰烬污染门 锁定 分岔开放后侦察这条路线。 D5 D5 灰烬通行路 锁定 后续远征预览。穿过前面的闸门后解锁。 D6 D6 余烬接力站 锁定 后续远征预览。穿过前面的闸门后解锁。 D7 D7 精英灯叉 锁定 后续远征预览。穿过前面的闸门后解锁。 D8 D8 月下裂口 锁定 后续远征预览。穿过前面的闸门后解锁。 D9 D9 死神收费站 锁定 后续远征预览。穿过前面的闸门后解锁。 D10 D10 绯红王冠 锁定 后续远征预览。穿过前面的闸门后解锁。 下一次远征 D1 红线闸门 稳定链已为下一局装备。开局牌组会带上野隙钥和断离爆发。 准备 D1 D2 已侦察 商店 开放 存款 20 声望 / 1 宝石 下一步 测试稳定链，然后分岔 下一局预览 D1 红线闸门 爬行者 铁僧 搭配稳定链 起手链 稳定链 起始牌组 债钩 / 野隙钥 / 断离爆发 稳定链 已装备。下一局从稳定起始牌组开始 爬行者与起手链 当前配装 血奔者 可用 铁僧 已选择 默认链 可用 稳定链 已选择 打开商店",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "afterReload",
+            "requiredGroups": [
+              "hub",
+              "wallet",
+              "stableChainOwned",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "hub",
+                "candidates": [
+                  "long-loop-hub",
+                  "meta-hub",
+                  "hub-shell"
+                ],
+                "matched": [
+                  {
+                    "testid": "long-loop-hub",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainOwned",
+                "candidates": [
+                  "stable-chain-owned",
+                  "owned-stable-chain",
+                  "stable-chain-purchased",
+                  "shop-item-stable-chain"
+                ],
+                "matched": [
+                  {
+                    "testid": "stable-chain-owned",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "08-second-d1-run-after-reload",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-390/08-second-d1-run-after-reload.png",
+          "requirementStage": "d1Run",
+          "inspection": {
+            "stage": "d1Run",
+            "visibleTextSample": "D1 红线闸门 稳定链测试已开始 铁僧 正在使用存档里的稳定链：债钩 / 野隙钥 / 断离爆发。完成闸门，证明升级已生效。 闸门 D1 红线 新牌组 野隙钥 + 断离爆发 奖励 +100 声望 / +1 宝石 完成 D1",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 390,
+              "documentScrollWidth": 390,
+              "bodyScrollWidth": 390,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Run",
+            "requiredGroups": [
+              "d1Run",
+              "completeD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Run",
+                "candidates": [
+                  "district-d1-run",
+                  "d1-run",
+                  "run-screen"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-run",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "completeD1Run",
+                "candidates": [
+                  "complete-d1-run",
+                  "clear-d1-run",
+                  "finish-d1-run",
+                  "complete-d1"
+                ],
+                "matched": [
+                  {
+                    "testid": "complete-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedGates": []
+    },
+    {
+      "viewport": {
+        "name": "mobile-360",
+        "width": 360,
+        "height": 640
+      },
+      "status": "pass",
+      "flow": [
+        {
+          "name": "fresh_hub_visible",
+          "status": "pass"
+        },
+        {
+          "name": "hub_has_d1_entry",
+          "status": "pass"
+        },
+        {
+          "name": "hub_has_next_run_preview",
+          "status": "pass"
+        },
+        {
+          "name": "fresh_load_not_combat_first",
+          "status": "pass"
+        },
+        {
+          "name": "open_d1_from_hub",
+          "status": "pass"
+        },
+        {
+          "name": "d1_brief_or_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "d1_start_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "start_d1_run",
+          "status": "pass"
+        },
+        {
+          "name": "d1_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "d1_finish_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "complete_d1_run",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_visible",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_rewards_visible",
+          "status": "pass"
+        },
+        {
+          "name": "settlement_shop_action_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "open_shop_from_settlement",
+          "status": "pass"
+        },
+        {
+          "name": "shop_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_card_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_card_in_shop_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_purchase_accessible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_purchase_in_shop_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "buy_stable_chain",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_owned_visible",
+          "status": "pass"
+        },
+        {
+          "name": "next_d1_action_after_buy_in_first_view",
+          "status": "pass"
+        },
+        {
+          "name": "next_run_preview_after_buy_visible",
+          "status": "pass"
+        },
+        {
+          "name": "stable_chain_next_run_impact_visible",
+          "status": "pass"
+        },
+        {
+          "name": "reload_returns_to_hub",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_stable_chain",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_d1_clear",
+          "status": "pass"
+        },
+        {
+          "name": "reload_preserves_next_run_changes",
+          "status": "pass"
+        },
+        {
+          "name": "open_second_d1_from_reloaded_hub",
+          "status": "pass"
+        },
+        {
+          "name": "start_second_d1_after_reload",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_run_visible",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_uses_stable_chain_after_reload",
+          "status": "pass"
+        },
+        {
+          "name": "second_d1_storage_records_stable_chain_run",
+          "status": "pass",
+          "detail": {
+            "storageKey": "vampire-crawlers.profile.v1",
+            "nextRunSequence": 3,
+            "selectedStarterKitId": "starter.stable_chain",
+            "selectedCrawlerId": "crawler.iron_monk",
+            "unlockedCrawlerIds": [
+              "crawler.blood_runner",
+              "crawler.iron_monk"
+            ],
+            "startedRun2": true,
+            "phaseEventCount": 7,
+            "ok": true
+          }
+        }
+      ],
+      "stageChecks": [
+        {
+          "stage": "hub",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/01-hub.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Brief",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/02-d1-brief.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Run",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/03-d1-run.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "settlement",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/04-settlement.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "shop",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/05-shop-before-buy.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "afterBuy",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/06-next-run-preview-after-buy.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "afterReload",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/07-after-browser-reload.png",
+          "status": "pass",
+          "failures": []
+        },
+        {
+          "stage": "d1Run",
+          "screenshot": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/08-second-d1-run-after-reload.png",
+          "status": "pass",
+          "failures": []
+        }
+      ],
+      "screenshots": [
+        {
+          "name": "01-hub",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/01-hub.png",
+          "requirementStage": "hub",
+          "inspection": {
+            "stage": "hub",
+            "visibleTextSample": "红线清算局 远征中枢 声望 0 宝石 0 爬行者 血奔者 起手链 默认链 区域板 D1 已就绪 D1 D1 红线闸门 就绪 第一道闸门。清理后开放结算奖励。 D2 D2 分岔大厅 锁定 清理 D1 后选择分岔路线。 D3 D3 铁圣龛试炼 锁定 分岔开放后侦察这条路线。 D4 D4 灰烬污染门 锁定 分岔开放后侦察这条路线。 D5 D5 灰烬通行路 锁定 后续远征预览。穿过前面的闸门后解锁。 D6 D6 余烬接力站 锁定 后续远征预览。穿过前面的闸门后解锁。 D7 D7 精英灯叉 锁定 后续远征预览。穿过前面的闸门后解锁。 D8 D8 月下裂口 锁定 后续远征预览。穿过前面的闸门后解锁。 D9 D9 死神收费站 锁定 后续远征预览。穿过前面的闸门后解锁。 D10 D10 绯红王冠 锁定 后续远征预览。穿过前面的闸门后解锁。 下一次远征 D1 红线闸门 清理闸门，获得声望、宝石、商店入口，以及第一条起手升级路线。 准备 D1 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买 爬行者与起手链 当前配装 血奔者 已选择 铁僧 锁定 默认链 已选择 稳定链 锁定 打开商店",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "hub",
+            "requiredGroups": [
+              "hub",
+              "wallet",
+              "d1Entry",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "hub",
+                "candidates": [
+                  "long-loop-hub",
+                  "meta-hub",
+                  "hub-shell"
+                ],
+                "matched": [
+                  {
+                    "testid": "long-loop-hub",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "d1Entry",
+                "candidates": [
+                  "start-d1",
+                  "d1-entry",
+                  "district-d1-entry",
+                  "start-d1-entry"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "02-d1-brief",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/02-d1-brief.png",
+          "requirementStage": "d1Brief",
+          "inspection": {
+            "stage": "d1Brief",
+            "visibleTextSample": "红线清算局 D1 作战简报 声望 0 宝石 0 爬行者 血奔者 起手链 默认链 D1 简报 红线闸门 闸门契约 清理 D1，入账奖励，打开第一条起手升级。 穿过闸门后，先把结算奖励花出去，再进入下一次远征。 开始 D1 远征条件 预计通关奖励：+100 声望，+1 宝石。 清理 D1 会开放商店，并揭示稳定链起手路线。 起始牌组 债钩 红线斩 野性法力缝合 当前配装 血奔者 携带 默认链。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Brief",
+            "requiredGroups": [
+              "d1Brief",
+              "startD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Brief",
+                "candidates": [
+                  "d1-brief",
+                  "district-d1-brief",
+                  "district-d1-card",
+                  "run-brief"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-card",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "startD1Run",
+                "candidates": [
+                  "start-d1-run",
+                  "start-d1",
+                  "begin-d1-run"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "03-d1-run",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/03-d1-run.png",
+          "requirementStage": "d1Run",
+          "inspection": {
+            "stage": "d1Run",
+            "visibleTextSample": "D1 红线闸门 D1 交战中 血奔者 携带 默认链：债钩 / 红线斩 / 野性法力缝合。完成闸门，锁定结算奖励。 闸门 D1 红线 牌组 红线斩 + 野性法力缝合 奖励 +100 声望 / +1 宝石 完成 D1",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Run",
+            "requiredGroups": [
+              "d1Run",
+              "completeD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Run",
+                "candidates": [
+                  "district-d1-run",
+                  "d1-run",
+                  "run-screen"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-run",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "completeD1Run",
+                "candidates": [
+                  "complete-d1-run",
+                  "clear-d1-run",
+                  "finish-d1-run",
+                  "complete-d1"
+                ],
+                "matched": [
+                  {
+                    "testid": "complete-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "04-settlement",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/04-settlement.png",
+          "requirementStage": "settlement",
+          "inspection": {
+            "stage": "settlement",
+            "visibleTextSample": "红线清算局 结算 声望 100 宝石 1 爬行者 血奔者 起手链 默认链 结算 D1 已清理 获得声望 +100 回收宝石 +1 商店入口 已开放 地图推进 D2 已侦察 花费声望 返回中枢 商店现在上架稳定链，给后续 D1 尝试提供更稳的起手方案。 铁匠服务已露出；等你攒够声望，就能购买许可。 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "settlement",
+            "requiredGroups": [
+              "settlement",
+              "settlementRewards",
+              "settlementToShop"
+            ],
+            "present": [
+              {
+                "group": "settlement",
+                "candidates": [
+                  "settlement",
+                  "d1-settlement",
+                  "settlement-screen",
+                  "settlement-summary"
+                ],
+                "matched": [
+                  {
+                    "testid": "settlement-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "settlementRewards",
+                "candidates": [
+                  "settlement-rewards",
+                  "d1-clear-rewards",
+                  "reward-summary",
+                  "settlement-summary"
+                ],
+                "matched": [
+                  {
+                    "testid": "settlement-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "settlementToShop",
+                "candidates": [
+                  "settlement-to-shop",
+                  "open-shop",
+                  "go-to-shop",
+                  "nav-shop"
+                ],
+                "matched": [
+                  {
+                    "testid": "nav-shop",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "05-shop-before-buy",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/05-shop-before-buy.png",
+          "requirementStage": "shop",
+          "inspection": {
+            "stage": "shop",
+            "visibleTextSample": "红线清算局 远征商店 声望 100 宝石 1 爬行者 血奔者 起手链 默认链 远征商店 可用声望：100 起手链 稳定链 让铁僧带上更稳定的起手方案，直接影响下一次远征。 80 声望 购买 可以购买。 下一局预览 D1 红线闸门 爬行者 血奔者 起手链 默认链 起始牌组 债钩 / 红线斩 / 野性法力缝合 稳定链 清理 D1 后可购买 铁匠服务 升阶许可 购买对应许可后，后续远征可使用这项铁匠服务。 60 声望 购买 可以购买。 铁匠服务 赤槽许可 购买对应许可后，后续远征可使用这项铁匠服务。 90 声望 购买 可以购买。 铁匠服务 重铸许可 购买对应许可后，后续远征可使用这项铁匠服务。 120 声望 声望不足 完成更多远征目标后显示。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "shop",
+            "requiredGroups": [
+              "shop",
+              "stableChainCard",
+              "buyStableChain"
+            ],
+            "present": [
+              {
+                "group": "shop",
+                "candidates": [
+                  "shop",
+                  "shop-screen",
+                  "shop-inventory"
+                ],
+                "matched": [
+                  {
+                    "testid": "shop-screen",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainCard",
+                "candidates": [
+                  "stable-chain-card",
+                  "shop-stable-chain",
+                  "shop-item-stable-chain",
+                  "starter-stable-chain-card"
+                ],
+                "matched": [
+                  {
+                    "testid": "shop-item-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "buyStableChain",
+                "candidates": [
+                  "buy-stable-chain",
+                  "purchase-stable-chain",
+                  "buy-stable-chain-starter"
+                ],
+                "matched": [
+                  {
+                    "testid": "buy-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "06-next-run-preview-after-buy",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/06-next-run-preview-after-buy.png",
+          "requirementStage": "afterBuy",
+          "inspection": {
+            "stage": "afterBuy",
+            "visibleTextSample": "红线清算局 远征商店 声望 20 宝石 1 爬行者 铁僧 起手链 稳定链 远征商店 可用声望：20 升级已锁定 稳定链已装备。铁僧已分配到稳定牌组；下一局会以野隙钥和断离爆发开局。 下一局已准备 稳定链已拥有。 花费 80 声望。铁僧已装上稳定牌组。 开始下一次 D1 声望 100 -> 20 牌组 野隙钥 + 断离爆发 爬行者 血奔者 -> 铁僧 起手链 默认链 -> 稳定链 下一局预览 D1 红线闸门 爬行者 铁僧 搭配稳定链 起手链 稳定链 起始牌组 债钩 / 野隙钥 / 断离爆发 稳定链 已装备。下一局从稳定起始牌组开始 起手链 稳定链 让铁僧带上更稳定的起手方案，直接影响下一次远征。 80 声望 已装备 已为下一次远征装备。 铁匠服务 升阶许可 购买对应许可后，后续远征可使用这项铁匠服务。 60 声望 声望不足 购买前需要更多声望。 铁匠服务 赤槽许可 购买对应许可后，后续远征可使用这项铁匠服务。 90 声望 声望不足 购买前需要更多声望。 铁匠服务 重铸许可 购买对应许可后，后续远征可使用这项铁匠服务。 120 声望 声望不足 购买前需要更多声望。 返回中枢",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "afterBuy",
+            "requiredGroups": [
+              "wallet",
+              "stableChainOwned",
+              "nextD1Action",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainOwned",
+                "candidates": [
+                  "stable-chain-owned",
+                  "owned-stable-chain",
+                  "stable-chain-purchased",
+                  "shop-item-stable-chain"
+                ],
+                "matched": [
+                  {
+                    "testid": "stable-chain-owned",
+                    "count": 1,
+                    "visible": true
+                  },
+                  {
+                    "testid": "shop-item-stable-chain",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextD1Action",
+                "candidates": [
+                  "start-next-d1",
+                  "start-next-run",
+                  "next-d1-action"
+                ],
+                "matched": [
+                  {
+                    "testid": "start-next-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "07-after-browser-reload",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/07-after-browser-reload.png",
+          "requirementStage": "afterReload",
+          "inspection": {
+            "stage": "afterReload",
+            "visibleTextSample": "红线清算局 远征中枢 声望 20 宝石 1 爬行者 铁僧 起手链 稳定链 区域板 D1 已就绪 D1 D1 红线闸门 就绪 第一道闸门。清理后开放结算奖励。 D2 D2 分岔大厅 已侦察 清理 D1 后选择分岔路线。 D3 D3 铁圣龛试炼 锁定 分岔开放后侦察这条路线。 D4 D4 灰烬污染门 锁定 分岔开放后侦察这条路线。 D5 D5 灰烬通行路 锁定 后续远征预览。穿过前面的闸门后解锁。 D6 D6 余烬接力站 锁定 后续远征预览。穿过前面的闸门后解锁。 D7 D7 精英灯叉 锁定 后续远征预览。穿过前面的闸门后解锁。 D8 D8 月下裂口 锁定 后续远征预览。穿过前面的闸门后解锁。 D9 D9 死神收费站 锁定 后续远征预览。穿过前面的闸门后解锁。 D10 D10 绯红王冠 锁定 后续远征预览。穿过前面的闸门后解锁。 下一次远征 D1 红线闸门 稳定链已为下一局装备。开局牌组会带上野隙钥和断离爆发。 准备 D1 D2 已侦察 商店 开放 存款 20 声望 / 1 宝石 下一步 测试稳定链，然后分岔 下一局预览 D1 红线闸门 爬行者 铁僧 搭配稳定链 起手链 稳定链 起始牌组 债钩 / 野隙钥 / 断离爆发 稳定链 已装备。下一局从稳定起始牌组开始 爬行者与起手链 当前配装 血奔者 可用 铁僧 已选择 默认链 可用 稳定链 已选择 打开商店",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "afterReload",
+            "requiredGroups": [
+              "hub",
+              "wallet",
+              "stableChainOwned",
+              "nextRunPreview"
+            ],
+            "present": [
+              {
+                "group": "hub",
+                "candidates": [
+                  "long-loop-hub",
+                  "meta-hub",
+                  "hub-shell"
+                ],
+                "matched": [
+                  {
+                    "testid": "long-loop-hub",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "wallet",
+                "candidates": [
+                  "long-loop-wallet",
+                  "wallet-summary",
+                  "hub-wallet"
+                ],
+                "matched": [
+                  {
+                    "testid": "wallet-summary",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "stableChainOwned",
+                "candidates": [
+                  "stable-chain-owned",
+                  "owned-stable-chain",
+                  "stable-chain-purchased",
+                  "shop-item-stable-chain"
+                ],
+                "matched": [
+                  {
+                    "testid": "stable-chain-owned",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "nextRunPreview",
+                "candidates": [
+                  "next-run-preview",
+                  "next-run-summary",
+                  "run-preview"
+                ],
+                "matched": [
+                  {
+                    "testid": "next-run-preview",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        },
+        {
+          "name": "08-second-d1-run-after-reload",
+          "path": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/mobile-360/08-second-d1-run-after-reload.png",
+          "requirementStage": "d1Run",
+          "inspection": {
+            "stage": "d1Run",
+            "visibleTextSample": "D1 红线闸门 稳定链测试已开始 铁僧 正在使用存档里的稳定链：债钩 / 野隙钥 / 断离爆发。完成闸门，证明升级已生效。 闸门 D1 红线 新牌组 野隙钥 + 断离爆发 奖励 +100 声望 / +1 宝石 完成 D1",
+            "bannedVisibleTerms": [],
+            "frameworkOverlays": [],
+            "horizontalOverflow": {
+              "detected": false,
+              "viewportWidth": 360,
+              "documentScrollWidth": 360,
+              "bodyScrollWidth": 360,
+              "offenders": []
+            },
+            "failures": []
+          },
+          "testidCheck": {
+            "stage": "d1Run",
+            "requiredGroups": [
+              "d1Run",
+              "completeD1Run"
+            ],
+            "present": [
+              {
+                "group": "d1Run",
+                "candidates": [
+                  "district-d1-run",
+                  "d1-run",
+                  "run-screen"
+                ],
+                "matched": [
+                  {
+                    "testid": "district-d1-run",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "group": "completeD1Run",
+                "candidates": [
+                  "complete-d1-run",
+                  "clear-d1-run",
+                  "finish-d1-run",
+                  "complete-d1"
+                ],
+                "matched": [
+                  {
+                    "testid": "complete-d1",
+                    "count": 1,
+                    "visible": true
+                  }
+                ]
+              }
+            ],
+            "missing": []
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedGates": []
+    }
+  ],
+  "errors": [],
+  "cleanup": {
+    "pagesClosed": 3,
+    "contextsClosed": 3,
+    "browserClosed": true,
+    "serverStopped": false,
+    "errors": []
+  },
+  "gates": {
+    "browserProofPresent": true,
+    "allViewportsPassed": true,
+    "noScriptErrors": true,
+    "viewportResults": [
+      {
+        "viewport": "desktop",
+        "status": "pass",
+        "failedGateCount": 0
+      },
+      {
+        "viewport": "mobile-390",
+        "status": "pass",
+        "failedGateCount": 0
+      },
+      {
+        "viewport": "mobile-360",
+        "status": "pass",
+        "failedGateCount": 0
+      }
+    ]
+  },
+  "gateScore": {
+    "passed": 3,
+    "total": 3
+  },
+  "outputFile": "/Users/roc/Game-001/.worktrees/vampire-long-loop-p0/prototype-web/outputs/long-loop/browser-p0-latest/browser-proof.json",
+  "finishedAt": "2026-05-29T00:13:19.806Z"
+}

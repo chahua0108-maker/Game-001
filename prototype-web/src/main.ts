@@ -5,7 +5,7 @@ import { buildSnapshot } from './sim/snapshot';
 import { tickWorld } from './sim/runtime';
 import { createInitialWorld } from './sim/world';
 import { Hud } from './ui/hud';
-import { LongLoopPanel } from './ui/longLoopPanel';
+import { MetaLongLoopApp } from './ui/metaLongLoopApp';
 import { createInitialActivityState } from './sim/activity';
 import type { Intent } from './sim/types';
 
@@ -24,7 +24,12 @@ const hud = new Hud(hudRoot, (intent) => pendingIntents.push(intent));
 const longLoopRoot = document.createElement('div');
 longLoopRoot.id = 'long-loop-root';
 appRoot.append(longLoopRoot);
-new LongLoopPanel(longLoopRoot).render();
+appRoot.classList.add('meta-shell-active');
+new MetaLongLoopApp(longLoopRoot, {
+  onCombatVisibilityChange(isVisible) {
+    appRoot.classList.toggle('district-run-active', isVisible);
+  }
+}).render();
 
 bindKeyboard(() => world.player.hand, (intent) => pendingIntents.push(intent));
 
